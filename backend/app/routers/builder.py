@@ -85,6 +85,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
         if m and m not in candidates:
             candidates.append(m)
     errs: List[str] = []
+    last_err: str = "brak dostępnych modeli"
     for mdl in candidates[:5]:
         # wariant A: tryb JSON; wariant B: zwykly tekst (gdyby model nie wspieral mime)
         for use_json_mime in (True, False):

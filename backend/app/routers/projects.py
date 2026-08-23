@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from ..database import get_db
 from ..models import Project
 from ..auth import get_current_user, require_owner
-import subprocess
-import os
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
@@ -35,8 +34,12 @@ def create_project(proj: ProjectCreate, db: Session = Depends(get_db), current_u
         content=proj.content
     )
     db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
+    try:
+        db.commit()
+        db.refresh(db_project)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Projekt z taką domeną już istnieje")
     return db_project
 
 @router.post("/{project_id}/export-github")
@@ -46,12 +49,18 @@ def export_to_github(project_id: int, data: GitHubExport, db: Session = Depends(
         raise HTTPException(status_code=404, detail="Projekt nie znaleziony")
     require_owner(project.owner_id, current_user)
     
-    # Symulacja integracji z GitHubem / Zapis repozytorium
+    # Symulacja integracji z GitHubem — token jest przyjmowany, ale na razie
+    # nieużywany (brak realnego tworzenia repo); zapisujemy tylko URL.
     project.github_repo = f"https://github.com/sitemorph-user/{data.repo_name}"
-    db.commit()
-    
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Nie udało się zapisać projektu")
+
     return {
-        "status": "success", 
+        "status": "success",
         "message": f"Projekt pomyslnie wyeksportowany do repozytorium: {project.github_repo}",
-        "repo_url": project.github_repo
+        "repo_url": project.github_repo,
+        "warning": "Eksport jest obecnie symulacją — repozytorium nie zostało faktycznie utworzone na GitHubie",
     }

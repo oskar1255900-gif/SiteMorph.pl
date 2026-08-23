@@ -1,5 +1,6 @@
 ﻿from fastapi import APIRouter, Query
 import requests
+import os
 import time
 import re
 import json
@@ -381,6 +382,45 @@ def _warm_cache():
             print("[SiteMorph][warm] wszystkie kraje gotowe", flush=True)
             return
         time.sleep(300)
+
+
+def _fetch_and_cache(country: str):
+    """Pobiera pełną listę miejscowości kraju z Overpass i zapisuje cache
+    (pamięć + dysk). Wywoływana w wątku tła, gdy brak cache przy zapytaniu."""
+    area_id = COUNTRY_AREA.get(country)
+    if not area_id:
+        _fetching.discard(country)
+        return
+    try:
+        query = (
+            "[out:json][timeout:120];"
+            f"area({area_id})->.searchArea;"
+            "("
+            'nwr["place"~"^(city|town|village|hamlet)$"](area.searchArea);'
+            ");"
+            "out center tags;"
+        )
+        elements = _overpass(query)
+        if elements is None:
+            print(f"[SiteMorph][cities] {country}: Overpass niedostępny — spróbujemy ponownie", flush=True)
+            return
+        results = _parse_place_elements(elements, country)
+        min_pop = COUNTRY_VILLAGE_MIN_POP.get(country)
+        if min_pop:
+            results = [
+                r for r in results
+                if r.get("place_type") not in ("wieś", "przysiółek")
+                or float(r.get("importance") or 0) >= min_pop
+            ]
+        results.sort(key=lambda x: float(x.get("importance") or 0), reverse=True)
+        _save_disk_cache(country, results)
+        _all_cities_cache[f"{country}|v{ALL_CITIES_VERSION}"] = (time.time(), results)
+        print(f"[SiteMorph][cities] {country}: zapisałem {len(results)} miejscowości", flush=True)
+    except Exception as e:
+        print(f"[SiteMorph][cities] {country}: błąd: {e}", flush=True)
+    finally:
+        _fetching.discard(country)
+
 
 import threading as _threading
 _threading.Thread(target=_warm_cache, daemon=True).start()

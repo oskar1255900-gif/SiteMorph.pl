@@ -30,12 +30,16 @@ except Exception:
 
 app = FastAPI(title="SiteMorph API", version="1.0.0")
 
-# Kompresja gzip odpowiedzi â€” mniejszy transfer (lista miast itp.) na mobile
+# Kompresja gzip odpowiedzi — mniejszy transfer (lista miast itp.) na mobile
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
+# CORS: konkretna lista originów (env CORS_ORIGINS, rozdzielone przecinkami).
+# W produkcji frontend idzie przez rewrite same-origin, więc domyślnie wystarczy dev.
+import os as _os
+_origins = [o.strip() for o in _os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +56,7 @@ app.include_router(geocode.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Witaj w SiteMorph SaaS API! System dziaĹ‚a poprawnie."}
+    return {"message": "Witaj w SiteMorph SaaS API! System działa poprawnie."}
 
 # ---------------------------------------------------------------------------
 # PUBLIKACJA STRON â€” /p/<token> serwuje wygenerowany index.html jako prawdziwy,
@@ -93,34 +97,30 @@ def publish_page(body: _PublishBody, current_user: dict = Depends(_get_current_u
         db.commit()
     except Exception:
         db.rollback()
-        return JSONResponse(status_code=500, content={"detail": "Nie udaĹ‚o siÄ™ zapisaÄ‡ strony"})
+        return JSONResponse(status_code=500, content={"detail": "Nie udało się zapisać strony"})
     return {"id": pid, "url": f"/p/{pid}"}
 
 @app.get("/p/{page_id}", response_class=HTMLResponse)
-def get_published_page(page_id: str, request: Request):
-    db = next(_get_db())
-    try:
-        page = db.query(_PublishedPage).filter(_PublishedPage.id == page_id).first()
-        if not page:
-            return HTMLResponse("<h1 style='font-family:sans-serif;padding:40px'>404 â€” ta strona nie istnieje lub wygasĹ‚a.</h1>", status_code=404)
-        html = page.html or ""
-        # Wstrzyknij pasek podgladu SiteMorph na gorze strony
-        banner = (
-            "<div style=\"position:fixed;top:0;left:0;right:0;z-index:2147483647;"
-            "background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;"
-            "padding:8px 14px;display:flex;align-items:center;gap:8px;\">"
-            "<span style=\"width:8px;height:8px;border-radius:99px;background:#34d399;display:inline-block\"></span>"
-            "PodglÄ…d strony z SiteMorph"
-            "<span style='flex:1'></span>"
-            "<span style='opacity:.6'>" + (page.title or "") + "</span>"
-            "</div><div style=\"height:33px\"></div>"
-        )
-        if "<body" in html.lower():
-            idx = html.lower().index("<body")
-            gt = html.index(">", idx) + 1
-            html = html[:gt] + banner + html[gt:]
-        else:
-            html = banner + html
-        return HTMLResponse(html)
-    finally:
-        db.close()
+def get_published_page(page_id: str, request: Request, db: _Session = Depends(_get_db)):
+    page = db.query(_PublishedPage).filter(_PublishedPage.id == page_id).first()
+    if not page:
+        return HTMLResponse("<h1 style='font-family:sans-serif;padding:40px'>404 — ta strona nie istnieje lub wygasła.</h1>", status_code=404)
+    html = page.html or ""
+    # Wstrzyknij pasek podgladu SiteMorph na gorze strony
+    banner = (
+        "<div style=\"position:fixed;top:0;left:0;right:0;z-index:2147483647;"
+        "background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;"
+        "padding:8px 14px;display:flex;align-items:center;gap:8px;\">"
+        "<span style=\"width:8px;height:8px;border-radius:99px;background:#34d399;display:inline-block\"></span>"
+        "Podgląd strony z SiteMorph"
+        "<span style='flex:1'></span>"
+        "<span style='opacity:.6'>" + (page.title or "") + "</span>"
+        "</div><div style=\"height:33px\"></div>"
+    )
+    if "<body" in html.lower():
+        idx = html.lower().index("<body")
+        gt = html.index(">", idx) + 1
+        html = html[:gt] + banner + html[gt:]
+    else:
+        html = banner + html
+    return HTMLResponse(html)

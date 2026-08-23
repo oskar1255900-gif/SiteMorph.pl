@@ -56,43 +56,26 @@ def _verify_supabase_jwt(token: str) -> Optional[dict]:
     except Exception:
         return None
 
-async def get_current_user(x_user_id: Optional[str] = Header(None), authorization: Optional[str] = Header(None)):
-    # 1. Sprobuj Supabase JWT z Authorization: Bearer <token> — ZAWSZE preferowane
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    """Tożsamość użytkownika WYŁĄCZNIE ze zweryfikowanego podpisu JWT (Supabase JWKS).
+    Żadnych fallbacków na niepodpisane tokeny czy nagłówki X-User-Id — to pozwalało
+    podszyć się pod dowolnego użytkownika. Brak/niepoprawny token = anon."""
     if authorization and authorization.startswith("Bearer "):
         token = authorization[7:].strip()
         payload = _verify_supabase_jwt(token)
         if payload:
-            user_id = payload.get("sub") or payload.get("user_id") or payload.get("email") or token[:32]
-            email = payload.get("email")
-            return {"id": str(user_id), "email": email, "is_anon": False, "payload": payload, "provider": "supabase"}
-        if token and len(token) > 20 and token.count(".") == 2:
-            try:
-                unverified = jwt.get_unverified_claims(token)  # type: ignore
-                uid = unverified.get("sub")
-                if uid:
-                    return {"id": str(uid), "email": unverified.get("email"), "is_anon": False, "payload": unverified, "provider": "supabase-unverified"}
-            except Exception:
-                pass
-        if token and len(token) > 3:
-            return {"id": token[:64], "is_anon": False, "provider": "legacy-token"}
-
-    # 2. Fallback: X-User-Id — tylko dla lokalnego dev / anon
-    # W produkcji z Supabase, nie ufamy X-User-Id jeśli wygląda jak UUID (próba podszycia się)
-    if x_user_id:
-        # Jeśli wygląda jak Supabase UUID (8-4-4-4-12 hex) i mamy skonfigurowany Supabase, odrzuć
-        import re as _re
-        if _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", x_user_id, _re.I) and os.getenv("SUPABASE_SERVICE_KEY"):
-            # Próba IDOR — traktuj jako anon, zaloguj ostrzeżenie
-            return {"id": "anon", "is_anon": True, "provider": "blocked-spoof"}
-        # Dozwolone tylko dla prostych ID typu user-xxx lub anon
-        if len(x_user_id) > 64:
-            x_user_id = x_user_id[:64]
-        return {"id": str(x_user_id), "is_anon": x_user_id == "anon", "provider": "legacy"}
-
+            user_id = payload.get("sub") or payload.get("user_id") or payload.get("email")
+            if user_id:
+                return {
+                    "id": str(user_id),
+                    "email": payload.get("email"),
+                    "is_anon": False,
+                    "provider": "supabase",
+                }
     return {"id": "anon", "is_anon": True, "provider": "anon"}
 
 def require_owner(resource_owner_id: str, current_user: dict):
     if current_user.get("is_anon"):
-        return
+        raise HTTPException(status_code=401, detail="Wymagane zalogowanie")
     if str(resource_owner_id) != str(current_user["id"]):
         raise HTTPException(status_code=403, detail="Brak dostępu — zasób należy do innego użytkownika")

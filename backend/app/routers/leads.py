@@ -25,7 +25,7 @@ def check_rate_limit(plan: str, user_id: str = "anon"):
         _search_month[user_id] = month
     limit = 30 if (plan or "Starter").lower() in ("business", "agencja", "pro", "premium") else 10
     if _search_counts[user_id] >= limit:
-        raise HTTPException(status_code=429, detail=f"Limit wyszukiwaĹ„ wyczerpany ({limit}/miesiÄ…c dla planu {plan or 'Starter'}). Ulepsz plan.")
+        raise HTTPException(status_code=429, detail=f"Limit wyszukiwań wyczerpany ({limit}/miesiąc dla planu {plan or 'Starter'}). Ulepsz plan.")
     _search_counts[user_id] += 1
     return limit - _search_counts[user_id]
 
@@ -36,7 +36,7 @@ GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
 COUNTRIES = {
     "Polska": {"geo": "Poland", "prefix": "+48", "budget": "2 500 - 3 500 zl"},
-    "UK": {"geo": "United Kingdom", "prefix": "+44", "budget": "ÂŁ650 - ÂŁ900"},
+    "UK": {"geo": "United Kingdom", "prefix": "+44", "budget": "£650 - £900"},
     "USA": {"geo": "United States", "prefix": "+1", "budget": "$850 - $1 200"},
 }
 
@@ -44,7 +44,7 @@ COUNTRIES = {
 _cache: Dict[str, Tuple[float, Any]] = {}
 CACHE_TTL = 300  # 5 min
 
-# Mapowanie branzy -> tagi OSM â€” 40 branĹĽ angielskich + stare PL dla kompatybilnoĹ›ci
+# Mapowanie branzy -> tagi OSM — 40 branż angielskich + stare PL dla kompatybilności
 INDUSTRY_OSM: Dict[str, List[str]] = {
     # --- Nowa lista 40 angielskich (spec) ---
     "Real Estate": ["[office=estate_agent]"],
@@ -98,7 +98,7 @@ INDUSTRY_OSM: Dict[str, List[str]] = {
     "Driving School": ["[amenity=driving_school]"],
     # Alias IT / Software -> IT Services
     "IT / Software": ["[office=it]", "[office=company]"],
-    # --- Stare PL + kompatybilnoĹ›Ä‡ ---
+    # --- Stare PL + kompatybilność ---
     "Restauracje": ["[amenity=restaurant]"],
     "Kawiarnie": ["[amenity=cafe]"],
     "Bary i puby": ["[amenity=bar]", "[amenity=pub]"],
@@ -108,7 +108,7 @@ INDUSTRY_OSM: Dict[str, List[str]] = {
     "Warzywniaki": ["[shop=greengrocer]"],
     "Salony fryzjerskie": ["[shop=hairdresser]"],
     "Salony kosmetyczne": ["[shop=beauty]", "[shop=cosmetics]"],
-    "Studio tatuaĹĽu i piercingu": ["[shop=tattoo]", "[shop=piercing]"],
+    "Studio tatuażu i piercingu": ["[shop=tattoo]", "[shop=piercing]"],
     "Solaria i SPA": ["[shop=solarium]", "[leisure=spa]"],
     "Silownie i fitness": ["[leisure=fitness_centre]", "[leisure=sports_centre]"],
     "Fitness / Yoga": ["[leisure=fitness_centre]"],
@@ -122,7 +122,7 @@ INDUSTRY_OSM: Dict[str, List[str]] = {
     "Pranie tapicerki i czyszczenie": ["[shop=dry_cleaning]", "[shop=laundry]"],
     "Kwiaciarnie": ["[shop=florist]"],
     "Biura nieruchomosci": ["[office=estate_agent]"],
-    "Biura nieruchomoĹ›ci": ["[office=estate_agent]"],
+    "Biura nieruchomości": ["[office=estate_agent]"],
     "Kancelarie prawne": ["[office=lawyer]"],
     "Biura rachunkowe": ["[office=accountant]"],
     "Ubezpieczenia": ["[office=insurance]"],
@@ -132,27 +132,27 @@ INDUSTRY_OSM: Dict[str, List[str]] = {
     "Stolarze i stolarnie": ["[craft=carpenter]", "[shop=do-it-yourself]"],
     "Fotografowie": ["[shop=photo]", "[craft=photographer]"],
     "Szkoly jezykowe": ["[amenity=school]", "[amenity=language_school]"],
-    "SzkoĹ‚y jÄ™zykowe": ["[amenity=school]", "[amenity=language_school]"],
+    "Szkoły językowe": ["[amenity=school]", "[amenity=language_school]"],
     "Hotele i noclegi": ["[tourism=hotel]", "[tourism=guest_house]", "[tourism=hostel]"],
     "Agroturystyka": ["[tourism=guest_house]"],
     "Sklepy zoologiczne": ["[shop=pet]", "[shop=pet_grooming]"],
     "Optycy": ["[shop=optician]"],
     "Jubilerzy i zegarmistrzowie": ["[shop=jewelry]", "[shop=watches]"],
     "Odziez i butiki": ["[shop=clothes]", "[shop=boutique]"],
-    "OdzieĹĽ i butiki": ["[shop=clothes]", "[shop=boutique]"],
+    "Odzież i butiki": ["[shop=clothes]", "[shop=boutique]"],
     "Obuwie": ["[shop=shoes]"],
     "Ksiegarnie i papiernicze": ["[shop=books]", "[shop=stationery]"],
-    "KsiÄ™garnie i papiernicze": ["[shop=books]", "[shop=stationery]"],
+    "Księgarnie i papiernicze": ["[shop=books]", "[shop=stationery]"],
     "Zabawki": ["[shop=toys]"],
     "Serwisy rowerowe": ["[shop=bicycle]", "[shop=bicycle_repair]"],
     "Taksowki i transport": ["[amenity=taxi]"],
-    "TaksĂłwki i transport": ["[amenity=taxi]"],
+    "Taksówki i transport": ["[amenity=taxi]"],
     "Kregielnia i rozrywka": ["[leisure=bowling_alley]", "[leisure=escape_game]"],
-    "KrÄ™gielnia i rozrywka": ["[leisure=bowling_alley]", "[leisure=escape_game]"],
+    "Kręgielnia i rozrywka": ["[leisure=bowling_alley]", "[leisure=escape_game]"],
     "Local Store": ["[shop=convenience]"],
     # --- Aliasy pojedynczej liczby / warianty z frontendu (LeadFinderView) ---
     "Fast food": ["[amenity=fast_food]"],
-    "Salony piÄ™knoĹ›ci": ["[shop=beauty]"],
+    "Salony piękności": ["[shop=beauty]"],
     "Manicure": ["[shop=nail]"],
     "Stomatolog": ["[amenity=dentist]"],
     "Przychodnia lekarska": ["[amenity=doctors]", "[amenity=clinic]"],
@@ -161,19 +161,19 @@ INDUSTRY_OSM: Dict[str, List[str]] = {
     "Restauracja": ["[amenity=restaurant]"],
     "Kawiarnia": ["[amenity=cafe]"],
     "Piekarnia": ["[shop=bakery]"],
-    "Bar szybkiej obsĹ‚ugi": ["[amenity=fast_food]"],
-    "SiĹ‚ownia": ["[leisure=fitness_centre]"],
+    "Bar szybkiej obsługi": ["[amenity=fast_food]"],
+    "Siłownia": ["[leisure=fitness_centre]"],
     "Studio jogi": ["[sport=yoga]", "[leisure=fitness_centre]"],
     "Trener personalny": ["[leisure=fitness_centre]", "[leisure=sports_centre]"],
-    "NieruchomoĹ›ci": ["[office=estate_agent]"],
+    "Nieruchomości": ["[office=estate_agent]"],
     "Kancelaria prawna": ["[office=lawyer]"],
-    "KsiÄ™gowoĹ›Ä‡": ["[office=accountant]"],
+    "Księgowość": ["[office=accountant]"],
     "Warsztat samochodowy": ["[shop=car_repair]"],
     "Salon samochodowy": ["[shop=car]"],
     "Myjnia samochodowa": ["[amenity=car_wash]"],
     "Fotograf": ["[shop=photo]", "[craft=photographer]"],
-    "UsĹ‚ugi Ĺ›lubne": ["[shop=wedding]", "[office=wedding_planner]"],
-    "SprzÄ…tanie": ["[craft=cleaner]", "[shop=dry_cleaning]"],
+    "Usługi ślubne": ["[shop=wedding]", "[office=wedding_planner]"],
+    "Sprzątanie": ["[craft=cleaner]", "[shop=dry_cleaning]"],
     "Budownictwo": ["[craft=builder]", "[office=construction_company]"],
     "Hydraulik": ["[craft=plumber]"],
     "Elektryk": ["[craft=electrician]"],
@@ -181,15 +181,15 @@ INDUSTRY_OSM: Dict[str, List[str]] = {
     "Malarz": ["[craft=painter]"],
     "Przeprowadzki": ["[office=moving_company]", "[shop=storage_rental]"],
     "Agencja marketingowa": ["[office=advertising_agency]", "[office=marketing]"],
-    "UsĹ‚ugi IT": ["[office=it]", "[office=company]"],
+    "Usługi IT": ["[office=it]", "[office=company]"],
     "Serwis komputerowy": ["[shop=computer]", "[craft=electronics_repair]"],
     "Sklep osiedlowy": ["[shop=convenience]"],
-    "Sklep odzieĹĽowy": ["[shop=clothes]", "[shop=boutique]"],
+    "Sklep odzieżowy": ["[shop=clothes]", "[shop=boutique]"],
     "Sklep meblowy": ["[shop=furniture]"],
     "Kwiaciarnia": ["[shop=florist]"],
-    "Fryzjer mÄ™ski": ["[shop=barber]", "[shop=hairdresser]"],
+    "Fryzjer męski": ["[shop=barber]", "[shop=hairdresser]"],
     "Korepetycje": ["[amenity=school]", "[amenity=language_school]"],
-    "SzkoĹ‚a muzyczna": ["[amenity=music_school]"],
+    "Szkoła muzyczna": ["[amenity=music_school]"],
     "Nauka jazdy": ["[amenity=driving_school]"],
 }
 
@@ -337,7 +337,7 @@ def overpass_query(bbox, filters: List[str]):
     return r.json().get("elements", [])
 
 # ---------------------------------------------------------------------------
-# Wielkie sieci i marki â€” bez sensu jako leady (maja strony i dzial marketingu).
+# Wielkie sieci i marki — bez sensu jako leady (maja strony i dzial marketingu).
 # Filtr po nazwie/marce/operatorze + sygnal OSM "brand:wikidata" (tag sieciowki).
 # ---------------------------------------------------------------------------
 BIG_BRANDS = [
@@ -368,7 +368,7 @@ BIG_BRANDS = [
 def _fold_text(s: str) -> str:
     s = (s or "").lower().strip()
     import unicodedata
-    s = s.replace("Ĺ‚", "l")
+    s = s.replace("ł", "l")
     s = unicodedata.normalize("NFKD", s)
     return "".join(c for c in s if not unicodedata.combining(c))
 
@@ -442,7 +442,7 @@ def normalize(el, industry: str, city: str, country: str, only_without_website: 
     name = t.get("name") or t.get("operator") or t.get("brand")
     if not name:
         return None
-    # PomiĹ„ wielkie sieci/marki (Zabka, McDonald's, dealerzy Opla itp.)
+    # Pomiń wielkie sieci/marki (Zabka, McDonald's, dealerzy Opla itp.)
     if is_big_brand(t, name):
         return None
     website = t.get("website") or t.get("contact:website") or t.get("url") or t.get("contact:url")
@@ -499,173 +499,8 @@ def normalize(el, industry: str, city: str, country: str, only_without_website: 
         "photos": [],
     }
 
-# Legacy google_search kept for reference but not used in new endpoint (real OSM only)
-def google_search(city: str, country: str, industry: str, budget: str, limit: int = 20, only_without_website: bool = True):
-    if not GOOGLE_KEY:
-        return None, "Brak klucza Google Places"
-    en_map = {
-        "Restauracje": "restaurant", "Restaurant": "restaurant",
-        "Kawiarnie": "cafe", "Cafe": "cafe",
-        "Bary i puby": "bar", "Barber": "barber",
-        "Fast food": "fast food",
-        "Piekarnie i cukiernie": "bakery",
-        "Salony fryzjerskie": "hairdresser", "Hair Salon": "hairdresser", "Barber": "barber shop",
-        "Salony kosmetyczne": "beauty salon", "Beauty Salon": "beauty salon",
-        "Silownie i fitness": "gym", "Gym": "gym", "Fitness / Yoga": "yoga studio",
-        "Gabinet stomatologiczny": "dentist", "Dentist": "dentist",
-        "Apteki": "pharmacy",
-        "Warsztaty samochodowe": "car repair", "Auto Repair": "car repair", "Car Dealership": "car dealer",
-        "Kwiaciarnie": "florist",
-        "Hotele i noclegi": "hotel", "Hotel": "hotel",
-        "Real Estate": "real estate agency",
-        "Law Firm": "lawyer", "Kancelarie prawne": "lawyer",
-        "Medical Clinic": "medical clinic", "Lekarze i przychodnie": "doctor",
-        "Pet Grooming": "pet grooming", "Veterinary": "veterinary",
-        "Photographer": "photographer", "Fotografowie": "photographer",
-        "Cleaning Service": "cleaning service",
-        "Construction": "construction company", "Firmy budowlane": "construction",
-        "Landscaping": "landscaper",
-        "IT / Software": "software company",
-        "Moving Company": "moving company",
-        "Tutoring": "tutor",
-        "Wedding Services": "wedding service",
-        "Local Store": "store",
-    }
-    alias_25 = {
-        "Real Estate": "real estate agency", "Barber": "barber", "Hair Salon": "hairdresser",
-        "Beauty Salon": "beauty salon", "Dentist": "dentist", "Restaurant": "restaurant",
-        "Cafe": "cafe", "Gym": "gym", "Car Dealership": "car dealer", "Auto Repair": "car repair",
-        "Hotel": "hotel", "Law Firm": "lawyer", "Medical Clinic": "clinic", "Pet Grooming": "pet groomer",
-        "Photographer": "photographer", "Cleaning Service": "cleaning service", "Construction": "construction",
-        "Landscaping": "landscaping", "IT / Software": "software company", "Moving Company": "moving company",
-        "Tutoring": "tutoring", "Veterinary": "veterinary", "Fitness / Yoga": "yoga", "Wedding Services": "wedding",
-        "Local Store": "store", "Pet Grooming": "pet grooming",
-    }
-    query_label = alias_25.get(industry) or en_map.get(industry, industry)
-    if country in ("UK", "USA"):
-        query_label = en_map.get(industry, query_label)
-    text = f"{query_label} w {city}, {country}" if country == "Polska" else f"{query_label} in {city}, {country}"
-    try:
-        resp = requests.post(
-            "https://places.googleapis.com/v1/places:searchText",
-            headers={
-                "Content-Type": "application/json",
-                "X-Goog-Api-Key": GOOGLE_KEY,
-                "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.websiteUri,places.regularOpeningHours,places.nationalPhoneNumber,places.internationalPhoneNumber,places.photos,places.id,places.types,places.priceLevel",
-            },
-            json={
-                "textQuery": text,
-                "languageCode": "pl" if country == "Polska" else "en",
-                "maxResultCount": min(limit, 20),
-            },
-            timeout=25,
-        )
-        if resp.status_code != 200:
-            return None, f"Google Places {resp.status_code}: {resp.text[:300]}"
-        data = resp.json()
-        places = data.get("places", [])
-        out = []
-        for p in places:
-            if only_without_website and p.get("websiteUri"):
-                continue
-            g_name = (p.get("displayName") or {}).get("text") or "Firma"
-            # PomiĹ„ wielkie sieci/marki takĹĽe w wynikach Google
-            if is_big_brand({}, g_name):
-                continue
-            addr = p.get("formattedAddress") or city
-            phone = p.get("nationalPhoneNumber") or p.get("internationalPhoneNumber") or None
-            rating = p.get("rating")
-            ratings_total = p.get("userRatingCount")
-            hours = None
-            roh = p.get("regularOpeningHours")
-            if roh and roh.get("weekdayDescriptions"):
-                hours = "; ".join(roh["weekdayDescriptions"][:3])
-            photos = []
-            for ph in (p.get("photos") or [])[:3]:
-                photos.append(ph.get("name"))
-            seed = int(hashlib.md5(name.encode()).hexdigest()[:6], 16)
-            score = 85 + (seed % 15)
-            out.append({
-                "id": f"g-{p.get('id') or seed}",
-                "name": name,
-                "category": industry,
-                "location": city,
-                "phone": phone,
-                "address": addr,
-                "websiteStatus": "Brak strony w danych OSM",
-                "readinessScore": score,
-                "estBudget": budget,
-                "rating": rating,
-                "userRatingsTotal": ratings_total,
-                "openingHours": hours,
-                "photos": photos,
-                "types": p.get("types", []),
-            })
-            if len(out) >= limit:
-                break
-        return out, None
-    except Exception as e:
-        return None, str(e)
 
-@router.post("/osm-search")
-def osm_search(data: OsmSearchInput, request: Request, db: Session = Depends(get_db), x_user_plan: Optional[str] = Header(None), x_user_id: Optional[str] = Header(None)):
-    # Redirect to new search for compatibility
-    return search_osm(data, request, db, x_user_plan, x_user_id)
-
-def search_osm(data: OsmSearchInput, request: Request, db: Session, x_user_plan, x_user_id):
-    try:
-        remaining = check_rate_limit(x_user_plan or "Starter", x_user_id or (request.client.host if request.client else "anon"))
-    except HTTPException as e:
-        raise e
-    country = COUNTRIES.get(data.country, COUNTRIES["Polska"])
-    budget = country["budget"]
-    is_high = (x_user_plan or "Starter").lower() in ("business", "agencja", "pro", "premium", "business")
-    g_places: Optional[List[dict]] = None
-    g_err: Optional[str] = None
-    if is_high:
-        g_places, g_err = google_search(data.city, data.country, data.industry, budget, data.limit, data.onlyWithoutWebsite)
-        if g_places is not None and len(g_places) > 0:
-            return {"status": "success", "count": len(g_places), "leads": g_places, "warning": None, "source": "google", "remaining": remaining}
-    if not is_high and g_err is None:
-        g_err = "Plan Starter/Free â€” uzywam darmowego Overpass API (Google Places tylko dla Business/Pro/Agencja)"
-    filters = INDUSTRY_OSM.get(data.industry, ["[amenity=restaurant]"])
-    bbox = None
-    if data.osmId and data.osmType:
-        bbox = get_bbox_from_osm(data.osmId, data.osmType)
-    if not bbox:
-        # fallback to latitude/longitude if provided
-        if data.latitude is not None and data.longitude is not None:
-            lat = float(data.latitude); lon = float(data.longitude)
-            bbox = (lat-0.05, lon-0.05, lat+0.05, lon+0.05)
-        else:
-            bbox = geocode(data.city, country["geo"])
-    leads_out = g_places if g_places is not None else []
-    warning = g_err
-    if bbox and (g_places is None or len(g_places) == 0):
-        try:
-            provider = OpenStreetMapProvider()
-            elements = provider.searchBusinesses(bbox, data.industry)
-            for el in elements:
-                norm = normalize(el, data.industry, data.city, data.country, data.onlyWithoutWebsite)
-                if norm:
-                    leads_out.append(norm)
-                if len(leads_out) >= data.limit:
-                    break
-            if leads_out:
-                warning = None
-        except Exception as e:
-            warning = f"Overpass error: {e}"
-    elif not bbox and (g_places is None or len(g_places) == 0):
-        warning = warning or "Nie znaleziono miejscowosci â€” sprawdz pisownie"
-
-    if not leads_out:
-        if not warning:
-            warning = "Brak firm bez strony w tej okolicy â€” sprobuj inna branze lub pobliskie miasto. Pokazujemy tylko zweryfikowane firmy bez website (Google Places + OSM)."
-        return {"status": "success", "count": 0, "leads": [], "warning": warning, "source": "none", "remaining": remaining}
-
-    return {"status": "success", "count": len(leads_out), "leads": leads_out, "warning": warning, "source": "google" if g_places and len(g_places) > 0 else "osm", "remaining": remaining}
-
-# New spec endpoint POST /api/leads/search
+# Body dla POST /api/leads/search
 class SearchBody(BaseModel):
     country: str
     city: str
@@ -677,22 +512,25 @@ class SearchBody(BaseModel):
     onlyWithoutWebsite: bool = True
     limit: int = Field(default=60, ge=1, le=200)
 
+
 @router.post("/search")
-def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db), x_user_plan: Optional[str] = Header(None), x_user_id: Optional[str] = Header(None)):
-    # Validation
+def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db), x_user_plan: Optional[str] = Header(None), current_user: dict = Depends(get_current_user)):
+    # Walidacja
     if body.country not in COUNTRIES:
         raise HTTPException(status_code=400, detail=f"Invalid country: {body.country}. Allowed: {list(COUNTRIES.keys())}")
     if not body.city or len(body.city.strip()) < 2:
         raise HTTPException(status_code=400, detail="Invalid city: must be at least 2 characters")
-    industry_warning: Optional[str] = None
-    if body.industry not in INDUSTRY_OSM:
-        # Nie rzucamy 400 â€” szukamy ogolnie wszystkich firm z ostrzezeniem
-        industry_warning = f"BranĹĽa '{body.industry}' nie ma dedykowanych tagĂłw OSM â€” szukam wszystkich firm w okolicy"
     if body.limit < 1 or body.limit > 200:
         raise HTTPException(status_code=400, detail="Invalid limit: 1-200")
-    # Rate limit
+    industry_warning: Optional[str] = None
+    if body.industry not in INDUSTRY_OSM:
+        # Nie rzucamy 400 — szukamy ogolnie wszystkich firm z ostrzezeniem
+        industry_warning = f"Branża '{body.industry}' nie ma dedykowanych tagów OSM — szukam wszystkich firm w okolicy"
+    # Rate limit — klucz: zweryfikowany user id, dla anonów IP (X-User-Id nie jest
+    # ufny, więc nie używamy go do niczego)
+    quota_key = current_user["id"] if not current_user.get("is_anon") else (request.client.host if request.client else "anon")
     try:
-        remaining = check_rate_limit(x_user_plan or "Starter", x_user_id or (request.client.host if request.client else "anon"))
+        remaining = check_rate_limit(x_user_plan or "Starter", quota_key)
     except HTTPException as e:
         raise e
     # Cache check
@@ -706,7 +544,7 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
             cached_copy["remaining"] = remaining
             cached_copy["cached"] = True
             return cached_copy
-    # Resolve bbox â€” kolejno: dokladny OSM lookup -> geocode pelnej nazwy -> punkt Â±0.05
+    # Resolve bbox — kolejno: dokladny OSM lookup -> geocode pelnej nazwy -> punkt ±0.05
     bbox = None
     if body.osmId and body.osmType:
         bbox = get_bbox_from_osm(str(body.osmId), str(body.osmType))
@@ -717,13 +555,13 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
         lat = float(body.latitude); lon = float(body.longitude)
         bbox = (lat-0.05, lon-0.05, lat+0.05, lon+0.05)
     if not bbox:
-        raise HTTPException(status_code=400, detail=f"Nie znaleziono lokalizacji: {body.city}, {body.country} â€” sprawdz pisownie lub wybierz z podpowiedzi")
+        raise HTTPException(status_code=400, detail=f"Nie znaleziono lokalizacji: {body.city}, {body.country} — sprawdź pisownię lub wybierz z podpowiedzi")
     # Overpass query via provider
     try:
         provider = OpenStreetMapProvider()
         elements = provider.searchBusinesses(bbox, body.industry)
     except requests.exceptions.Timeout:
-        raise HTTPException(status_code=504, detail="Overpass timeout â€” sprobuj ponownie za chwile")
+        raise HTTPException(status_code=504, detail="Overpass timeout — spróbuj ponownie za chwilę")
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=502, detail=f"Nominatim/Overpass error: {str(e)[:200]}")
     except Exception as e:
@@ -800,7 +638,7 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
 
     # Sort by leadScore desc
     leads_out.sort(key=lambda x: x.get("leadScore", 0), reverse=True)
-    empty_warning = "Brak firm spelniajacych kryteria w tej okolicy â€” sprobuj inna branze lub pobliskie miasto. Pokazujemy tylko zweryfikowane firmy bez website (dane OSM)."
+    empty_warning = "Brak firm spełniających kryteria w tej okolicy — spróbuj innej branży lub pobliskiego miasta. Pokazujemy tylko zweryfikowane firmy bez strony (dane OSM)."
     combined_warning = industry_warning or (None if leads_out else empty_warning)
     if industry_warning and leads_out:
         combined_warning = industry_warning
@@ -902,19 +740,3 @@ def save_lead(body: SaveLeadBody, db: Session = Depends(get_db), current_user: d
         db.rollback()
         raise HTTPException(status_code=500, detail=f"DB error: {str(e)[:200]}")
     return {"status": "saved", "message": "Lead saved", "lead": new_lead}
-
-# Keep old POST /search with query params for backward compat (already defined as new_search via body, but old signature was niche/location)
-# We keep it as separate endpoint with different path? FastAPI will handle overload by body vs query - keep legacy as /search-legacy
-@router.post("/search-legacy")
-def search_leads_legacy(niche: str, location: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    new_lead = Lead(
-        owner_id=current_user["id"],
-        company_name=f"Firma {niche} - {location}",
-        website=f"{niche.lower()}-{location.lower()}.pl",
-        niche=niche,
-        ai_score=89
-    )
-    db.add(new_lead)
-    db.commit()
-    db.refresh(new_lead)
-    return {"message": "Znaleziono nowy lead!", "lead": new_lead}
