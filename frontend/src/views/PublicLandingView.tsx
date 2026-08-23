@@ -274,8 +274,8 @@ export const PublicLandingView = ({
 
               {/* 3 kolorowe kafelki 1:1 ze zdjęcia */}
               <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md opacity-90" />
-                <div className="h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-700 shadow-md opacity-90" />
+                <div className="h-20 rounded-2xl bg-gradient-to-br from-lime-300 to-emerald-400 shadow-md opacity-90" />
+                <div className="h-20 rounded-2xl bg-gradient-to-br from-emerald-300 to-lime-400 shadow-md opacity-90" />
                 <div className="h-20 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 shadow-md opacity-90 relative">
                   {/* Badge LIVE 1:1 na trzecim kafelku */}
                   <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 border border-white/20">

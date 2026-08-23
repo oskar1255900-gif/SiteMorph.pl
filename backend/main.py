@@ -4,7 +4,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from app.database import engine, Base, SessionLocal
-from app.routers import leads, builder, projects, admin, geocode, domains
+from app.routers import leads, builder, projects, admin, geocode, domains, invoices, settings
 from sqlalchemy import text, inspect
 
 # Migration: ensure leads table has new columns (sqlite - add if missing)
@@ -70,6 +70,8 @@ app.include_router(projects.router)
 app.include_router(admin.router)
 app.include_router(geocode.router)
 app.include_router(domains.router)
+app.include_router(invoices.router)
+app.include_router(settings.router)
 
 # ---------------------------------------------------------------------------
 # WŁASNE DOMENY KLIENTÓW — request z Host: biznesklienta.pl serwuje stronę
@@ -170,22 +172,4 @@ def get_published_page(page_id: str, request: Request, db: _Session = Depends(_g
     page = db.query(_PublishedPage).filter(_PublishedPage.id == page_id).first()
     if not page:
         return HTMLResponse("<h1 style='font-family:sans-serif;padding:40px'>404 — ta strona nie istnieje lub wygasła.</h1>", status_code=404)
-    html = page.html or ""
-    # Wstrzyknij pasek podgladu SiteMorph na gorze strony
-    banner = (
-        "<div style=\"position:fixed;top:0;left:0;right:0;z-index:2147483647;"
-        "background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;"
-        "padding:8px 14px;display:flex;align-items:center;gap:8px;\">"
-        "<span style=\"width:8px;height:8px;border-radius:99px;background:#34d399;display:inline-block\"></span>"
-        "Podgląd strony z SiteMorph"
-        "<span style='flex:1'></span>"
-        "<span style='opacity:.6'>" + (page.title or "") + "</span>"
-        "</div><div style=\"height:33px\"></div>"
-    )
-    if "<body" in html.lower():
-        idx = html.lower().index("<body")
-        gt = html.index(">", idx) + 1
-        html = html[:gt] + banner + html[gt:]
-    else:
-        html = banner + html
-    return HTMLResponse(html)
+    return HTMLResponse(page.html or "")

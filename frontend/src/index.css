@@ -24,3 +24,39 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Nowoczesne checkboxy (zamiast systemowych kwadratów) */
+input[type="checkbox"].sm-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  border: 1.5px solid #c8d3e0;
+  background: #fff;
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  flex-shrink: 0;
+}
+.dark input[type="checkbox"].sm-check {
+  border-color: #3f3f46;
+  background: #0a0a0a;
+}
+input[type="checkbox"].sm-check:hover { border-color: #a3e635; }
+input[type="checkbox"].sm-check:active { transform: scale(0.92); }
+input[type="checkbox"].sm-check::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  transform: scale(0);
+  transition: transform 0.16s ease-in-out;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 84% 4%, 39% 70%);
+  background: #131412;
+}
+input[type="checkbox"].sm-check:checked {
+  background: #a3e635;
+  border-color: #a3e635;
+}
+input[type="checkbox"].sm-check:checked::before { transform: scale(1); }

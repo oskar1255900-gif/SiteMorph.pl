@@ -94,7 +94,7 @@ export const StandalonePricingView = () => {
               <Button 
                 variant={plan.popular ? 'primary' : 'outline'} 
                 size="md" 
-                onClick={() => alert(`Subskrybujesz pakiet ${plan.name}!`)}
+                onClick={() => { try { localStorage.setItem('sitemorph-plan', plan.name); } catch {} alert(`Zapisano pakiet ${plan.name} na tym urządzeniu. Płatności PayPal/BLIK/przelew obsłużysz w zakładce Finanse.`); }}
                 className="w-full mt-6 font-black"
               >
                 Wybierz {plan.name}

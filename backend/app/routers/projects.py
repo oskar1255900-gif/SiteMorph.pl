@@ -19,6 +19,9 @@ class GitHubExport(BaseModel):
     repo_name: str
     github_token: str
 
+class ProjectRename(BaseModel):
+    name: str
+
 @router.get("/")
 def get_projects(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     # RLS: tylko wlasne projekty
@@ -41,6 +44,29 @@ def create_project(proj: ProjectCreate, db: Session = Depends(get_db), current_u
         db.rollback()
         raise HTTPException(status_code=409, detail="Projekt z taką domeną już istnieje")
     return db_project
+
+@router.patch("/{project_id}")
+def rename_project(project_id: int, body: ProjectRename, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nie znaleziony")
+    require_owner(project.owner_id, current_user)
+    if not body.name or not body.name.strip():
+        raise HTTPException(status_code=400, detail="Nazwa nie może być pusta")
+    project.name = body.name.strip()[:200]
+    db.commit()
+    db.refresh(project)
+    return project
+
+@router.delete("/{project_id}")
+def delete_project(project_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nie znaleziony")
+    require_owner(project.owner_id, current_user)
+    db.delete(project)
+    db.commit()
+    return {"status": "deleted"}
 
 @router.post("/{project_id}/export-github")
 def export_to_github(project_id: int, data: GitHubExport, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):

@@ -3,7 +3,7 @@ import re
 import socket
 import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -24,6 +24,19 @@ TARGET_IP = (os.getenv("CUSTOM_DOMAIN_TARGET_IP") or "").strip()
 DOMAIN_RE = re.compile(
     r"^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.[a-z0-9-]{1,63})*\.[a-z]{2,24}$"
 )
+
+# Własne domeny dostępne tylko w pakietach 100+ zł/mies (Pro, Business, Agencja)
+DOMAIN_PLANS = {"pro", "business", "agencja", "premium"}
+PLAN_UPGRADE_MSG = (
+    "Własne domeny są dostępne w pakietach od 100 zł/mies (Pro, Business, Agencja). "
+    "Ulepsz plan w zakładce Cennik & Plany."
+)
+
+
+def _require_domain_plan(x_user_plan: Optional[str]):
+    plan = (x_user_plan or "").strip().lower()
+    if plan not in DOMAIN_PLANS:
+        raise HTTPException(status_code=403, detail=PLAN_UPGRADE_MSG)
 
 
 def _normalize_domain(raw: str) -> str:
@@ -119,10 +132,11 @@ def my_pages(db: Session = Depends(get_db), current_user: dict = Depends(get_cur
 
 
 @router.post("")
-def attach_domain(body: DomainAttach, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def attach_domain(body: DomainAttach, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user), x_user_plan: Optional[str] = Header(None)):
     """Podpięcie własnej domeny pod opublikowaną stronę. Zwraca instrukcje DNS."""
     if current_user.get("is_anon"):
         raise HTTPException(status_code=401, detail="Wymagane zalogowanie")
+    _require_domain_plan(x_user_plan)
     page = _get_owned_page(db, body.page_id, current_user["id"])
     domain = _normalize_domain(body.domain)
     conflict = (

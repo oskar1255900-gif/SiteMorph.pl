@@ -47,3 +47,29 @@ class PublishedPage(Base):
     custom_domain = Column(String, unique=True, index=True, nullable=True)
     domain_verified = Column(Integer, default=0)  # 0/1 — DNS zweryfikowany
     domain_verified_at = Column(Float, nullable=True)
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(String, index=True, default="anon")
+    number = Column(String, unique=True, index=True)  # np. FV/2026/08/001
+    created_at = Column(Float, nullable=True)
+    seller = Column(JSON)   # {name, address, nip, email}
+    buyer = Column(JSON)    # {name, address, nip, email}
+    items = Column(JSON)    # [{name, qty, unit, vat}]
+    payment_method = Column(String, default="przelew")  # paypal | blik | przelew
+    payment_details = Column(JSON, nullable=True)       # {paypal_link, phone, iban}
+    total = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
+    sent_to = Column(String, nullable=True)
+    sent_at = Column(Float, nullable=True)
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    user_id = Column(String, primary_key=True, index=True)
+    data = Column(JSON)  # dane sprzedawcy: nazwa, adres, NIP, PayPal, Blik, IBAN...
+    updated_at = Column(Float, nullable=True)

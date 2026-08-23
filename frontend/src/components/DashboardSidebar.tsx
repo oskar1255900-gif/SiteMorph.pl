@@ -24,7 +24,8 @@ export const SIDEBAR_MENU = [
   { id: 'pricing', label: 'Cennik & Plany', icon: DollarSign },
   { id: 'finance', label: 'Finanse', icon: Receipt },
   { id: 'tutorials', label: 'Akademia', icon: GraduationCap },
-  { id: 'help', label: 'Pomoc', icon: HelpCircle }
+  { id: 'help', label: 'Pomoc', icon: HelpCircle },
+  { id: 'settings', label: 'Ustawienia', icon: Settings }
 ];
 
 export const DashboardSidebar = ({

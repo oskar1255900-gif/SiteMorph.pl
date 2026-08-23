@@ -22,73 +22,58 @@ export const itemVariants = {
   }
 };
 
-/* CINEMATIC — kinowe wejścia z blur, rotacją 3D, overshootem, depth-of-field */
+/* Subtelne wejścia — tylko opacity + delikatne przesunięcie (bez blur/3D) */
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 export const cineParent = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.12, delayChildren: 0.06 } }
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.03 } }
 };
 
 export const cineChild = {
-  hidden: { opacity: 0, y: 120, z: -200, scale: 0.85, rotateX: -30, rotateY: 8, filter: 'blur(20px)' },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
-    z: 0,
-    scale: 1,
-    rotateX: 0,
-    rotateY: 0,
-    filter: 'blur(0px)',
-    transition: { type: 'spring' as const, stiffness: 100, damping: 18, mass: 1.2, duration: 0.9 }
+    transition: { duration: 0.35, ease: EASE }
   }
 };
 
 export const cineSoft = {
-  hidden: { opacity: 0, y: 80, z: -100, scale: 1.08, rotateX: -12, filter: 'blur(24px)' },
+  hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1,
     y: 0,
-    z: 0,
-    scale: 1,
-    rotateX: 0,
-    filter: 'blur(0px)',
-    transition: { type: 'spring' as const, stiffness: 85, damping: 22, mass: 1.1 }
+    transition: { duration: 0.3, ease: EASE }
   }
 };
 
-/* Ultra-cinematic dla hero/headlines */
+/* Delikatne wejście nagłówków */
 export const cineHero = {
-  hidden: { opacity: 0, y: 160, z: -400, scale: 0.7, rotateX: -40, rotateZ: -4, filter: 'blur(32px)' },
+  hidden: { opacity: 0, y: 18 },
   visible: {
     opacity: 1,
     y: 0,
-    z: 0,
-    scale: 1,
-    rotateX: 0,
-    rotateZ: 0,
-    filter: 'blur(0px)',
-    transition: { type: 'spring' as const, stiffness: 70, damping: 16, mass: 1.5, duration: 1.2 }
+    transition: { duration: 0.45, ease: EASE }
   }
 };
 
-/* Cinematic stagger dla list/gridów */
+/* Stagger dla list/gridów */
 export const cineStagger = {
-  hidden: { opacity: 0, y: 60, scale: 0.9, rotateX: -15, filter: 'blur(12px)' },
+  hidden: { opacity: 0, y: 12 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    scale: 1,
-    rotateX: 0,
-    filter: 'blur(0px)',
-    transition: { type: 'spring' as const, stiffness: 120, damping: 20, delay: i * 0.08, mass: 1 }
+    transition: { duration: 0.3, ease: EASE, delay: i * 0.05 }
   })
 };
 
-/* Cinematic page transition */
+/* Przejście między widokami — szybki, spokojny fade */
 export const cinePage = {
-  initial: { opacity: 0, y: 40, scale: 0.96, filter: 'blur(16px)' },
-  animate: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
-  exit: { opacity: 0, y: -30, scale: 0.98, filter: 'blur(20px)' },
-  transition: { type: 'spring' as const, stiffness: 100, damping: 20 }
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: { duration: 0.18, ease: 'easeOut' }
 };
 
 export const getUserId = () => {

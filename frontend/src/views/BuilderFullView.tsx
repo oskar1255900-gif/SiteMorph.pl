@@ -20,6 +20,9 @@ import {
   Eye,
   MousePointer2,
   Save,
+  Pencil,
+  Trash2,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { springTransition } from '../lib/shared';
@@ -70,6 +73,102 @@ export const BuilderFullView = ({
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [publishErr, setPublishErr] = useState('');
+
+  // --- Zapisywanie projektów na koncie (backend /api/projects) ---
+  const [savedProjects, setSavedProjects] = useState<any[]>([]);
+  const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [saveMsg, setSaveMsg] = useState('');
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
+
+  const loadProjects = async () => {
+    try {
+      const res = await apiFetch('/api/projects/');
+      if (res.ok) setSavedProjects((await res.json()) || []);
+    } catch { /* brak sesji — pomijamy */ }
+  };
+  useEffect(() => { loadProjects(); }, []);
+
+  const handleSaveProject = async () => {
+    if (!generatedSite) return;
+    setSaveMsg('');
+    try {
+      if (currentProjectId) {
+        const res = await apiFetch(`/api/projects/${currentProjectId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ name: generatedSite.title }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail || `Błąd ${res.status}`);
+        setSaveMsg('Zapisano zmiany w projekcie');
+      } else {
+        const res = await apiFetch('/api/projects/', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: generatedSite.title,
+            domain: generatedSite.domain,
+            niche: generatedSite.category,
+            content: { files: generatedSite.files, meta: { title: generatedSite.title, headline: generatedSite.headline, subheadline: generatedSite.subheadline, ctaText: generatedSite.ctaText } },
+          }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail || `Błąd ${res.status}`);
+        const saved = await res.json();
+        setCurrentProjectId(saved.id);
+        setSaveMsg('Projekt zapisany na koncie ✓');
+      }
+      await loadProjects();
+      setTimeout(() => setSaveMsg(''), 2500);
+    } catch (e: any) {
+      setSaveMsg(e.message || 'Zapis wymaga zalogowania');
+    }
+  };
+
+  const commitTitle = async () => {
+    setEditingTitle(false);
+    const name = titleDraft.trim();
+    if (!name || !generatedSite || name === generatedSite.title) return;
+    setGeneratedSite({ ...generatedSite, title: name });
+    if (currentProjectId) {
+      try {
+        await apiFetch(`/api/projects/${currentProjectId}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+        await loadProjects();
+      } catch { /* ok */ }
+    }
+  };
+
+  const handleRenameProject = async (id: number) => {
+    const name = renameDraft.trim();
+    setRenamingId(null);
+    if (!name) return;
+    try {
+      await apiFetch(`/api/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+      await loadProjects();
+    } catch { /* ok */ }
+  };
+
+  const handleLoadProject = (p: any) => {
+    const meta = p.content?.meta || {};
+    setGeneratedSite({
+      title: p.name,
+      category: p.niche || '',
+      domain: p.domain,
+      headline: meta.headline || p.name,
+      subheadline: meta.subheadline || '',
+      ctaText: meta.ctaText || 'Kontakt',
+      files: p.content?.files || {},
+    });
+    setCurrentProjectId(p.id);
+    setSelectedFile('main/frontend/index.html');
+  };
+
+  const handleDeleteProject = async (id: number) => {
+    try {
+      await apiFetch(`/api/projects/${id}`, { method: 'DELETE' });
+      if (currentProjectId === id) setCurrentProjectId(null);
+      await loadProjects();
+    } catch { /* ok */ }
+  };
 
   const toggleQ4 = (v: string) => setQ4((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   const [showWizard, setShowWizard] = useState(false);
@@ -461,7 +560,24 @@ export const BuilderFullView = ({
                 <div className="hidden lg:flex w-64 border-l bg-white dark:bg-neutral-950 flex-col shrink-0 overflow-hidden">
                   <div className="p-4 border-b border-blue-100 dark:border-neutral-800 space-y-1">
                     <div className="text-[11px] font-black tracking-wider uppercase opacity-60">Podgląd</div>
-                    <div className="text-xs font-bold truncate">{generatedSite.title}</div>
+                    {editingTitle ? (
+                      <input
+                        autoFocus
+                        value={titleDraft}
+                        onChange={(e) => setTitleDraft(e.target.value)}
+                        onBlur={commitTitle}
+                        onKeyDown={(e) => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
+                        className="w-full text-xs font-bold bg-blue-50 dark:bg-neutral-900 border border-blue-200 dark:border-neutral-800 rounded-lg px-2 py-1 outline-none"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => { setTitleDraft(generatedSite.title); setEditingTitle(true); }}
+                        title="Kliknij, aby zmienić nazwę"
+                        className="text-xs font-bold truncate hover:text-emerald-500 cursor-pointer bg-transparent border-none text-inherit w-full text-left flex items-center gap-1.5"
+                      >
+                        {generatedSite.title} <Pencil size={10} className="opacity-50 shrink-0" />
+                      </button>
+                    )}
                     <div className="flex items-center gap-2 text-[11px]"><Eye size={12} className="opacity-60"/> 2 online</div>
                   </div>
                   <div className="p-3 space-y-3 flex-1 overflow-y-auto">
@@ -471,7 +587,35 @@ export const BuilderFullView = ({
                     <div className="pt-3 border-t border-blue-100 dark:border-neutral-800 space-y-2">
                       <div className="text-[10px] font-black opacity-60">Link do podglądu</div>
                       <div className="text-[11px] font-mono truncate bg-blue-50 dark:bg-neutral-900 p-2 rounded-lg border border-blue-100 dark:border-neutral-800">{generatedSite.domain}</div>
-                      <button onClick={() => { const html = generatedSite.files['main/frontend/index.html'] || generatedSite.files['index.html'] || ''; const blob=new Blob([html],{type:'text/html'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='index.html'; a.click(); URL.revokeObjectURL(url);}} className="w-full py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5"><Save size={12}/> Zapisz projekt</button>
+                      <button onClick={handleSaveProject} className="w-full py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5"><Save size={12}/> {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}</button>
+                      {saveMsg && <p className="text-[10px] font-black text-emerald-500">{saveMsg}</p>}
+                    </div>
+                    <div className="pt-3 border-t border-blue-100 dark:border-neutral-800 space-y-2">
+                      <div className="text-[10px] font-black opacity-60 flex items-center gap-1"><FolderOpen size={11}/> Twoje projekty</div>
+                      {savedProjects.length === 0 ? (
+                        <p className="text-[10px] font-bold opacity-60">Brak zapisanych projektów.</p>
+                      ) : savedProjects.map((p) => (
+                        <div key={p.id} className="rounded-lg border border-blue-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 space-y-1">
+                          {renamingId === p.id ? (
+                            <input
+                              autoFocus
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onBlur={() => handleRenameProject(p.id)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameProject(p.id); if (e.key === 'Escape') setRenamingId(null); }}
+                              className="w-full text-[11px] font-bold bg-blue-50 dark:bg-neutral-950 border border-blue-200 dark:border-neutral-800 rounded px-1.5 py-0.5 outline-none"
+                            />
+                          ) : (
+                            <button onClick={() => { setRenameDraft(p.name); setRenamingId(p.id); }} className="w-full text-left text-[11px] font-black truncate hover:text-emerald-500 flex items-center gap-1 cursor-pointer bg-transparent border-none text-inherit">
+                              {p.name} <Pencil size={9} className="opacity-40 shrink-0" />
+                            </button>
+                          )}
+                          <div className="flex gap-1">
+                            <button onClick={() => handleLoadProject(p)} className="flex-1 py-1 rounded-md text-[10px] font-black bg-blue-50 dark:bg-neutral-950 border border-blue-100 dark:border-neutral-800 hover:bg-blue-100 cursor-pointer">Wczytaj</button>
+                            <button onClick={() => handleDeleteProject(p.id)} className="px-2 py-1 rounded-md text-[10px] font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-neutral-950 border border-transparent hover:border-rose-200 cursor-pointer bg-transparent"><Trash2 size={11} /></button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -534,7 +678,7 @@ export const BuilderFullView = ({
                 <div className="pt-4 border-t border-blue-100 dark:border-neutral-800 space-y-3">
                   <div className="flex items-center justify-between text-xs"><span className="opacity-60">Status</span><span className="font-black text-emerald-600 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/> Live</span></div>
                   <div className="flex items-center justify-between text-xs"><span className="opacity-60">Aktualnie na stronie</span><span className="font-black">—</span></div>
-                  <button onClick={() => { if (generatedSite) { const blob = new Blob([JSON.stringify(generatedSite.files, null, 2)], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='site-files.json'; a.click(); URL.revokeObjectURL(url) }}} className="w-full py-2 rounded-xl border text-xs font-bold hover:bg-neutral-50 dark:hover:bg-neutral-900">Zapisz projekt</button>
+                  <button onClick={handleSaveProject} className="w-full py-2 rounded-xl border text-xs font-bold hover:bg-neutral-50 dark:hover:bg-neutral-900">{currentProjectId ? 'Zapisz zmiany w projekcie' : 'Zapisz projekt na koncie'}</button>
                 </div>
               </div>
             </motion.div>

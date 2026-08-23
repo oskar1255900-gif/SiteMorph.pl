@@ -27,6 +27,11 @@ const CopyBtn = ({ value }: { value: string }) => (
 );
 
 export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
+  const [plan] = useState(() => {
+    try { return (localStorage.getItem('sitemorph-plan') || 'starter').toLowerCase(); } catch { return 'starter'; }
+  });
+  const planOk = ['pro', 'business', 'agencja', 'premium'].includes(plan);
+  const planHeader = { 'X-User-Plan': plan };
   const [pages, setPages] = useState<PageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [needLogin, setNeedLogin] = useState(false);
@@ -67,6 +72,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
     try {
       const res = await apiFetch('/api/domains', {
         method: 'POST',
+        headers: planHeader,
         body: JSON.stringify({ page_id: pageId, domain }),
       });
       const data = await res.json();
@@ -86,7 +92,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
     setVerifyingId(pid);
     setVerifyMsg('');
     try {
-      const res = await apiFetch(`/api/domains/${pid}/verify`, { method: 'POST' });
+      const res = await apiFetch(`/api/domains/${pid}/verify`, { method: 'POST', headers: planHeader });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
       setVerifyMsg(data.message);
@@ -146,7 +152,12 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
           {/* Podpinanie nowej domeny */}
           <motion.div variants={itemVariants} className="rounded-2xl border p-5 mb-6 bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800">
             <h3 className="text-sm font-black mb-3">Podłącz domenę</h3>
-            {pages.length === 0 ? (
+            {!planOk ? (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4 text-xs font-bold space-y-1">
+                <p className="font-black">Własne domeny są dostępne w pakietach od 100 zł/mies (Pro, Business, Agencja).</p>
+                <p className="opacity-70">Twój obecny plan: <span className="font-black uppercase">{plan}</span>. Ulepsz plan w zakładce „Cennik & Plany”, aby podpiąć domenę swojej firmy.</p>
+              </div>
+            ) : pages.length === 0 ? (
               <p className="text-xs font-bold opacity-70">Najpierw opublikuj stronę w Kreatorze AI — potem wróć tutaj i podepnij pod nią swoją domenę.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3">

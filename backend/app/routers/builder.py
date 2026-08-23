@@ -339,7 +339,7 @@ SECTIONS: {sections_str}
 EXTRA: {data.extraPrompt or ''}
 ---
 
-Wygeneruj stronę zgodnie z SYSTEM_PROMPT. Pamiętaj: Vite + React + Tailwind, polskie treści, premium design.
+Wygeneruj stronę zgodnie z SYSTEM_PROMPT: JEDEN samowystarczalny plik main/frontend/index.html (Tailwind CDN + style/JS inline), polskie treści, premium design.
 Jeśli w DESCRIPTION/EXTRA jest wklejony surowy tekst z Google Maps — wyciągnij z niego fakty i użyj ich na stronie.
 NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
 

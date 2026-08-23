@@ -32,7 +32,7 @@ export const DashboardMainView = ({
   };
 
   const quickActions = [
-    { label: 'Kreator AI', desc: 'Strona z jednego zdania', icon: Wrench, tab: 'builder', accent: 'from-blue-600 to-indigo-500' },
+    { label: 'Kreator AI', desc: 'Strona z jednego zdania', icon: Wrench, tab: 'builder', accent: 'from-lime-400 to-emerald-500' },
     { label: 'Lead Finder', desc: 'Klienci bez strony www', icon: Search, tab: 'leadfinder', accent: 'from-emerald-500 to-teal-500' },
     { label: 'Nowa faktura', desc: 'Bez prowizji, w PDF', icon: Receipt, tab: 'finance', accent: 'from-fuchsia-500 to-purple-600' },
     { label: 'Akademia', desc: 'Sprzedawaj z głową', icon: GraduationCap, tab: 'tutorials', accent: 'from-amber-400 to-orange-500' }
@@ -86,7 +86,7 @@ export const DashboardMainView = ({
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}
               onClick={handleSendPrompt}
-              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white dark:from-white dark:to-neutral-200 dark:text-black flex items-center justify-center font-black shadow-lg cursor-pointer border-none"
+              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-lime-400 to-emerald-500 text-white dark:from-white dark:to-neutral-200 dark:text-black flex items-center justify-center font-black shadow-lg cursor-pointer border-none"
             >
               <Send size={16} />
             </motion.button>

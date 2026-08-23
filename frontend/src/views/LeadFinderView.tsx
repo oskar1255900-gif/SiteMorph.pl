@@ -479,7 +479,7 @@ export const LeadFinderView = ({
           </div>
         </div>
         <label className="flex items-center gap-3 p-3.5 rounded-lg border bg-blue-50/50 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 cursor-pointer hover:bg-blue-50 dark:hover:bg-neutral-900/80 transition">
-          <input type="checkbox" checked={onlyWithoutWebsite} onChange={(e) => setOnlyWithoutWebsite(e.target.checked)} className="w-[18px] h-[18px] accent-blue-600 rounded" />
+          <input type="checkbox" checked={onlyWithoutWebsite} onChange={(e) => setOnlyWithoutWebsite(e.target.checked)} className="sm-check" />
           <span className="text-[13px] font-bold">Tylko firmy bez strony</span>
           <span className="ml-auto text-[11px] font-bold opacity-50">domyślnie zaznaczone</span>
         </label>
