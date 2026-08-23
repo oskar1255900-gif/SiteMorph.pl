@@ -50,7 +50,13 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
   useEffect(() => {
     const adminHash = sessionStorage.getItem('sitemorph-admin-hash') || '';
     apiFetch('/api/admin/stats', { headers: { 'X-Admin-Hash': adminHash } })
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then((d) => {
         if (!d) return;
         setLiveStats([
@@ -60,7 +66,15 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           { label: 'Leady znalezione', value: String(d.leads ?? 0), delta: '—', icon: Search },
         ]);
       })
-      .catch(() => {});
+      .catch((e) => {
+        console.error('[AdminPanel] Stats error:', e);
+        setLiveStats([
+          { label: 'Użytkownicy', value: 'Błąd', delta: e.message, icon: LayoutDashboard },
+          { label: 'Strony wygenerowane', value: 'Błąd', delta: '—', icon: Globe },
+          { label: 'MRR', value: 'Błąd', delta: '—', icon: Wallet },
+          { label: 'Leady znalezione', value: 'Błąd', delta: '—', icon: Search },
+        ]);
+      });
   }, []);
 
   return (

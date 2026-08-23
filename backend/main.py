@@ -4,7 +4,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from app.database import engine, Base, SessionLocal
-from app.routers import leads, builder, projects, admin, geocode, domains, invoices, settings
+from app.routers import leads, builder, projects, admin, geocode, domains, invoices, settings, credits
 from sqlalchemy import text, inspect
 
 # Migration: ensure leads table has new columns (sqlite - add if missing)
@@ -72,6 +72,7 @@ app.include_router(geocode.router)
 app.include_router(domains.router)
 app.include_router(invoices.router)
 app.include_router(settings.router)
+app.include_router(credits.router)
 
 # ---------------------------------------------------------------------------
 # WŁASNE DOMENY KLIENTÓW — request z Host: biznesklienta.pl serwuje stronę

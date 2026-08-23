@@ -23,6 +23,7 @@ import { SettingsView } from './views/SettingsView';
 import { AuthModal } from './components/AuthModal';
 import { GlobalNavbar } from './components/GlobalNavbar';
 import { FloatingChat } from './components/FloatingChat';
+import { apiFetch } from './lib/api';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -42,11 +43,37 @@ export default function App() {
   });
   const [session, setSession] = useState<any>(null)
   const [showAuth, setShowAuth] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
-    return () => subscription.unsubscribe()
-  }, [])
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthChecked(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      setAuthChecked(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Pobierz kredyty z backendu po zalogowaniu
+  useEffect(() => {
+    if (session && !session.user?.user_metadata?.credits_synced) {
+      apiFetch('/api/credits')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d && typeof d.credits === 'number') {
+            setCredits(d.credits);
+            localStorage.setItem('sitemorph-credits', String(d.credits));
+            supabase.auth.updateUser({ data: { credits_synced: true } }).catch(() => {});
+          }
+        })
+        .catch(() => {
+          // fallback do localStorage
+        });
+    }
+  }, [session]);
 
   useEffect(() => {
     try {
@@ -63,16 +90,41 @@ export default function App() {
     try { localStorage.setItem('sitemorph-credits', String(credits)); } catch {}
   }, [credits]);
 
+  // Nowi użytkownicy dostają 15 kredytów przy pierwszej rejestracji
+  useEffect(() => {
+    if (session && !session.user?.user_metadata?.credits_granted) {
+      const granted = localStorage.getItem('sitemorph-credits-granted');
+      if (!granted) {
+        setCredits(15);
+        localStorage.setItem('sitemorph-credits-granted', 'true');
+        localStorage.setItem('sitemorph-credits', '15');
+        supabase.auth.updateUser({ data: { credits_granted: true } }).catch(() => {});
+      }
+    }
+  }, [session]);
+
   const handleEnterApp = (tab = 'dashboard') => {
+    if (!session) {
+      setShowAuth(true);
+      return;
+    }
     setActiveTab(tab);
     setCurrentView('app');
   };
 
   const handleLaunchBuilderWithPrompt = (prompt: string) => {
+    if (!session) {
+      setShowAuth(true);
+      return;
+    }
     setPrefilledPrompt(prompt);
     setActiveTab('builder');
     setCurrentView('app');
   };
+
+  // Chronione trasy - jeśli nie zalogowany i próbuje wejść w app, pokazuj landing
+  const isProtectedTab = ['dashboard', 'leadfinder', 'finance', 'domains', 'settings', 'tutorials', 'help'].includes(activeTab);
+  const shouldShowApp = currentView === 'app' && (!isProtectedTab || session);
 
   if (!showSplash && currentView === 'app' && activeTab === 'builder') {
     return (
@@ -90,6 +142,12 @@ export default function App() {
         <FloatingChat chatOpen={chatOpen} setChatOpen={setChatOpen} />
       </>
     );
+  }
+
+  // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
+  if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
+    setCurrentView('landing');
+    setShowAuth(true);
   }
 
   return (
@@ -124,7 +182,7 @@ export default function App() {
               onLogout={async () => { await supabase.auth.signOut(); setSession(null) }}
             />
           </motion.div>
-        ) : (
+        ) : shouldShowApp ? (
           <motion.div
             key="app-view"
             initial={{ opacity: 0 }}
@@ -204,7 +262,20 @@ export default function App() {
             <CookieBanner />
         <FloatingChat chatOpen={chatOpen} setChatOpen={setChatOpen} />
           </motion.div>
-        )}
+        ) : currentView === 'app' ? (
+          // Fallback - jeśli jakoś trafił w app bez sesji
+          <motion.div
+            key="app-fallback"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="min-h-screen flex items-center justify-center bg-white dark:bg-black"
+          >
+            <div className="text-center p-8">
+              <p className="font-black text-lg">Zaloguj się, aby kontynuować</p>
+              <Button variant="primary" onClick={() => setShowAuth(true)} className="mt-4">Zaloguj się</Button>
+            </div>
+          </motion.div>
+        ) : null}
       </AnimatePresence>
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} />}
     </>

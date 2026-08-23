@@ -85,11 +85,16 @@ export const LeadFinderView = ({
     ;(async () => {
       try {
         const res = await apiFetch(`/api/geocode/all-cities?country=${encodeURIComponent(country)}`)
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.detail || errData.error || `Błąd ${res.status}`)
+        }
         const data = await res.json()
         if (reqId !== citiesReqIdRef.current) return
         if (Array.isArray(data.results)) setAllCities(data.results as CityOption[])
         else setAllCities([])
-      } catch {
+      } catch (e: any) {
+        console.error('[LeadFinderView] Cities load error:', e)
         if (reqId === citiesReqIdRef.current) setAllCities([])
       } finally {
         if (reqId === citiesReqIdRef.current) setCitiesLoading(false)

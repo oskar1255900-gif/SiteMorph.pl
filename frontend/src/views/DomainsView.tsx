@@ -50,13 +50,17 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
     try {
       const res = await apiFetch('/api/domains/mine');
       if (res.status === 401) { setNeedLogin(true); setPages([]); return; }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Błąd ${res.status}`);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
       setNeedLogin(false);
       setPages(data.pages || []);
       if (!pageId && data.pages?.length) setPageId(data.pages[0].id);
     } catch (e: any) {
-      setErr(e.message || 'Błąd połączenia');
+      console.error('[DomainsView] Load error:', e);
+      setErr(e.message || 'Błąd połączenia z serwerem');
     } finally {
       setLoading(false);
     }
@@ -75,13 +79,17 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
         headers: planHeader,
         body: JSON.stringify({ page_id: pageId, domain }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Błąd ${res.status}`);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
       setDnsInfo(data.dns);
       setAttachedDomain(data.domain);
       setVerifyMsg('');
       await load();
     } catch (e: any) {
+      console.error('[DomainsView] Attach error:', e);
       setErr(e.message || 'Nie udało się podpiąć domeny');
     } finally {
       setAttaching(false);
@@ -93,11 +101,15 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
     setVerifyMsg('');
     try {
       const res = await apiFetch(`/api/domains/${pid}/verify`, { method: 'POST', headers: planHeader });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Błąd ${res.status}`);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
       setVerifyMsg(data.message);
       await load();
     } catch (e: any) {
+      console.error('[DomainsView] Verify error:', e);
       setVerifyMsg(e.message || 'Błąd weryfikacji');
     } finally {
       setVerifyingId(null);

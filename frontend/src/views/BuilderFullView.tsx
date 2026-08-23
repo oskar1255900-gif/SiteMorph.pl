@@ -238,9 +238,10 @@ export const BuilderFullView = ({
     setSelectedFile('src/App.tsx');
     setShowWizard(false);
     try {
+      const plan = (() => { try { return localStorage.getItem('sitemorph-plan') || 'Starter' } catch { return 'Starter' } })();
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
-        headers: { 'X-User-Plan': (()=>{try{return localStorage.getItem('sitemorph-plan')||'Starter'}catch{return 'Starter'}})() },
+        headers: { 'X-User-Plan': plan },
         body: JSON.stringify({
           business_name: q1,
           niche: q1,
@@ -251,6 +252,10 @@ export const BuilderFullView = ({
           extraPrompt: promptText || builderPrompt,
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || errData.warning || `Błąd generowania: HTTP ${res.status}`);
+      }
       const data = await res.json();
       const files: Record<string, string> = data.files || {};
       const meta = data.meta || {};
@@ -259,23 +264,28 @@ export const BuilderFullView = ({
         category: q1,
         domain: `${q1.toLowerCase().replace(/\s+/g, '')}.sitemorph.pl`,
         headline: meta.headline || p,
-        subheadline: meta.subheadline || 'Wygenerowane przez SiteMorph AI (Gemini Flash)',
+        subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'AI'})`,
         ctaText: meta.ctaText || 'Skontaktuj się',
         files,
       });
       const first = Object.keys(files).find(f => f.endsWith('index.html')) || Object.keys(files)[0];
       if (first) setSelectedFile(first);
       setCredits((c) => Math.max(0, c - cost));
-    } catch (e) {
+      if (data.warning) {
+        console.warn('[Builder] Warning:', data.warning);
+      }
+    } catch (e: any) {
+      console.error('[Builder] Generation error:', e);
+      const msg = e.message || 'Błąd generowania — sprawdź konsolę';
       setGeneratedSite({
         title: p.slice(0, 25),
         category: q1,
         domain: 'mojastrona.sitemorph.io',
         headline: p,
-        subheadline: 'Błąd generowania — pokazuję podgląd awaryjny.',
+        subheadline: `Błąd: ${msg}`,
         ctaText: 'Skontaktuj się',
         files: {
-          'src/App.tsx': `export default function App(){return <div className="p-8"><h1>${p}</h1></div>}`,
+          'src/App.tsx': `export default function App(){return <div className="p-8"><h1>${p}</h1><p style="color:red">${msg}</p></div>}`,
         },
       });
       setCredits((c) => Math.max(0, c - cost));

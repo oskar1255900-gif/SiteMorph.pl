@@ -72,4 +72,5 @@ class UserSettings(Base):
 
     user_id = Column(String, primary_key=True, index=True)
     data = Column(JSON)  # dane sprzedawcy: nazwa, adres, NIP, PayPal, Blik, IBAN...
+    credits = Column(Integer, default=0)  # kredyty użytkownika
     updated_at = Column(Float, nullable=True)
