@@ -311,10 +311,9 @@ const GlobalStyles = () => (
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+    /* Ukryty scrollbar po prawej — czyściej, nie jak AI */
+    *::-webkit-scrollbar { width: 0; height: 0; }
+    * { scrollbar-width: none; -ms-overflow-style: none; }
   `}</style>
 );
 
@@ -664,67 +663,7 @@ const PublicLandingView = ({
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-blue-600 dark:text-white transition-colors overflow-x-hidden landing-scale">
-      
-      {/* Kapsułkowy Navbar 1:1 */}
-      <header className="pt-6 px-4 flex justify-center sticky top-0 z-40">
-        <motion.div 
-          layout
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={springTransition}
-          className="w-full max-w-5xl backdrop-blur-xl border rounded-full py-2.5 px-6 shadow-xl flex items-center justify-between bg-white/95 dark:bg-black/95 border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white"
-        >
-          {/* Logo 1:1 */}
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onEnterApp('dashboard')}>
-            <motion.div 
-              layoutId="app-main-logo"
-              className="w-7 h-7 rounded-full flex items-center justify-center font-black text-xs bg-blue-600 text-white dark:bg-white dark:text-black shadow-md"
-            >
-              <Zap size={14} className="fill-current" />
-            </motion.div>
-            <span className="font-black text-base tracking-tight text-blue-600 dark:text-white">
-              Site<span className="text-gradient-lime-soft font-story-script text-xl px-0.5">Morph</span>
-            </span>
-          </div>
-
-          {/* Linki nawigacji (scrollują do sekcji) */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-bold text-blue-600 dark:text-white opacity-90">
-            <button onClick={() => scrollToId('jak-to-dziala')} className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none font-bold text-inherit">Jak to działa</button>
-            <button onClick={() => scrollToId('funkcje')} className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none font-bold text-inherit">Funkcje</button>
-            <button onClick={() => scrollToId('leadfinder')} className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none font-bold text-inherit">Lead Finder</button>
-            <button onClick={() => scrollToId('rozliczenia')} className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none font-bold text-inherit">Rozliczenia</button>
-            <button onClick={() => onEnterApp('pricing')} className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none font-bold text-inherit">Cennik</button>
-          </nav>
-
-          {/* Prawa strona: Przełącznik motywu + Przyciski 1:1 */}
-          <div className="flex items-center gap-3">
-            <motion.button
-              whileHover={{ rotate: 180, scale: 1.15 }}
-              whileTap={{ scale: 0.9 }}
-              transition={springTransition}
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-neutral-900 text-blue-600 dark:text-white cursor-pointer border-none bg-transparent"
-              title="Zmień motyw"
-            >
-              {theme === 'dark' ? <Sun size={15} className="text-white" /> : <Moon size={15} className="text-blue-600" />}
-            </motion.button>
-
-            {session ? (
-              <>
-                <span className="hidden sm:block text-xs font-bold opacity-70 max-w-[150px] truncate">{session.user?.email}</span>
-                <button onClick={onLogout} className="text-xs font-bold hover:text-rose-500 transition-colors cursor-pointer bg-transparent border-none text-inherit hidden sm:block">Wyloguj</button>
-              </>
-            ) : (
-              <button onClick={onShowAuth} className="text-xs font-bold hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none text-inherit hidden sm:block">Zaloguj się</button>
-            )}
-
-            <Button variant="primary" size="sm" onClick={() => onEnterApp('dashboard')} className="px-5 font-black">
-              Zacznij teraz
-            </Button>
-          </div>
-        </motion.div>
-      </header>
-
+      <div className="h-2" />
       {/* Hero Section (Lewa: Tekst, Prawa: Mockup ze wszystkimi pływającymi badge'ami) */}
       <section className="max-w-6xl mx-auto px-6 py-12 lg:py-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
         
@@ -1275,17 +1214,19 @@ const PublicLandingView = ({
           </div>
           <div className="flex gap-1">
             {[
-              ['Regulamin', 'regulamin'],
-              ['Prywatność', 'prywatnosc'],
-              ['Cookies', 'cookies']
-            ].map(([label, key]) => (
-              <button
-                key={key}
-                onClick={() => setLegalDoc(key as any)}
-                className="px-3 py-1.5 rounded-full border border-transparent hover:border-blue-200 dark:hover:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
+              ['Regulamin', '/regulamin'],
+              ['Prywatność', '/prywatnosc'],
+              ['Cookies', '/cookies']
+            ].map(([label, href]) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-full border border-transparent hover:border-blue-200 dark:hover:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer text-xs font-bold"
               >
                 {label}
-              </button>
+              </a>
             ))}
           </div>
         </div>
@@ -1391,14 +1332,9 @@ const DashboardSidebar = ({
             onClick={onExit} 
             className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit"
           >
-            <motion.div 
-              layoutId="app-main-logo"
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs bg-blue-600 text-white dark:bg-white dark:text-black shadow-md"
-            >
-              <Zap size={13} className="fill-current" />
-            </motion.div>
+            <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
             <span className="font-black text-base tracking-tight text-blue-600 dark:text-white">
-              Site<span className="text-gradient-lime-soft font-story-script text-xl px-0.5">Morph</span>
+              Site<span className="font-story-script text-xl px-0.5" style={{ background: 'linear-gradient(135deg,#06b6d4 0%,#22d3ee 50%,#a3e635 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Morph</span>
             </span>
           </motion.button>
 
@@ -1543,9 +1479,7 @@ const MobileNav = ({
     <>
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-blue-100 dark:border-neutral-900 text-blue-600 dark:text-white">
         <button onClick={onExit} className="flex items-center gap-2 cursor-pointer bg-transparent border-none text-inherit p-1.5 rounded-lg active:scale-95 transition-transform">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs bg-blue-600 text-white dark:bg-white dark:text-black shadow-md">
-            <Zap size={13} className="fill-current" />
-          </div>
+          <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
           <span className="font-black text-sm tracking-tight">Site<span className="text-gradient-lime-soft font-story-script text-lg px-0.5">Morph</span></span>
         </button>
         <div className="flex items-center gap-1">
@@ -2015,7 +1949,7 @@ const BuilderFullView = ({
         >
           <ArrowLeft size={16} />
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white dark:bg-white dark:text-black flex items-center justify-center text-xs font-black shadow-sm">S</div>
+            <img src="/logo.svg" alt="SiteMorph" width="24" height="24" className="rounded-lg shadow-sm" />
             Kreator SiteMorph
           </div>
         </motion.button>
@@ -3988,6 +3922,83 @@ const AuthModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess?: ()
   )
 }
 
+// Globalny sticky navbar — zawsze widoczny (landing + app)
+const GlobalNavbar = ({
+  theme, setTheme, session, onShowAuth, onLogout, onEnterApp, setActiveTab, currentView, setCurrentView,
+}: {
+  theme: 'light' | 'dark'; setTheme: (t: 'light' | 'dark') => void;
+  session: any; onShowAuth: () => void; onLogout: () => void;
+  onEnterApp: (tab?: string) => void; setActiveTab: (t: string) => void;
+  currentView: 'landing' | 'app'; setCurrentView: (v: 'landing' | 'app') => void;
+}) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const scrollToId = (id: string) => {
+    if (currentView !== 'landing') { setCurrentView('landing'); setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 100); }
+    else document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    setMobileOpen(false);
+  };
+  const goTab = (tab: string) => {
+    if (currentView === 'landing') onEnterApp(tab);
+    else setActiveTab(tab);
+    setMobileOpen(false);
+  };
+  return (
+    <header className="sticky top-0 z-40 flex justify-center px-4 pt-4 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-5xl backdrop-blur-xl border rounded-full py-2.5 px-5 shadow-xl flex items-center justify-between bg-white/95 dark:bg-black/95 border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white">
+        <button onClick={() => { setCurrentView('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit">
+          <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg" />
+          <span className="font-black text-base tracking-tight">Site<span className="font-story-script text-xl px-0.5" style={{ background: 'linear-gradient(135deg,#06b6d4 0%,#22d3ee 50%,#a3e635 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Morph</span></span>
+        </button>
+        <nav className="hidden md:flex items-center gap-6 text-xs font-bold opacity-90">
+          <button onClick={() => scrollToId('jak-to-dziala')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Jak to działa</button>
+          <button onClick={() => scrollToId('funkcje')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Funkcje</button>
+          <button onClick={() => goTab('leadfinder')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Lead Finder</button>
+          <button onClick={() => goTab('finance')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Rozliczenia</button>
+          <button onClick={() => goTab('pricing')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Cennik</button>
+        </nav>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-neutral-900 cursor-pointer border-none bg-transparent" title="Zmień motyw">
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+          <div className="hidden sm:flex items-center gap-2">
+            {session ? (
+              <>
+                <span className="text-xs font-bold opacity-60 max-w-[120px] truncate hidden lg:block">{session.user?.email}</span>
+                <button onClick={onLogout} className="text-xs font-bold hover:text-rose-500 bg-transparent border-none cursor-pointer">Wyloguj</button>
+              </>
+            ) : (
+              <button onClick={onShowAuth} className="text-xs font-bold hover:text-emerald-500 bg-transparent border-none cursor-pointer">Zaloguj się</button>
+            )}
+            <Button variant="primary" size="sm" onClick={() => goTab('dashboard')} className="px-4 font-black">Zacznij teraz</Button>
+          </div>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-full hover:bg-blue-50 dark:hover:bg-neutral-900 border-none bg-transparent cursor-pointer">
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
+      </div>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-[72px] left-4 right-4 bg-white dark:bg-black border border-blue-200 dark:border-neutral-800 rounded-2xl shadow-xl p-4 flex flex-col gap-2 md:hidden pointer-events-auto">
+            {[
+              ['Jak to działa', () => scrollToId('jak-to-dziala')],
+              ['Funkcje', () => scrollToId('funkcje')],
+              ['Lead Finder', () => goTab('leadfinder')],
+              ['Rozliczenia', () => goTab('finance')],
+              ['Cennik', () => goTab('pricing')],
+            ].map(([label, fn]) => (
+              <button key={label as string} onClick={fn as any} className="text-left px-3 py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-neutral-900 font-bold text-sm">{label as string}</button>
+            ))}
+            <div className="border-t border-blue-100 dark:border-neutral-800 pt-3 flex gap-2">
+              {session ? <Button variant="outline" size="sm" onClick={onLogout} className="flex-1">Wyloguj</Button> : <Button variant="outline" size="sm" onClick={onShowAuth} className="flex-1">Zaloguj się</Button>}
+              <Button variant="primary" size="sm" onClick={() => goTab('dashboard')} className="flex-1">Zacznij</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+};
+
 // ============================================================================
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -4060,6 +4071,15 @@ export default function App() {
   return (
     <>
       <GlobalStyles />
+      {!showSplash && !(currentView === 'app' && activeTab === 'builder') && (
+        <GlobalNavbar
+          theme={theme} setTheme={setTheme} session={session}
+          onShowAuth={() => setShowAuth(true)}
+          onLogout={async () => { await supabase.auth.signOut(); setSession(null); }}
+          onEnterApp={handleEnterApp} setActiveTab={setActiveTab}
+          currentView={currentView} setCurrentView={setCurrentView}
+        />
+      )}
       <AnimatePresence mode="wait">
         {showSplash ? (
           <SplashScreen key="splash" onComplete={() => setShowSplash(false)} theme={theme} />
