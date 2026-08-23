@@ -43,7 +43,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
     { label: 'Leady znalezione', value: '0', delta: '—', icon: Search },
   ]);
   const [liveUsers, setLiveUsers] = useState<typeof ADMIN_USERS>([]);
-  const [creditUser, setCreditUser] = useState('oskar1255900');
+  const [creditUser, setCreditUser] = useState('');
   const [creditAmount, setCreditAmount] = useState('25');
   const [creditMsg, setCreditMsg] = useState('');
 
@@ -130,10 +130,10 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
               size="sm"
               onClick={() => {
                 const amt = parseInt(creditAmount, 10) || 0;
-                if (creditUser.trim().toLowerCase() === 'oskar1255900') {
+                if (creditUser.trim()) {
                   setCredits((c) => c + amt);
                 }
-                setCreditMsg(`Dodano ${amt} kredytów dla ${creditUser} ${creditUser.toLowerCase() !== 'oskar1255900' ? '(demo)' : ''}`);
+                setCreditMsg(`Dodano ${amt} kredytów dla ${creditUser || '(brak nazwy)'} (demo)`);
                 setTimeout(() => setCreditMsg(''), 3000);
               }}
               className="font-black"
@@ -145,7 +145,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
             <span className="opacity-70">Twoje kredyty: {credits}</span>
             {creditMsg && <span className="text-emerald-600 dark:text-emerald-400">· {creditMsg}</span>}
           </div>
-          <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora — dodaj sobie lub komuś innemu. Przykład: wpisz „oskar1255900” aby doładować swoje konto.</p>
+          <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora — dodaj kredyty dowolnemu użytkownikowi (demo).</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

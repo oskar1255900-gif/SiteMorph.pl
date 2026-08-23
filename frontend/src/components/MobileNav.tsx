@@ -18,7 +18,8 @@ export const MobileNav = ({
   onExit,
   theme,
   setTheme,
-  credits
+  credits,
+  session
 }: {
   activeTab: string;
   setActiveTab: (t: string) => void;
@@ -26,6 +27,7 @@ export const MobileNav = ({
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
   credits: number;
+  session: any;
 }) => {
   const [open, setOpen] = useState(false)
   useEffect(() => { setOpen(false) }, [activeTab])
@@ -122,8 +124,8 @@ export const MobileNav = ({
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">O</div>
                     <div className="min-w-0">
-                      <div className="text-xs font-black truncate">oskar1255900</div>
-                      <div className="text-[10px] font-bold opacity-80">Darmowy plan</div>
+                      <div className="text-xs font-black truncate">{session?.user?.email?.split('@')[0] || 'Użytkownik'}</div>
+                      <div className="text-[10px] font-bold opacity-80">{credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}</div>
                     </div>
                   </div>
                   <motion.button whileTap={{ scale: 0.9 }} onClick={onExit} className="p-1 text-blue-600 dark:text-white hover:text-rose-500 cursor-pointer bg-transparent border-none" title="Wyloguj">

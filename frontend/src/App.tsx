@@ -198,6 +198,7 @@ export default function App() {
               theme={theme}
               setTheme={setTheme}
               credits={credits}
+              session={session}
             />
             <DashboardSidebar
               activeTab={activeTab}
@@ -206,6 +207,7 @@ export default function App() {
               theme={theme}
               setTheme={setTheme}
               credits={credits}
+              session={session}
             />
 
             <main className="flex-1 h-screen overflow-y-auto no-scrollbar relative z-10 pt-14 lg:pt-0">

@@ -25,7 +25,6 @@ export const SIDEBAR_MENU = [
   { id: 'finance', label: 'Finanse', icon: Receipt },
   { id: 'tutorials', label: 'Akademia', icon: GraduationCap },
   { id: 'help', label: 'Pomoc', icon: HelpCircle },
-  { id: 'settings', label: 'Ustawienia', icon: Settings }
 ];
 
 export const DashboardSidebar = ({
@@ -34,7 +33,8 @@ export const DashboardSidebar = ({
   onExit,
   theme,
   setTheme,
-  credits
+  credits,
+  session
 }: {
   activeTab: string;
   setActiveTab: (t: string) => void;
@@ -42,6 +42,7 @@ export const DashboardSidebar = ({
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
   credits: number;
+  session: any;
 }) => {
   const menuItems = SIDEBAR_MENU;
 
@@ -164,8 +165,8 @@ export const DashboardSidebar = ({
               O
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-black truncate">oskar1255900</div>
-              <div className="text-[10px] font-bold opacity-80">Darmowy plan</div>
+              <div className="text-xs font-black truncate">{session?.user?.email?.split('@')[0] || 'Użytkownik'}</div>
+              <div className="text-[10px] font-bold opacity-80">{credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}</div>
             </div>
           </div>
           <motion.button 
