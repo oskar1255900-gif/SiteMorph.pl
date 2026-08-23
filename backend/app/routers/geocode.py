@@ -249,6 +249,90 @@ OVERPASS_ENDPOINTS = [
 COUNTRY_VILLAGE_MIN_POP: Dict[str, int] = {
     "Polska": 1000,
     "UK": 2000,
+    "USA": 5000,
+}
+
+# Rozszerzony fallback — więcej miast, żeby nie było pustki gdy Overpass pada
+# Źródło: Wikipedia / stat.gov / ONS / Census Bureau top miasta
+POPULAR_FALLBACK: Dict[str, List[str]] = {
+    "Polska": [
+        "Warszawa","Kraków","Łódź","Wrocław","Poznań","Gdańsk","Szczecin","Bydgoszcz","Lublin","Białystok",
+        "Katowice","Gdynia","Częstochowa","Radom","Sosnowiec","Toruń","Kielce","Rzeszów","Gliwice","Zabrze",
+        "Olsztyn","Bielsko-Biała","Bytom","Zielona Góra","Rybnik","Ruda Śląska","Opole","Tychy","Gorzów Wielkopolski",
+        "Dąbrowa Górnicza","Płock","Elbląg","Wałbrzych","Włocławek","Tarnów","Chorzów","Koszalin","Kalisz","Legnica",
+        "Grudziądz","Jaworzno","Słupsk","Jastrzębie-Zdrój","Nowy Sącz","Jelenia Góra","Siedlce","Mysłowice","Piła",
+        "Ostrów Wielkopolski","Konin","Piotrków Trybunalski","Lubliniec","Suwałki","Gorzów","Zamość","Leszno",
+        "Przemyśl","Stalowa Wola","Kędzierzyn-Koźle","Łomża","Żory","Ełk","Tarnobrzeg","Mielec","Bełchatów",
+        "Świdnica","Pruszków","Legionowo","Chełm","Ostrowiec Świętokrzyski","Zawiercie","Starachowice","Wejherowo",
+        "Puławy","Starogard Gdański","Skierniewice","Tomaszów Mazowiecki","Krosno","Rumia","Pabianice","Otwock",
+        "Marki","Żyrardów","Kutno","Nysa","Kołobrzeg","Kwidzyn","Sopot","Siemianowice Śląskie","Inowrocław",
+        "Oświęcim","Tczew","Gniezno","Piekary Śląskie","Olsztyn","Zduńska Wola","Sieradz","Mikołów","Bełchatów",
+        "Świętochłowice","Racibórz","Mława","Świdnik","Bielawa","Kępno","Kościerzyna","Krotoszyn","Luboń","Lubań",
+        "Łaziska Górne","Łęczyca","Łowicz","Malbork","Miasteczko Śląskie","Mikołajki","Milicz","Mszana Dolna",
+        "Muszyna","Myszków","Nakło nad Notecią","Nidzica","Nisko","Nowa Ruda","Nowa Sól","Nowe Miasto Lubawskie",
+        "Nowy Dwór Mazowiecki","Nowy Targ","Oborniki","Olecko","Olesno","Ostróda","Ostrzeszów","Otwock","Ozorków",
+        "Pajęczno","Parczew","Pasłęk","Piaseczno","Piechowice","Pieniężno","Pilica","Pionki","Pisz","Pleszew",
+        "Pniewy","Pogoń Szczecińska","Polanica-Zdrój","Police","Polkowice","Poniec","Poręba","Poznań","Prószków",
+        "Prudnik","Pruszków","Przasnysz","Przeworsk","Przytyk","Pszczyna","Puck","Pyrzyce","Radziejów","Radlin",
+        "Radomsko","Radzyń Podlaski","Rakoniewice","Raszków","Rawa Mazowiecka","Rawicz","Recz","Redziny","Rejowiec",
+        "Reszel","Rogoźno","Ropczyce","Ruda Śląska","Rudnik nad Sanem","Rybnik","Rychwał","Ryki","Rymanów","Ryn",
+        "Rzepin","Rzgów","Sandomierz","Sanok","Sejny","Serock","Sępólno Krajeńskie","Sianów","Siedlce","Siemianowice Śląskie",
+        "Sieniawa","Sieradz","Sierpc","Skarszewy","Skoczów","Skoki","Skórcz","Słomniki","Słubice","Słupsk","Sobótka",
+        "Sochaczew","Sokołów Podlaski","Sokołów Małopolski","Sompolno","Sopot","Sosnowiec","Stalowa Wola","Starachowice",
+        "Stargard","Starogard Gdański","Stary Sącz","Stęszew","Strzelce Krajeńskie","Strzelce Opolskie","Strzelin",
+        "Strzyżów","Sucha Beskidzka","Suchedniów","Suchowola","Sulejów","Sulęcin","Suwałki","Swarzędz","Syców","Szamocin",
+        "Szamotuły","Szczawnica","Szczecin","Szczecinek","Szczucin","Szczytno","Sztum","Szubin","Szydłowiec","Ścinawa",
+        "Ślesin","Śmigiel","Śrem","Środa Śląska","Środa Wielkopolska","Świdnica","Świdnik","Świdwin","Świebodzin",
+        "Świebodzice","Świętochłowice","Tarczyn","Tarnobrzeg","Tarnowskie Góry","Tarnów","Tczew","Tolkmicko","Tomaszów Lubelski",
+        "Tomaszów Mazowiecki","Toruń","Torzym","Tuchola","Tuliszków","Turek","Tuszyn","Twardogóra","Tychy","Tyczyn",
+        "Tykocin","Tyczyn","Ulanów","Uniejów","Ustka","Wadowice","Warka","Warszawa","Warta","Wasilków","Wąbrzeźno",
+        "Wąchock","Węgliniec","Węgorzewo","Węgorzyno","Węgrów","Wieliczka","Wieleń","Wieruszów","Więcbork","Wijewo",
+        "Wilanów","Winnica","Wisła","Witkowo","Witnica","Wiązowna","Włocławek","Włodawa","Włoszakowice","Wodzisław Śląski",
+        "Wojkowice","Wołczyn","Wołomin","Wołów","Wolsztyn","Węgrów","Wręczyca Wielka","Wronki","Września","Wschowa",
+        "Wyrzysk","Wysokie Mazowieckie","Wyszków","Ząbkowice Śląskie","Zambrów","Zator","Zawichost","Zawidów","Zawiercie",
+        "Zbąszyń","Zbąszynek","Zduńska Wola","Zdzieszowice","Zgierz","Zgorzelec","Ziębice","Złocieniec","Złoczew","Złotoryja",
+        "Złotów","Zwoleń","Żabno","Żagań","Żarki","Żary","Żelechów","Żerków","Żnin","Żory","Żukowo","Żuromin","Żyrardów",
+        "Żywiec"
+    ],
+    "UK": [
+        "London","Birmingham","Glasgow","Liverpool","Bristol","Sheffield","Edinburgh","Leeds","Cardiff","Manchester",
+        "Stoke-on-Trent","Coventry","Sunderland","Birkenhead","Islington","Reading","Kingston upon Hull","Preston",
+        "Newport","Swansea","Bradford","Southend-on-Sea","Derby","Plymouth","Luton","Wolverhampton","City of Westminster",
+        "Southampton","Northampton","Portsmouth","Wigan","Leicester","Nottingham","Newcastle upon Tyne","Norwich",
+        "Middlesbrough","Bournemouth","York","Blackpool","Belfast","Cambridge","Dundee","Ipswich","Warrington",
+        "Peterborough","Slough","Huddersfield","Oxford","Dudley","Poole","Telford","Gloucester","Stockport",
+        "Brighton","Bolton","Aberdeen","Oldham","Cheltenham","Eastbourne","Rochdale","Colchester","Crawley",
+        "Exeter","Hastings","Harrogate","High Wycombe","Horsham","Keighley","Lancaster","Lincoln","Luton","Maidstone",
+        "Mansfield","Milton Keynes","Morden","Newbury","Paisley","Perth","Rochester","Royal Leamington Spa","Salford",
+        "Salisbury","Scunthorpe","Solihull","Southport","St Albans","St Helens","Stevenage","Sutton Coldfield",
+        "Swindon","Taunton","Tonbridge","Truro","Wakefield","Watford","Wellingborough","Weston-super-Mare","Wimbledon",
+        "Winchester","Woking","Worcester","Worthing","Yeovil","York"
+    ],
+    "USA": [
+        "New York","Los Angeles","Chicago","Houston","Phoenix","Philadelphia","San Antonio","San Diego","Dallas",
+        "San Jose","Austin","Jacksonville","Fort Worth","Columbus","Charlotte","San Francisco","Indianapolis",
+        "Seattle","Denver","Washington","Boston","El Paso","Nashville","Detroit","Oklahoma City","Portland",
+        "Las Vegas","Memphis","Louisville","Milwaukee","Baltimore","Albuquerque","Tucson","Mesa","Sacramento",
+        "Atlanta","Kansas City","Colorado Springs","Miami","Raleigh","Omaha","Long Beach","Virginia Beach",
+        "Oakland","Minneapolis","Tulsa","Arlington","Tampa","New Orleans","Wichita","Cleveland","Bakersfield",
+        "Aurora","Anaheim","Honolulu","Santa Ana","Riverside","Corpus Christi","Lexington","Henderson","Stockton",
+        "Saint Paul","St. Louis","Cincinnati","St. Petersburg","Pittsburgh","Greensboro","Anchorage","Plano",
+        "Lincoln","Orlando","Irvine","Newark","Durham","Chula Vista","Toledo","Fort Wayne","Jersey City",
+        "Chandler","Madison","Lubbock","Scottsdale","Reno","Buffalo","Gilbert","Glendale","North Las Vegas",
+        "Winston-Salem","Chesapeake","Norfolk","Fremont","Garland","Irving","Hialeah","Richmond","Boise",
+        "Spokane","Baton Rouge","Des Moines","Modesto","Fayetteville","Moreno Valley","Montgomery","Huntington Beach",
+        "Glendale","Aurora","Mobile","San Bernardino","Birmingham","Roanoke","Little Rock","Amarillo","Augusta",
+        "Huntsville","Grand Rapids","Salt Lake City","Tallahassee","Knoxville","Worcester","Providence","Newport News",
+        "Overland Park","Santa Clarita","Santa Rosa","Sioux Falls","Springfield","Fort Lauderdale","Pembroke Pines",
+        "Elk Grove","Oceanside","Garden Grove","Rancho Cucamonga","Ontario","Chattanooga","Vancouver","Jackson",
+        "Cape Coral","Eugene","McKinney","Alexandria","Peoria","Lakewood","Hollywood","Salem","Palmdale","Springfield",
+        "Lancaster","Eugene","Corona","Salinas","Springfield","Pomona","Hayward","Escondido","Torrance","Sunnyvale",
+        "Paterson","Naperville","Joliet","Rockford","Savannah","Mesquite","Bridgeport","Sunnyvale","McAllen","Olive Branch",
+        "Clarksville","Frisco","Killeen","Pasadena","Orange","Fullerton","Kansas City","Miramar","Hampton","Warren",
+        "West Valley City","Columbia","Olathe","Sterling Heights","New Haven","Midland","Thousand Oaks","Visalia",
+        "Waco","Topeka","Cedar Rapids","Charleston","Gainesville","Independence","Lafayette","Carrollton","Bellevue",
+        "Round Rock","Billings","Abilene","Ann Arbor","Denton","Beaumont","Odessa","Wichita Falls","San Angelo","Tyler"
+    ],
 }
 
 # Fallback gdy Overpass pada — top miasta per kraj (żeby dropdown nie był pusty)
@@ -304,7 +388,7 @@ def _save_disk_cache(country: str, results: List[dict]):
     except Exception:
         pass
 
-def _overpass(query: str, timeout: int = 150, rounds: int = 2):
+def _overpass(query: str, timeout: int = 180, rounds: int = 2):
     """Zwróć elements albo None. Krąży po endpointach; 5xx/timeout ponawia."""
     last_err = ""
     for rnd in range(rounds):
@@ -386,40 +470,58 @@ def _warm_cache():
 
 def _fetch_and_cache(country: str):
     """Pobiera pełną listę miejscowości kraju z Overpass i zapisuje cache
-    (pamięć + dysk). Wywoływana w wątku tła, gdy brak cache przy zapytaniu."""
+    (pamięć + dysk). Wywoływana w wątku tła, gdy brak cache przy zapytaniu.
+    Dzieli zapytanie na typy miejscowości, by uniknąć timeoutów na dużych krajach."""
     area_id = COUNTRY_AREA.get(country)
     if not area_id:
         _fetching.discard(country)
         return
-    try:
-        query = (
-            "[out:json][timeout:120];"
-            f"area({area_id})->.searchArea;"
-            "("
-            'nwr["place"~"^(city|town|village|hamlet)$"](area.searchArea);'
-            ");"
-            "out center tags;"
-        )
-        elements = _overpass(query)
-        if elements is None:
-            print(f"[SiteMorph][cities] {country}: Overpass niedostępny — spróbujemy ponownie", flush=True)
-            return
-        results = _parse_place_elements(elements, country)
-        min_pop = COUNTRY_VILLAGE_MIN_POP.get(country)
-        if min_pop:
-            results = [
-                r for r in results
-                if r.get("place_type") not in ("wieś", "przysiółek")
-                or float(r.get("importance") or 0) >= min_pop
-            ]
-        results.sort(key=lambda x: float(x.get("importance") or 0), reverse=True)
-        _save_disk_cache(country, results)
-        _all_cities_cache[f"{country}|v{ALL_CITIES_VERSION}"] = (time.time(), results)
-        print(f"[SiteMorph][cities] {country}: zapisałem {len(results)} miejscowości", flush=True)
-    except Exception as e:
-        print(f"[SiteMorph][cities] {country}: błąd: {e}", flush=True)
-    finally:
+    all_results: List[dict] = []
+    place_types = ["city", "town", "village", "hamlet"]
+    for ptype in place_types:
+        try:
+            query = (
+                f"[out:json][timeout:180];"
+                f"area({area_id})->.searchArea;"
+                "("
+                f'nwr["place"="{ptype}"](area.searchArea);'
+                ");"
+                "out center tags;"
+            )
+            elements = _overpass(query)
+            if elements is None:
+                print(f"[SiteMorph][cities] {country}: {ptype} - Overpass niedostępny", flush=True)
+                continue
+            parsed = _parse_place_elements(elements, country)
+            all_results.extend(parsed)
+            print(f"[SiteMorph][cities] {country}: {ptype} -> {len(parsed)}", flush=True)
+        except Exception as e:
+            print(f"[SiteMorph][cities] {country}: {ptype} błąd: {e}", flush=True)
+            continue
+    if not all_results:
+        print(f"[SiteMorph][cities] {country}: brak wyników z Overpass", flush=True)
         _fetching.discard(country)
+        return
+    # deduplikacja po nazwie
+    seen = set()
+    deduped = []
+    for r in all_results:
+        key = _fold(r["name"])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(r)
+    min_pop = COUNTRY_VILLAGE_MIN_POP.get(country)
+    if min_pop:
+        deduped = [
+            r for r in deduped
+            if r.get("place_type") not in ("wieś", "przysiółek")
+            or float(r.get("importance") or 0) >= min_pop
+        ]
+    deduped.sort(key=lambda x: float(x.get("importance") or 0), reverse=True)
+    _save_disk_cache(country, deduped)
+    _all_cities_cache[f"{country}|v{ALL_CITIES_VERSION}"] = (time.time(), deduped)
+    print(f"[SiteMorph][cities] {country}: zapisałem {len(deduped)} unikalnych miejscowości", flush=True)
+    _fetching.discard(country)
 
 
 import threading as _threading
