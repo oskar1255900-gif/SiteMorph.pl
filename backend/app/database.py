@@ -4,7 +4,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Supabase Postgres gdy ustawisz DATABASE_URL, inaczej lokalny SQLite (dev)
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sitemorph.db")
+# Na Vercel filesystem jest read-only poza /tmp
+if os.getenv("VERCEL"):
+    _default_db = "sqlite:////tmp/sitemorph.db"
+else:
+    _default_db = "sqlite:///./sitemorph.db"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", _default_db)
 
 # SQLite wymaga check_same_thread, Postgres nie
 connect_args = {}

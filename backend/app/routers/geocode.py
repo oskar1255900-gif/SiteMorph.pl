@@ -275,10 +275,11 @@ def _popular_fallback(country: str) -> List[dict]:
     return out
 
 def _cache_path(country: str) -> Path:
-    cache_dir = Path(__file__).resolve().parent.parent / ".cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    # Na Vercel tylko /tmp jest zapisywalny
+    base = Path("/tmp") if os.getenv("VERCEL") else Path(__file__).resolve().parent.parent / ".cache"
+    base.mkdir(parents=True, exist_ok=True)
     safe = re.sub(r"[^a-zA-Z0-9_-]", "_", country)
-    return cache_dir / f"all_cities_{safe}_v{ALL_CITIES_VERSION}.json"
+    return base / f"all_cities_{safe}_v{ALL_CITIES_VERSION}.json"
 
 def _load_disk_cache(country: str):
     p = _cache_path(country)

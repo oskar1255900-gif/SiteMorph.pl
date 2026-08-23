@@ -252,10 +252,25 @@ const GlobalStyles = () => (
       letter-spacing: -0.01em;
     }
     :root { --paper: #fcfcF9; --ink: #131412; --lime: #a3e635; --sage: #d8e4bc; --clay: #e8ddd3; --line: #e7e5e0; }
-    /* Limonkowy akcent — Twój kolor brandu, używany oszczędnie na CTA i detalach */
     .text-lime { color: var(--lime); }
     .bg-lime { background: var(--lime); }
-    /* Usunięto nadmiarowe gradienty i bloby — zostawiono tylko subtelny akcent */
+    @keyframes limeFlow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    .text-gradient-lime-flow {
+      background: linear-gradient(90deg, #65a30d, #a3e635, #34d399, #bef264, #34d399, #a3e635, #65a30d);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: limeFlow 9s linear infinite;
+    }
+    .text-gradient-lime-soft {
+      background: linear-gradient(135deg, #bef264 0%, #34d399 50%, #a3e635 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
     * {
       box-sizing: border-box;
@@ -263,7 +278,6 @@ const GlobalStyles = () => (
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Papierowy system — editorial, nie SaaS dashboard */
     html, body {
       margin: 0;
       padding: 0;
@@ -272,10 +286,11 @@ const GlobalStyles = () => (
       font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
       letter-spacing: -0.011em;
       overflow-x: hidden;
-      background: var(--paper);
-      color: var(--ink);
+      background: #fff;
+      color: #0f172a;
       transition: background-color 0.3s ease, color 0.3s ease;
     }
+    html.dark body { background: #000; color: #fff; }
     h1, h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -0.02em; line-height: 0.96; }
     h1 em, h2 em { font-style: italic; font-weight: 400; color: #5a6b44; }
     ::selection { background: var(--sage); }
@@ -2898,7 +2913,6 @@ const LeadFinderView = ({
 // 11. WIDOK: CENNIK
 // ============================================================================
 const StandalonePricingView = () => {
-  const [isYearly, setIsYearly] = useState(false);
 
   return (
     <motion.div 
@@ -2918,42 +2932,7 @@ const StandalonePricingView = () => {
           Odblokuj pełne możliwości AI. Twórz strony, szukaj klientów i zarabiaj bez limitów.
         </p>
 
-        <div className="pt-4 flex justify-center">
-          <div className="p-1 rounded-full flex items-center gap-1 text-[11px] font-bold border shadow-md bg-white dark:bg-black border-blue-200 dark:border-neutral-900">
-            <button
-              onClick={() => setIsYearly(false)}
-              className={`relative px-5 py-2 rounded-full cursor-pointer transition-colors border-none font-black ${
-                !isYearly ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white'
-              }`}
-            >
-              {!isYearly && (
-                <motion.div
-                  layoutId="pricingPeriodPill"
-                  transition={springTransition}
-                  className="absolute inset-0 bg-blue-600 dark:bg-white rounded-full shadow-sm"
-                />
-              )}
-              <span className="relative z-10">Miesięcznie</span>
-            </button>
-            <button
-              onClick={() => setIsYearly(true)}
-              className={`relative px-5 py-2 rounded-full flex items-center gap-1.5 cursor-pointer transition-colors border-none font-black ${
-                isYearly ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white'
-              }`}
-            >
-              {isYearly && (
-                <motion.div
-                  layoutId="pricingPeriodPill"
-                  transition={springTransition}
-                  className="absolute inset-0 bg-blue-600 dark:bg-white rounded-full shadow-sm"
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1">
-                Rocznie <span className="text-[9px] bg-emerald-400 text-black px-2 py-0.5 rounded-full font-black">-20%</span>
-              </span>
-            </button>
-          </div>
-        </div>
+        <p className="text-xs font-bold opacity-60">Płatność miesięczna — bez zobowiązań, anulujesz w każdej chwili</p>
       </motion.div>
 
       <motion.div
@@ -2970,13 +2949,13 @@ const StandalonePricingView = () => {
           { name: 'Business', price: 199, credits: 500, features: ['500 kredytów AI / mies', 'Wyszukiwanie firm (100/mies)', 'Generowanie stron AI', 'Własne domeny'] },
           { name: 'Agencja', price: 500, credits: 1500, features: ['1500 kredytów AI / mies', 'Nielimitowane wyszukiwania', 'White-label (brak logo)', 'Wsparcie API'] }
         ].map((plan, idx) => {
-          const finalPrice = isYearly ? Math.round(plan.price * 0.8) : plan.price;
+          const finalPrice = plan.price;
           return (
             <motion.div
               custom={idx}
               variants={cineStagger}
-              whileHover={{ y: -10, scale: 1.03, rotateX: 4 }}
-              transition={springTransition}
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
               key={idx}
               className={`rounded-3xl p-7 lg:p-8 flex flex-col justify-between border transition-all relative shadow-xl ${
                 plan.popular
@@ -3910,8 +3889,8 @@ const GlobalNavbar = ({
     setMobileOpen(false);
   };
   return (
-    <header className="sticky top-0 z-40 flex justify-center px-4 pt-4 pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-5xl backdrop-blur-xl border rounded-full py-2.5 px-5 shadow-xl flex items-center justify-between bg-white/95 dark:bg-black/95 border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white">
+    <header className="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-3 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-5xl backdrop-blur-xl border rounded-xl py-2.5 px-5 shadow-lg flex items-center justify-between bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-blue-600 dark:text-white">
         <button onClick={() => { setCurrentView('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit">
           <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg" />
           <span className="font-black text-base tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span className="font-black text-base tracking-tight" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
