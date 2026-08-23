@@ -164,6 +164,8 @@ class BuilderInput(BaseModel):
     colors: Optional[str] = "limonkowy #bef264 + neutralny"
     sections: Optional[List[str]] = None
     extraPrompt: Optional[str] = ""
+    package: Optional[str] = "starter"
+    credits: Optional[int] = 10
 
 EDITORIAL_RULES = """Jesteś senior editorial designerem (poziom Linear, Stripe Docs, Relay) — Twoje strony wyglądają jak z papierowego atelier, nie jak z generatora AI.
 
@@ -180,24 +182,91 @@ ZASADY PAPIEROWEGO ATELIER:
 
 IMPECCABLE_DESIGN_RULES = EDITORIAL_RULES
 
-INDEX_HTML_RULE = """- GŁÓWNY PLIK STRONY to "main/frontend/index.html" — JEDEN samowystarczalny plik z CAŁĄ stroną:
-  * <script src="https://cdn.tailwindcss.com"></script> w <head> (Tailwind CDN),
-  * WSZYSTKIE style w <style>, cały JS inline na dole body,
-  * ZERO importów lokalnych, ZERO /src/..., ZERO plików zewnętrznych poza CDN-ami (Google Fonts OK),
-  * ikony jako inline SVG (nie lucide-react!), zakaz emoji — tylko SVG,
-  * strona MUSI w pełni renderować się po prostu otwarciu pliku w przeglądarce (to z niej robimy podgląd i link demo).
-  Możesz użyć czystego HTML/CSS + małego vanilla JS (tabs, akordeon, smooth scroll) — bez Reacta. To preferowane.
+INDEX_HTML_RULE = """- STRUKTURA PROJEKTU: React + Vite + TypeScript + Tailwind CSS
+  main/
+  ├── frontend/
+  │   ├── index.html                    # Vite entry HTML
+  │   ├── package.json                  # zależy: react, react-dom, vite, tailwindcss, postcss, autoprefixer, lucide-react
+  │   ├── tsconfig.json                 # TypeScript config
+  │   ├── vite.config.ts                # Vite config z React plugin
+  │   ├── tailwind.config.js            # Tailwind config
+  │   ├── postcss.config.js             # PostCSS config
+  │   ├── public/
+  │   │   └── favicon.svg
+  │   ├── src/
+  │   │   ├── main.tsx                  # React entry point
+  │   │   ├── App.tsx                   # Główny komponent - CAŁA STRONA TUTAJ
+  │   │   ├── index.css                 # Tailwind directives + custom styles
+  │   │   ├── components/               # Komponenty sekcji (Hero, Offer, Pricing, Testimonials, Contact, Footer)
+  │   │   │   ├── Hero.tsx
+  │   │   │   ├── Offer.tsx
+  │   │   │   ├── Pricing.tsx
+  │   │   │   ├── Testimonials.tsx
+  │   │   │   ├── Contact.tsx
+  │   │   │   └── Footer.tsx
+  │   │   ├── ui/                       # UI primitives (Button, Card, Container, Section)
+  │   │   │   ├── Button.tsx
+  │   │   │   ├── Card.tsx
+  │   │   │   ├── Container.tsx
+  │   │   │   └── Section.tsx
+  │   │   ├── hooks/                    # Custom hooks (useScrollReveal, useMobile)
+  │   │   │   └── useScrollReveal.ts
+  │   │   ├── lib/                      # Utilities (cn, formatters)
+  │   │   │   └── utils.ts
+  │   │   └── types.ts                  # TypeScript interfaces
+  │   ├── package.json
+  │   └── README.md
+
+ZASADY GENEROWANIA:
+- App.tsx to GŁÓWNY PLIK STRONY — importuje wszystkie sekcje, składa layout
+- Każda sekcja = osobny komponent w components/ (Hero, Offer, Pricing, Testimonials, Contact, Footer)
+- UI primitives w ui/ (Button, Card, Container, Section) — wielokrotnego użytku
+- Tailwind CSS przez @tailwind directives w index.css + tailwind.config.js z custom theme (colors, fonts)
+- lucide-react dla ikon (import { IconName } from 'lucide-react')
+- TypeScript interfaces w types.ts (BusinessData, SectionProps, etc.)
+- ZERO "lorem ipsum" — same prawdziwe dane z inputu
+- Komponenty muszą być gotowe do użycia: npm install && npm run dev
+- package.json z scripts: dev, build, preview
+- vite.config.ts z @vitejs/plugin-react
+- tsconfig.json strict mode
 """
 
 SYSTEM_PROMPT = IMPECCABLE_DESIGN_RULES + """
 
 Jesteś SiteMorph AI — generator premium stron dla lokalnych firm.
-ZADANIE: Wygeneruj kompletny projekt strony w DOKŁADNIE tej strukturze folderów:
+ZADANIE: Wygeneruj kompletny projekt strony w DOKŁADNIE tej strukturze folderów (React + Vite + TypeScript + Tailwind):
 
   main/
   ├── frontend/
-  │   └── index.html        <- CAŁA strona, jeden samowystarczalny plik
-  ├── backend/main.py       <- OPCJONALNIE: tylko jeśli strona potrzebuje backendu
+  │   ├── index.html
+  │   ├── package.json
+  │   ├── tsconfig.json
+  │   ├── vite.config.ts
+  │   ├── tailwind.config.js
+  │   ├── postcss.config.js
+  │   ├── public/favicon.svg
+  │   ├── src/
+  │   │   ├── main.tsx
+  │   │   ├── App.tsx                    # GŁÓWNY KOMPONENT STRONY
+  │   │   ├── index.css
+  │   │   ├── components/
+  │   │   │   ├── Hero.tsx
+  │   │   │   ├── Offer.tsx
+  │   │   │   ├── Pricing.tsx
+  │   │   │   ├── Testimonials.tsx
+  │   │   │   ├── Contact.tsx
+  │   │   │   └── Footer.tsx
+  │   │   ├── ui/
+  │   │   │   ├── Button.tsx
+  │   │   │   ├── Card.tsx
+  │   │   │   ├── Container.tsx
+  │   │   │   └── Section.tsx
+  │   │   ├── hooks/useScrollReveal.ts
+  │   │   ├── lib/utils.ts
+  │   │   └── types.ts
+  │   ├── package.json
+  │   └── README.md
+  ├── backend/main.py       <- OPCJONALNIE: tylko jeśli strona potrzebuje backendu (formularz kontaktowy/rezerwacja)
   ├── package.json
   └── README.md
 
@@ -212,8 +281,32 @@ ZASADY BEZWZGLĘDNE:
 FORMAT ODPOWIEDZI — tylko poprawny JSON, bez markdown:
 {
   "files": {
-    "main/frontend/index.html": "<!doctype html>...CAŁA strona...",
-    "main/backend/main.py": "# FastAPI — TYLKO jeśli strona potrzebuje backendu (np. formularz kontaktowy); inaczej POMIŃ ten klucz",
+    "main/frontend/src/App.tsx": "...",
+    "main/frontend/src/main.tsx": "...",
+    "main/frontend/src/index.css": "...",
+    "main/frontend/src/components/Hero.tsx": "...",
+    "main/frontend/src/components/Offer.tsx": "...",
+    "main/frontend/src/components/Pricing.tsx": "...",
+    "main/frontend/src/components/Testimonials.tsx": "...",
+    "main/frontend/src/components/Contact.tsx": "...",
+    "main/frontend/src/components/Footer.tsx": "...",
+    "main/frontend/src/ui/Button.tsx": "...",
+    "main/frontend/src/ui/Card.tsx": "...",
+    "main/frontend/src/ui/Container.tsx": "...",
+    "main/frontend/src/ui/Section.tsx": "...",
+    "main/frontend/src/hooks/useScrollReveal.ts": "...",
+    "main/frontend/src/lib/utils.ts": "...",
+    "main/frontend/src/types.ts": "...",
+    "main/frontend/index.html": "...",
+    "main/frontend/package.json": "...",
+    "main/frontend/tsconfig.json": "...",
+    "main/frontend/vite.config.ts": "...",
+    "main/frontend/tailwind.config.js": "...",
+    "main/frontend/postcss.config.js": "...",
+    "main/frontend/public/favicon.svg": "...",
+    "main/frontend/package.json": "...",
+    "main/frontend/README.md": "...",
+    "main/backend/main.py": "# FastAPI — TYLKO jeśli strona potrzebuje backendu (formularz kontaktowy/rezerwacja); inaczej POMIŃ",
     "main/package.json": "{...}",
     "main/README.md": "# Nazwa — krótki opis projektu i jak uruchomić"
   },
@@ -224,27 +317,37 @@ FORMAT ODPOWIEDZI — tylko poprawny JSON, bez markdown:
     "ctaText": "Tekst przycisku CTA np. Umów wizytę"
   }
 }
-- main/backend/main.py: twórz TYLKO gdy jest realnie potrzebny (formularz kontaktowy, rezerwacja). Wtedy prosty FastAPI z endpointem POST /api/contact i komentarzem jak uruchomić. Frontend w index.html woła fetch('/api/contact', {method:'POST'}).
+- main/backend/main.py: twórz TYLKO gdy jest realnie potrzebny (formularz kontaktowy, rezerwacja). Wtedy prosty FastAPI z endpointem POST /api/contact i komentarzem jak uruchomić. Frontend w App.tsx woła fetch('/api/contact', {method:'POST'}).
 - DESIGN: premium, konwersyjny, responsywny (mobile-first), font systemowy/Google Fonts, akcent wg COLORS użytkownika, dużo światła, zaokrąglenia 16-24px, miękkie cienie.
 - TREŚCI: po polsku, realistyczne dla branży; sekcje dokładnie wg SECTIONS użytkownika (domyślnie Hero, Oferta, Cennik, Opinie, Kontakt).
 - NIE używaj "lorem ipsum". Zwróć PEŁNE pliki — nie skracaj, nie pisz "...".
 
+=== SKALOWANIE PROMPTU WG PAKIETU KREDYTÓW ===
+Użytkownik ma PAKIET: {package_name} ({credits} kredytów).
+- PAKIET STARTER (10-25 kr): Podstawowa strona — Hero, Oferta, Kontakt. Prosty layout, podstawowe animacje.
+- PAKIET PRO (50-100 kr): Rozbudowana strona — Hero, Oferta, Cennik, Opinie, Galeria, Kontakt. Animacje scroll-reveal, hover effects, lepsze SEO.
+- PAKIET BUSINESS (200-500 kr): Pełna strona biznesowa — wszystkie sekcje + Team, FAQ, Blog/News, Case Studies, Multi-step forms, A/B test variants, Analytics setup, Performance optimization.
+- PAKIET AGENCJA (500+ kr): Enterprise-grade — wszystko z Business + CMS-ready components, Storybook, E2E tests, CI/CD config, Multi-language, Advanced SEO schema, Custom design system tokens.
+
+IMPLEMENTUJ FUNKCJE WG PAKIETU — nie generuj funkcji Business/Agencja dla Startera.
+
 === PROCES PROJEKTOWANIA (wymagany) ===
 
 1. PRZETWÓRZ DANE WEJŚCIOWE — zanim napisz jakikolwiek kod:
-   - Przeczytaj uważnie: BUSINESS_NAME, NICHE, DESCRIPTION, STYLE, COLORS, SECTIONS, EXTRA
+   - Przeczytaj uważnie: BUSINESS_NAME, NICHE, DESCRIPTION, STYLE, COLORS, SECTIONS, EXTRA, PACKAGE
    - Z DESCRIPTION/EXTRA wyciągnij WSZYSTKIE fakty: adres, telefon, godziny, opinie z imionami, ceny, nazwy usług/dań, ocenę, stronę www
    - Zrozum branżę z NICHE i DESCRIPTION — to determinuje ton, układ, typ hero, sekcje
    - Jeśli COLORS podano — użyj TYLKO tych kolorów. Jeśli nie — dobeż paletę pod branżę i STYLE
    - Jeśli STYLE podano ("nowoczesny, minimalistyczny", "rustykalny, ciepły", "elegancki, premium") — to determinuje typografię, odstępy, kształty, animacje
    - SECTIONS mówi jakie sekcje mają być — ale KOLEJNOŚĆ i UKŁAD decydujesz sam na podstawie branży
+   - DOSTOSUJ ZAKRES DO PAKIETU — Starter = 3-4 sekcje, Pro = 5-6, Business = 7-9, Agencja = 10+
 
-2. ZAPROJEKTUJ UNIKALNĄ STRONĘ — na podstawie przeanalizowanych danych:
+2. ZAPROJEKTUJ UNIKALNĄ STRONĘ — na podstawie przeanalizowanych danych + PAKIETU:
    - KAŻDA strona MUSI wyglądać inaczej. Nie ma szablonów "restauracja = X", "barber = Y". 
-   - Branża + styl + dane = unikalny layout. AI sama decyduje:
-     * Jak wygląda hero (zdjęcie na pół ekranu? full-screen z nakładką? portret? produkt? mapa?)
+   - Branża + styl + dane + PAKIET = unikalny layout. AI sama decyduje:
+     * Jak wygląda hero (zdjęcie na pół ekranu? full-screen z nakładką? portret? produkt? mapa? wideo background?)
      * Jaka kolejność sekcji (Menu przed Opiniami? Zespół przed Cennikiem? Atrakcje przed Kontaktem?)
-     * Jaki układ sekcji (grid 3-kolumnowy? asymetryczny 7/5? full-width zdjęcie z nakładką? tabela? karty?)
+     * Jaki układ sekcji (grid 3-kolumnowy? asymetryczny 7/5? full-width zdjęcie z nakładką? tabela? karty? masonry?)
      * Jakie zdjęcia z Unsplash (konkretne zapytania: "cozy restaurant interior lodz", "barber cutting hair closeup", "auto repair shop lift")
      * Jakie ikony, kształty przycisków, typ animacji
    - Jeśli w danych jest adres "ul. Piotrkowska 123, Łódź" → hero: "Serdecznie zapraszamy na Piotrkowską 123 w centrum Łodzi", mapa w kontakcie ustawiona na ten punkt
@@ -262,8 +365,8 @@ FORMAT ODPOWIEDZI — tylko poprawny JSON, bez markdown:
    - ZAKAZ słów: "profesjonalny", "kompleksowy", "nowoczesny", "innowacyjny", "premium", "jakość", "ekspert", "lider", "rozwiązania", "partner", "pasja", "misja", "wizja"
 
 4. LAYOUT — ASYMETRIA I ODDECH
-   - Hero: nie zawsze centrowany. Zdjęcie 50/50 z tekstem, full-screen z nakładką, portret po lewej, produkt na tle — decydujesz na podstawie branży
-   - Sekcje: nie 3 kolumny wszędzie. Używaj 7/5, 8/4, 2/1, full-width zdjęcia z nakładką tekstu, tabele, listy, kafelki — co pasuje do treści
+   - Hero: nie zawsze centrowany. Zdjęcie 50/50 z tekstem, full-screen z nakładką, portret po lewej, produkt na tle, wideo background — decydujesz na podstawie branży + pakietu
+   - Sekcje: nie 3 kolumny wszędzie. Używaj 7/5, 8/4, 2/1, full-width zdjęcia z nakładką tekstu, tabele, karty, masonry, carousel — co pasuje do treści + pakietu
    - Białe przestrzenie: 80-120px między sekcjami. Nie tłocz treści.
    - Zdjęcia: placeholdery Unsplash z KONKRETNYMI zapytaniami: "cozy restaurant interior lodz", "barber shop poland", "auto repair shop lift", "boutique hotel mountain view", "furniture store interior"
 
@@ -280,28 +383,34 @@ FORMAT ODPOWIEDZI — tylko poprawny JSON, bez markdown:
    - Meta: Inter, 11-12px, uppercase, tracking-wider, weight 500, kolor akcentu/ciemniejszy.
    - Przyciski: Inter, 14-15px, weight 500, uppercase, tracking-wider.
 
-7. INTERAKCJE — SUBTELNE
+7. INTERAKCJE — SUBTELNE (rozszerzane wg pakietu)
    - Hover karta: translateY(-4px) + box-shadow 0 12px 24px rgba(0,0,0,0.08). Brak scale.
    - Przycisk: background-color change + box-shadow. Brak transform scale.
    - Scroll reveal: opacity 0→1 + translateY(12px→0), 300ms ease-out. Raz na element.
-   - ZAKAZ: infinite pulse, bounce, rotate, blur, parallax, floating elements.
+   - Pro+: Framer Motion page transitions, stagger animations, scroll-triggered counters
+   - Business+: Parallax backgrounds, cursor-follow effects, magnetic buttons, Lottie animations
+   - Agencja+: 3D transforms, WebGL shaders, custom cursor, GSAP timelines
+   - ZAKAZ: infinite pulse, bounce, rotate, blur, parallax (chyba że pakiet to pozwala), floating elements.
 
-8. FORMULARZ KONTAKTOWY (jeśli potrzebny)
-   - Pola: Imię, Email, Telefon, Wiadomość (textarea). Opcjonalnie: Data (date), Usługa (select).
-   - Walidacja klienta (required, type=email, pattern tel).
+8. FORMULARZ KONTAKTOWY (jeśli potrzebny / pakiet Pro+)
+   - Pola: Imię, Email, Telefon, Wiadomość (textarea). Opcjonalnie: Data (date), Usługa (select), Multi-step (Business+)
+   - Walidacja klienta (required, type=email, pattern tel, Zod schema Business+)
    - Submit: fetch('/api/contact', {method:'POST', body: JSON.stringify(data)}).
    - Stan: loading (spinner), success (toast), error (czerwona ramka).
    - Backend: FastAPI POST /api/contact.
 
-9. SEO I META
+9. SEO I META (rozszerzane wg pakietu)
    - <title> = meta.title (max 60 zn.)
    - <meta name="description"> = meta.subheadline (max 160 zn.)
    - OG tags: title, description, image (Unsplash placeholder), type=website
    - JSON-LD LocalBusiness: name, address, phone, openingHours, priceRange, aggregateRating, url, image
+   - Pro+: Article/BlogPosting schema, FAQPage schema
+   - Business+: Product/Service schema, Review schema, Sitemap.xml, robots.txt
+   - Agencja+: Full technical SEO audit config, hreflang, AMP variants
 
-PAMIĘTAJ: Twoim celem — klient po otwarciu pomyśli: "To wygląda jak strona, którą zrobiłby dobry freelancer po 2 tygodniach pracy", a NIE "wygenerowane przez AI w 30 sekund".
+PAMIĘTAJ: Twoim celem — klient po otwarciu pomyśli: "To wygląda jak strona, którą zrobiłby dobry freelancer/agencja po 2 tygodniach pracy", a NIE "wygenerowane przez AI w 30 sekund".
 
-NOW PRZECZYTAJ DANE WEJŚCIOWE, PRZENALIZUJ JE I WYGENERUJ UNIKALNĄ STRONĘ.
+NOW PRZECZYTAJ DANE WEJŚCIOWE (W TYM PAKIET), PRZENALIZUJ JE I WYGENERUJ UNIKALNĄ STRONĘ DOPASOWANĄ DO PAKIETU.
 """
 
 def extract_json(text: str) -> dict:
@@ -402,6 +511,20 @@ def fallback_content(data: BuilderInput):
 @router.post("/generate")
 def generate_site(data: BuilderInput):
     sections_str = ", ".join(data.sections or [])
+    
+    # Określ nazwę pakietu na podstawie kredytów
+    package_map = {
+        "starter": "STARTER",
+        "pro": "PRO", 
+        "business": "BUSINESS",
+        "agencja": "AGENCJA"
+    }
+    package_name = package_map.get((data.package or "starter").lower(), "STARTER")
+    credits = data.credits or 10
+    
+    # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je
+    system_prompt_filled = SYSTEM_PROMPT.format(package_name=package_name, credits=credits)
+    
     user_prompt = f"""Dane firmy / instrukcja od użytkownika:
 ---
 BUSINESS_NAME: {data.business_name}
@@ -411,9 +534,10 @@ STYLE: {data.style}
 COLORS: {data.colors}
 SECTIONS: {sections_str}
 EXTRA: {data.extraPrompt or ''}
+PACKAGE: {package_name} ({credits} kredytów)
 ---
 
-Wygeneruj stronę zgodnie z SYSTEM_PROMPT: JEDEN samowystarczalny plik main/frontend/index.html (Tailwind CDN + style/JS inline), polskie treści, premium design.
+Wygeneruj stronę zgodnie z SYSTEM_PROMPT: React + Vite + TypeScript + Tailwind project structure, polskie treści, premium design, dostosowane do pakietu {package_name}.
 Jeśli w DESCRIPTION/EXTRA jest wklejony surowy tekst z Google Maps — wyciągnij z niego fakty i użyj ich na stronie.
 NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
 
@@ -424,7 +548,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
 
     # 1) Gemini (glowny provider)
     if GEMINI_API_KEY:
-        text, err = gemini_generate(SYSTEM_PROMPT, user_prompt, max_tokens=60000)
+        text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=60000)
         if text:
             try:
                 parsed = extract_json(text)
@@ -454,7 +578,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                 json={
                     "model": OPENROUTER_MODEL,
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": system_prompt_filled},
                         {"role": "user", "content": user_prompt},
                     ],
                     "temperature": 0.85,
