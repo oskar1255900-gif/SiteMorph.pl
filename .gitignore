@@ -1,0 +1,23 @@
+﻿# Env
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+# Deps
+node_modules/
+# Build
+dist/
+frontend/dist/
+# DB & cache
+*.db
+*.sqlite
+__pycache__/
+app/.cache/
+backend/.cache/
+backend/app/.cache/
+# Vercel
+.vercel/
+# OS
+.DS_Store
+Thumbs.db
