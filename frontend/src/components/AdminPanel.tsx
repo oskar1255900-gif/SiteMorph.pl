@@ -42,10 +42,14 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
     { label: 'MRR', value: '0 zł', delta: '—', icon: Wallet },
     { label: 'Leady znalezione', value: '0', delta: '—', icon: Search },
   ]);
-  const [liveUsers, setLiveUsers] = useState<typeof ADMIN_USERS>([]);
+  const [liveUsers, setLiveUsers] = useState<any[]>([]);
   const [creditUser, setCreditUser] = useState('');
   const [creditAmount, setCreditAmount] = useState('25');
   const [creditMsg, setCreditMsg] = useState('');
+  const [plans, setPlans] = useState<any[]>([]);
+  const [planUser, setPlanUser] = useState('');
+  const [planKey, setPlanKey] = useState('pro');
+  const [planMsg, setPlanMsg] = useState('');
 
   useEffect(() => {
     const adminHash = sessionStorage.getItem('sitemorph-admin-hash') || '';
@@ -75,7 +79,49 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           { label: 'Leady znalezione', value: 'Błąd', delta: '—', icon: Search },
         ]);
       });
+    // Load users
+    apiFetch('/api/admin/users', { headers: { 'X-Admin-Hash': adminHash } })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => setLiveUsers(d.users || []))
+      .catch(() => {});
+    // Load plans
+    apiFetch('/api/admin/plans', { headers: { 'X-Admin-Hash': adminHash } })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => setPlans(Object.values(d.plans || {})))
+      .catch(() => {});
   }, []);
+
+  const handleSetPlan = async () => {
+    if (!planUser.trim()) return;
+    setPlanMsg('');
+    try {
+      const adminHash = sessionStorage.getItem('sitemorph-admin-hash') || '';
+      const res = await apiFetch('/api/admin/user/plan', {
+        method: 'POST',
+        headers: { 'X-Admin-Hash': adminHash, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: planUser, plan: planKey }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      setPlanMsg(`Ustawiono plan ${planKey} dla ${planUser}`);
+      setTimeout(() => setPlanMsg(''), 3000);
+      // Refresh users
+      const adminHash2 = sessionStorage.getItem('sitemorph-admin-hash') || '';
+      apiFetch('/api/admin/users', { headers: { 'X-Admin-Hash': adminHash2 } })
+        .then(async (r) => r.json())
+        .then((d) => setLiveUsers(d.users || []));
+    } catch (e: any) {
+      setPlanMsg(e.message || 'Błąd ustawiania planu');
+    }
+  };
 
   return (
     <motion.div
@@ -146,6 +192,38 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
             {creditMsg && <span className="text-emerald-600 dark:text-emerald-400">· {creditMsg}</span>}
           </div>
           <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora — dodaj kredyty dowolnemu użytkownikowi (demo).</p>
+        </div>
+
+        </div>
+
+        {/* Plan Management */}
+        <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 mb-6">
+          <h3 className="text-sm font-black mb-3">Zarządzanie planami użytkowników</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-xl border text-xs font-bold bg-blue-50/40 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 outline-none" />
+            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-black bg-blue-50/40 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 cursor-pointer">
+              {plans.map((p: any) => (
+                <option key={p.name?.toLowerCase() || p} value={p.name?.toLowerCase() || p}>
+                  {p.name} ({p.credits} kr/mies, {p.price} zł)
+                </option>
+              ))}
+            </select>
+            <Button variant="primary" size="sm" onClick={handleSetPlan} className="font-black">
+              Ustaw plan
+            </Button>
+          </div>
+          {planMsg && <p className="text-xs font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
+          <div className="mt-4 space-y-2">
+            {plans.map((p: any) => (
+              <div key={p.name} className="text-[10px] font-bold opacity-80 flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-neutral-900 text-blue-600 dark:text-white">{p.name}</span>
+                <span className="opacity-60">{p.credits} kr/mies</span>
+                <span className="opacity-60">{p.price} zł/mies</span>
+                <span className="opacity-50">{p.features.join(', ')}</span>
+              </div>
+            ))}
+          </div>
+          {planMsg && <p className="text-xs font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

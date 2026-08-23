@@ -527,6 +527,95 @@ def _fetch_and_cache(country: str):
 import threading as _threading
 _threading.Thread(target=_warm_cache, daemon=True).start()
 
+GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY") or os.getenv("GOOGLE_API_KEY")
+
+def google_places_autocomplete(query: str, country: str) -> List[dict]:
+    """Autocomplete miasta z Google Places API"""
+    if not GOOGLE_KEY or len(query) < 2:
+        return []
+    try:
+        country_code = COUNTRY_CODES.get(country, "")
+        r = requests.post(
+            "https://places.googleapis.com/v1/places:autocomplete",
+            headers={
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": GOOGLE_KEY,
+                "X-Goog-FieldMask": "suggestions.placePrediction.text,suggestions.placePrediction.placeId,suggestions.placePrediction.types"
+            },
+            json={
+                "input": query,
+                "includedRegionCodes": [country_code] if country_code else [],
+                "includedPrimaryTypes": ["locality", "sublocality", "administrative_area_level_2", "administrative_area_level_3"],
+                "languageCode": LANGS.get(country, "pl"),
+            },
+            timeout=8
+        )
+        if r.status_code != 200:
+            return []
+        data = r.json()
+        results = []
+        for s in data.get("suggestions", []):
+            pred = s.get("placePrediction", {})
+            text = pred.get("text", {}).get("text", "")
+            place_id = pred.get("placeId", "")
+            types = pred.get("types", [])
+            if text:
+                results.append({
+                    "display_name": text,
+                    "name": text.split(",")[0].strip(),
+                    "lat": "",
+                    "lon": "",
+                    "osm_id": 0,
+                    "osm_type": "google",
+                    "place_type": "miasto",
+                    "type": "locality",
+                    "country_code": COUNTRY_CODES.get(country, ""),
+                    "importance": 0,
+                    "google_place_id": place_id,
+                })
+        return results[:15]
+    except Exception as e:
+        print(f"[Google Places Autocomplete] Error: {e}")
+        return []
+
+
+@router.get("/autocomplete")
+def autocomplete(q: str = Query(..., min_length=1), country: str = Query("Polska")):
+    q = q.strip()
+    if len(q) < 2:
+        return {"results": []}
+    # Try Google Places first
+    gp_results = google_places_autocomplete(q, country)
+    # Fallback to existing Nominatim/Open-Meteo
+    errors = {}
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        f_om = ex.submit(_autocomplete_open_meteo, q, country)
+        f_nom = ex.submit(_autocomplete_nominatim, q, country) if len(q) >= 3 else None
+        try:
+            om_results = f_om.result()
+        except Exception as e:
+            om_results = []
+            errors["open-meteo"] = str(e)
+        try:
+            nom_results = f_nom.result() if f_nom else []
+        except Exception as e:
+            nom_results = []
+            errors["nominatim"] = str(e)
+    merged = []
+    seen = set()
+    for item in gp_results + om_results + nom_results:
+        key = _fold(item.get("name"))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        merged.append(item)
+        if len(merged) >= 15:
+            break
+    if not merged and errors:
+        return {"results": [], "error": "; ".join(f"{k}: {v}" for k, v in errors.items())}
+    return {"results": merged}
+
+
 @router.get("/all-cities")
 def all_cities(country: str = Query("Polska")):
     now = time.time()

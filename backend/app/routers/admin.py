@@ -1,11 +1,12 @@
 import hmac
 import os
+import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Lead, Project
+from ..models import Lead, Project, UserSettings
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -45,8 +46,10 @@ def stats(db: Session = Depends(get_db), x_admin_hash: str = Header(None)):
         projects_count = db.query(Project).count()
     except Exception:
         projects_count = 0
-    # Użytkowników liczymy na razie jako 0 (brak tabeli users)
-    users_count = 0
+    try:
+        users_count = db.query(UserSettings).count()
+    except Exception:
+        users_count = 0
     return {
         "users": users_count,
         "pages": projects_count,
@@ -56,4 +59,63 @@ def stats(db: Session = Depends(get_db), x_admin_hash: str = Header(None)):
             {"name": "API Gateway", "status": "Operational"},
             {"name": "Baza danych", "status": "Operational"},
         ],
+    }
+
+
+# Package management
+PLANS = {
+    "starter": {"name": "Starter", "credits": 10, "price": 49, "monthly_credits": 10, "lead_limit": 10, "features": ["Builder podstawowy", "Lead Finder 10/mies", "3 projekty"]},
+    "pro": {"name": "Pro", "credits": 50, "price": 99, "monthly_credits": 50, "lead_limit": 30, "features": ["Builder zaawansowany", "Lead Finder 30/mies", "10 projektów", "Galeria", "Animacje"]},
+    "business": {"name": "Business", "credits": 200, "price": 199, "monthly_credits": 200, "lead_limit": 100, "features": ["Builder pełny", "Lead Finder 100/mies", "Nieograniczone projekty", "Team", "FAQ", "Analytics"]},
+    "agencja": {"name": "Agencja", "credits": 500, "price": 499, "monthly_credits": 500, "lead_limit": 500, "features": ["Wszystko z Business", "CMS-ready", "Multi-language", "Custom domain", "Priority support"]},
+}
+
+class PlanUpdate(BaseModel):
+    user_id: str
+    plan: str  # starter, pro, business, agencja
+
+@router.post("/user/plan")
+def set_user_plan(body: PlanUpdate, db: Session = Depends(get_db), x_admin_hash: str = Header(None)):
+    if not _hash_ok(x_admin_hash):
+        raise HTTPException(status_code=403, detail="Brak dostępu")
+    plan_key = body.plan.lower()
+    if plan_key not in PLANS:
+        raise HTTPException(status_code=400, detail=f"Invalid plan: {body.plan}")
+    plan = PLANS[plan_key]
+    settings = db.query(UserSettings).filter(UserSettings.user_id == body.user_id).first()
+    if not settings:
+        settings = UserSettings(user_id=body.user_id, data={}, credits=plan["credits"])
+        db.add(settings)
+    else:
+        settings.credits = plan["credits"]
+        if not settings.data:
+            settings.data = {}
+        settings.data["plan"] = plan_key
+        settings.data["plan_updated_at"] = time.time()
+    db.commit()
+    return {"status": "ok", "user_id": body.user_id, "plan": plan_key, "credits": plan["credits"]}
+
+@router.get("/plans")
+def get_plans(x_admin_hash: str = Header(None)):
+    if not _hash_ok(x_admin_hash):
+        raise HTTPException(status_code=403, detail="Brak dostępu")
+    return {"plans": PLANS}
+
+@router.get("/users")
+def list_users(db: Session = Depends(get_db), x_admin_hash: str = Header(None), limit: int = 100, offset: int = 0):
+    if not _hash_ok(x_admin_hash):
+        raise HTTPException(status_code=403, detail="Brak dostępu")
+    users = db.query(UserSettings).offset(offset).limit(limit).all()
+    return {
+        "users": [
+            {
+                "user_id": u.user_id,
+                "plan": (u.data or {}).get("plan", "starter"),
+                "credits": u.credits,
+                "pages": 0,  # would need to query projects
+                "spent": "0 zł",
+                "joined": time.strftime("%d.%m.%Y", time.localtime(u.updated_at)) if u.updated_at else "—",
+            }
+            for u in users
+        ]
     }

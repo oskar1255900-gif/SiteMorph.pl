@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Request, Header, HTTPException
+﻿from fastapi import APIRouter, Depends, Request, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Tuple
@@ -33,6 +33,10 @@ router = APIRouter(prefix="/api/leads", tags=["Leads"])
 
 UA = {"User-Agent": "SiteMorph/1.0 (lead finder; contact@sitemorph.pl)"}
 GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY") or os.getenv("GOOGLE_API_KEY")
+
+# Google Places API config
+GOOGLE_PLACES_BASE = "https://places.googleapis.com/v1"
+GOOGLE_FIELDS = "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.regularOpeningHours,places.photos,places.priceLevel,places.businessStatus"
 
 COUNTRIES = {
     "Polska": {"geo": "Poland", "prefix": "+48", "budget": "2 500 - 3 500 zl"},
@@ -437,6 +441,98 @@ class OpenStreetMapProvider(BusinessDataProvider):
             filtered.append(el)
         return filtered
 
+
+# Google Places Provider (primary source - better data quality)
+class GooglePlacesProvider(BusinessDataProvider):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://places.googleapis.com/v1/places:searchText"
+
+    def searchBusinesses(self, bbox: Tuple[float,float,float,float], industry: str) -> List[dict]:
+        if not self.api_key:
+            return []
+        
+        # Convert bbox to location restriction (circle around center)
+        center_lat = (bbox[0] + bbox[2]) / 2
+        center_lon = (bbox[1] + bbox[3]) / 2
+        # Radius in meters (approx bbox diagonal / 2)
+        dlat = bbox[2] - bbox[0]
+        dlon = bbox[3] - bbox[1]
+        radius = int(((dlat ** 2 + dlon ** 2) ** 0.5) * 111000 / 2)  # rough meters
+        radius = max(min(radius, 50000), 1000)  # clamp 1km-50km
+        
+        # Map industry to Google Places types
+        industry_types = self._map_industry_to_types(industry)
+        
+        query = f"{industry} in area"
+        body = {
+            "textQuery": query,
+            "maxResultCount": 100,
+            "locationRestriction": {
+                "circle": {
+                    "center": {"latitude": center_lat, "longitude": center_lon},
+                    "radius": float(radius)
+                }
+            },
+            "includedType": industry_types[0] if industry_types else None
+        }
+        
+        headers = {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": self.api_key,
+            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.regularOpeningHours,places.photos,places.priceLevel,places.businessStatus"
+        }
+        
+        try:
+            r = requests.post(
+                "https://places.googleapis.com/v1/places:searchText",
+                headers={"Content-Type": "application/json", "X-Goog-Api-Key": self.api_key, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.regularOpeningHours,places.photos,places.priceLevel,places.businessStatus"},
+                json=body,
+                timeout=15
+            )
+            if r.status_code != 200:
+                print(f"[Google Places] Error {r.status_code}: {r.text[:200]}")
+                return []
+            data = r.json()
+            return data.get("places", [])
+        except Exception as e:
+            print(f"[Google Places] Error: {e}")
+            return []
+
+    def _map_industry_to_types(self, industry: str) -> List[str]:
+        mapping = {
+            "Restaurant": ["restaurant"],
+            "Cafe": ["cafe"],
+            "Bakery": ["bakery"],
+            "Barber": ["hair_care"],
+            "Hair Salon": ["hair_care"],
+            "Beauty Salon": ["beauty_salon"],
+            "Spa": ["spa"],
+            "Dentist": ["dentist"],
+            "Medical Clinic": ["doctor", "hospital"],
+            "Gym": ["gym"],
+            "Hotel": ["lodging"],
+            "Auto Repair": ["car_repair"],
+            "Plumber": ["plumber"],
+            "Electrician": ["electrician"],
+            "Law Firm": ["lawyer"],
+            "Accounting": ["accounting"],
+            "Real Estate": ["real_estate_agency"],
+            "Photographer": ["photographer"],
+            "Florist": ["florist"],
+            "Car Wash": ["car_wash"],
+            "Veterinarian": ["veterinary_care"],
+            "Pet Store": ["pet_store"],
+            "Furniture Store": ["furniture_store"],
+            "Clothing Store": ["clothing_store"],
+            "Local Retail Store": ["store"],
+            "Cafe": ["cafe"],
+            "Fast Food": ["restaurant"],
+            "Pizzeria": ["restaurant"],
+            "Bakery": ["bakery"],
+        }
+        return mapping.get(industry, ["establishment"])
+
 def normalize(el, industry: str, city: str, country: str, only_without_website: bool = True):
     t = el.get("tags", {})
     name = t.get("name") or t.get("operator") or t.get("brand")
@@ -513,6 +609,62 @@ class SearchBody(BaseModel):
     limit: int = Field(default=60, ge=1, le=200)
 
 
+# Normalize Google Places result
+def normalize_google(place: dict, industry: str, city: str, country: str, only_without_website: bool = True):
+    name = place.get("displayName", {}).get("text") if isinstance(place.get("displayName"), dict) else place.get("displayName")
+    if not name:
+        return None
+    website = place.get("websiteUri")
+    has_website = bool(website)
+    if only_without_website and has_website:
+        return None
+    address = place.get("formattedAddress")
+    phone = place.get("nationalPhoneNumber")
+    lat = place.get("location", {}).get("latitude")
+    lon = place.get("location", {}).get("longitude")
+    rating = place.get("rating")
+    user_ratings_total = place.get("userRatingCount")
+    opening_hours = place.get("regularOpeningHours", {}).get("weekdayDescriptions") if place.get("regularOpeningHours") else None
+    types = place.get("types", [])
+    business_status = place.get("businessStatus")
+    if business_status and business_status != "OPERATIONAL":
+        return None
+    # Skip big brands
+    if is_big_brand({"name": name, "types": types}, name):
+        return None
+    has_address = bool(address)
+    has_phone = bool(phone)
+    has_website = bool(website)
+    score = calc_lead_score({}, has_address, has_phone, has_website)
+    if rating:
+        score += min(int(rating * 5), 10)
+    fid = f"google_{place.get('id', '')}_{hashlib.md5(name.encode()).hexdigest()[:6]}"
+    return {
+        "id": fid,
+        "name": name,
+        "industry": industry,
+        "address": address,
+        "city": city,
+        "country": country,
+        "phone": phone,
+        "website": website,
+        "latitude": lat,
+        "longitude": lon,
+        "osmId": place.get("id", ""),
+        "osmType": "google",
+        "leadScore": score,
+        "category": industry,
+        "location": city,
+        "websiteStatus": website if website else "Brak strony w Google Places",
+        "readinessScore": score,
+        "estBudget": COUNTRIES.get(country, COUNTRIES["Polska"])["budget"],
+        "rating": rating,
+        "userRatingsTotal": user_ratings_total,
+        "openingHours": opening_hours,
+        "photos": place.get("photos", []),
+    }
+
+
 @router.post("/search")
 def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db), x_user_plan: Optional[str] = Header(None), current_user: dict = Depends(get_current_user)):
     # Walidacja
@@ -524,27 +676,22 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="Invalid limit: 1-200")
     industry_warning: Optional[str] = None
     if body.industry not in INDUSTRY_OSM:
-        # Nie rzucamy 400 — szukamy ogolnie wszystkich firm z ostrzezeniem
         industry_warning = f"Branża '{body.industry}' nie ma dedykowanych tagów OSM — szukam wszystkich firm w okolicy"
-    # Rate limit — klucz: zweryfikowany user id, dla anonów IP (X-User-Id nie jest
-    # ufny, więc nie używamy go do niczego)
     quota_key = current_user["id"] if not current_user.get("is_anon") else (request.client.host if request.client else "anon")
     try:
         remaining = check_rate_limit(x_user_plan or "Starter", quota_key)
     except HTTPException as e:
         raise e
-    # Cache check
     cache_key = f"{body.country}|{body.city.lower().strip()}|{body.industry}|{body.onlyWithoutWebsite}|{body.limit}|{body.osmId}|{body.osmType}"
     now = time.time()
     if cache_key in _cache:
         ts, cached_data = _cache[cache_key]
         if now - ts < CACHE_TTL:
-            # return cached but update remaining? include remaining
             cached_copy = dict(cached_data)
             cached_copy["remaining"] = remaining
             cached_copy["cached"] = True
             return cached_copy
-    # Resolve bbox — kolejno: dokladny OSM lookup -> geocode pelnej nazwy -> punkt ±0.05
+    # Resolve bbox
     bbox = None
     if body.osmId and body.osmType:
         bbox = get_bbox_from_osm(str(body.osmId), str(body.osmType))
@@ -556,110 +703,75 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
         bbox = (lat-0.05, lon-0.05, lat+0.05, lon+0.05)
     if not bbox:
         raise HTTPException(status_code=400, detail=f"Nie znaleziono lokalizacji: {body.city}, {body.country} — sprawdź pisownię lub wybierz z podpowiedzi")
-    # Overpass query via provider
-    try:
-        provider = OpenStreetMapProvider()
-        elements = provider.searchBusinesses(bbox, body.industry)
-    except requests.exceptions.Timeout:
-        raise HTTPException(status_code=504, detail="Overpass timeout — spróbuj ponownie za chwilę")
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Nominatim/Overpass error: {str(e)[:200]}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Blad wyszukiwania: {str(e)[:200]}")
-    # Normalize and filter
+    
+    # PRIORITY 1: Google Places API (primary - better data quality)
     leads_out = []
-    seen_keys = set()
-    for el in elements:
-        norm = normalize(el, body.industry, body.city, body.country, body.onlyWithoutWebsite)
-        if not norm:
-            continue
-        # dedup by osmId+type+name+coords
-        dedup_key = f"{norm['osmType']}_{norm['osmId']}_{norm['name'].lower().strip()}"
-        if dedup_key in seen_keys:
-            continue
-        seen_keys.add(dedup_key)
-        # also dedup by close coordinates + same name
-        if norm["latitude"] and norm["longitude"]:
-            coord_key = f"{norm['name'].lower().strip()}_{round(norm['latitude'],4)}_{round(norm['longitude'],4)}"
-            if coord_key in seen_keys:
-                continue
-            seen_keys.add(coord_key)
-        leads_out.append(norm)
-        if len(leads_out) >= body.limit:
-            break
-    # Weryfikacja Google Places dla trybu "bez strony" — OSM często nie ma tagu website
-    # mimo że firma ma stronę w Google Maps (np. kawiarnie w Londynie)
-    if body.onlyWithoutWebsite and GOOGLE_KEY and leads_out:
-        def _has_website_google(lead: dict):
-            try:
-                q = " ".join(x for x in [lead.get("name"), lead.get("address") or "", lead.get("city") or body.city, lead.get("country") or body.country] if x).strip()
-                if not q:
-                    return None
-                r = requests.post(
-                    "https://places.googleapis.com/v1/places:searchText",
-                    headers={"Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_KEY, "X-Goog-FieldMask": "places.websiteUri,places.displayName"},
-                    json={"textQuery": q, "maxResultCount": 1},
-                    timeout=8,
-                )
-                if r.status_code != 200:
-                    return None
-                pls = r.json().get("places") or []
-                if not pls:
-                    return None
-                return bool(pls[0].get("websiteUri"))
-            except Exception:
-                return None
-        # Weryfikuj pierwsze 25 leadów równolegle (5 wątków) — reszta bez weryfikacji
-        verify_n = min(len(leads_out), 25)
-        to_verify = leads_out[:verify_n]
-        rest = leads_out[verify_n:]
-        kept = []
-        skipped = 0
+    if GOOGLE_KEY:
         try:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            with ThreadPoolExecutor(max_workers=5) as ex:
-                fut_map = {ex.submit(_has_website_google, ld): ld for ld in to_verify}
-                for fut in as_completed(fut_map):
-                    ld = fut_map[fut]
-                    try:
-                        has = fut.result()
-                    except Exception:
-                        has = None
-                    if has is True:
-                        skipped += 1
-                        continue
-                    kept.append(ld)
-        except Exception:
-            kept = to_verify
-        leads_out = kept + rest
-        # zapamiętaj do warningu poniżej
-        google_skipped_local = skipped
-        google_verify_n_local = verify_n
-
+            gp_provider = GooglePlacesProvider(GOOGLE_KEY)
+            gp_elements = gp_provider.searchBusinesses(bbox, body.industry)
+            for place in gp_elements:
+                norm = normalize_google(place, body.industry, body.city, body.country, body.onlyWithoutWebsite)
+                if norm:
+                    leads_out.append(norm)
+                    if len(leads_out) >= body.limit:
+                        break
+        except Exception as e:
+            print(f"[Google Places] Search error: {e}")
+    
+    # PRIORITY 2: Overpass/OSM (fallback - more coverage, less accuracy)
+    if len(leads_out) < body.limit:
+        try:
+            provider = OpenStreetMapProvider()
+            elements = provider.searchBusinesses(bbox, body.industry)
+            for el in elements:
+                norm = normalize(el, body.industry, body.city, body.country, body.onlyWithoutWebsite)
+                if not norm:
+                    continue
+                if any(l['id'] == norm['id'] for l in leads_out):
+                    continue
+                leads_out.append(norm)
+                if len(leads_out) >= body.limit:
+                    break
+        except requests.exceptions.Timeout:
+            pass  # ignore timeout, use what we have
+        except Exception as e:
+            print(f"[Overpass] Search error: {e}")
+    
+    # Deduplicate by name + coordinates
+    seen_keys = set()
+    deduped = []
+    for lead in leads_out:
+        key = f"{lead['name'].lower().strip()}_{round(lead['latitude'] or 0, 4)}_{round(lead['longitude'] or 0, 4)}"
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        deduped.append(lead)
+        if len(deduped) >= body.limit:
+            break
+    leads_out = deduped
+    
+    # Filter by onlyWithoutWebsite if still needed (Google Places already filtered)
+    if body.onlyWithoutWebsite:
+        leads_out = [l for l in leads_out if not l.get("website")]
+    
     # Sort by leadScore desc
     leads_out.sort(key=lambda x: x.get("leadScore", 0), reverse=True)
-    empty_warning = "Brak firm spełniających kryteria w tej okolicy — spróbuj innej branży lub pobliskiego miasta. Pokazujemy tylko zweryfikowane firmy bez strony (dane OSM)."
+    empty_warning = "Brak firm spełniających kryteria w tej okolicy — spróbuj innej branży lub pobliskiego miasta."
     combined_warning = industry_warning or (None if leads_out else empty_warning)
     if industry_warning and leads_out:
         combined_warning = industry_warning
-    # Dopisz info o weryfikacji Google jeśli była
-    try:
-        if 'google_skipped_local' in locals() and google_skipped_local:
-            g_note = f"Google zweryfikowało {google_skipped_local} z {google_verify_n_local} firm — miały stronę w Google i zostały odfiltrowane."
-            combined_warning = f"{combined_warning} {g_note}" if combined_warning else g_note
-    except Exception:
-        pass
+    
     result = {
         "status": "success",
         "count": len(leads_out),
         "leads": leads_out,
         "warning": combined_warning,
-        "source": "osm",
+        "source": "google+osm",
         "remaining": remaining,
         "cached": False
     }
     _cache[cache_key] = (now, result)
-    # pruning cache size
     if len(_cache) > 200:
         oldest = min(_cache.items(), key=lambda x: x[1][0])
         del _cache[oldest[0]]
