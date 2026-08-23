@@ -43,3 +43,7 @@ class PublishedPage(Base):
     title = Column(String, nullable=True)
     html = Column(Text)  # samowystarczalny index.html
     created_at = Column(Float, nullable=True)
+    # Własna domena klienta (np. biznesklienta.pl) wskazująca na SiteMorph
+    custom_domain = Column(String, unique=True, index=True, nullable=True)
+    domain_verified = Column(Integer, default=0)  # 0/1 — DNS zweryfikowany
+    domain_verified_at = Column(Float, nullable=True)

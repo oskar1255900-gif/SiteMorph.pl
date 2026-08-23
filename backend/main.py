@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
-from app.database import engine, Base
-from app.routers import leads, builder, projects, admin, geocode
+from app.database import engine, Base, SessionLocal
+from app.routers import leads, builder, projects, admin, geocode, domains
 from sqlalchemy import text, inspect
 
 # Migration: ensure leads table has new columns (sqlite - add if missing)
@@ -22,6 +22,22 @@ try:
                     elif col in ("lead_score",): coltype = "INTEGER"
                     try:
                         conn.execute(text(f'ALTER TABLE leads ADD COLUMN {col} {coltype}'))
+                    except Exception:
+                        pass
+    # Migration: published_pages — kolumny własnych domen
+    if insp.has_table("published_pages"):
+        cols = {c["name"] for c in insp.get_columns("published_pages")}
+        needed = {
+            "custom_domain": "TEXT",
+            "domain_verified": "INTEGER",
+            "domain_verified_at": "FLOAT",
+        }
+        to_add = {c: t for c, t in needed.items() if c not in cols}
+        if to_add:
+            with engine.begin() as conn:
+                for col, coltype in to_add.items():
+                    try:
+                        conn.execute(text(f'ALTER TABLE published_pages ADD COLUMN {col} {coltype}'))
                     except Exception:
                         pass
     Base.metadata.create_all(bind=engine)
@@ -53,6 +69,55 @@ app.include_router(builder.router)
 app.include_router(projects.router)
 app.include_router(admin.router)
 app.include_router(geocode.router)
+app.include_router(domains.router)
+
+# ---------------------------------------------------------------------------
+# WŁASNE DOMENY KLIENTÓW — request z Host: biznesklienta.pl serwuje stronę
+# podpiętą pod tę domenę (PublishedPage.custom_domain, domain_verified=1).
+# Własne hosty aplikacji są pomijane (z CORS origins + APP_DOMAINS).
+# ---------------------------------------------------------------------------
+import os as _os2
+
+_OWN_HOSTS = {
+    "localhost", "127.0.0.1", "0.0.0.0",
+    *[h.strip().lower() for h in _os2.getenv("APP_DOMAINS", "sitemorph.pl,www.sitemorph.pl").split(",") if h.strip()],
+    *[o.replace("https://", "").replace("http://", "").split(":")[0].strip().lower()
+      for o in _origins if o.strip() and not o.startswith("http://localhost")],
+}
+
+class CustomDomainMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            try:
+                headers = {k.decode("latin-1").lower(): v.decode("latin-1")
+                           for k, v in scope.get("headers", [])}
+                raw_host = headers.get("host", "")
+                host = raw_host.split(":")[0].strip().lower()
+                if host and "." in host and host not in _OWN_HOSTS:
+                    db = SessionLocal()
+                    try:
+                        page = (
+                            db.query(_PublishedPage)
+                            .filter(
+                                _PublishedPage.custom_domain == host,
+                                _PublishedPage.domain_verified == 1,
+                            )
+                            .first()
+                        )
+                    finally:
+                        db.close()
+                    if page and page.html:
+                        resp = HTMLResponse(page.html)
+                        await resp(scope, receive, send)
+                        return
+            except Exception:
+                pass  # przy błędzie lecimy normalnym routingiem
+        await self.app(scope, receive, send)
+
+app.add_middleware(CustomDomainMiddleware)
 
 @app.get("/")
 def read_root():

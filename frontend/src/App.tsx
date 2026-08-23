@@ -18,6 +18,7 @@ import { FinanceSection } from './views/FinanceSection';
 import { TutorialsView } from './views/TutorialsView';
 import { CookieBanner } from './components/CookieBanner';
 import { HelpView } from './views/HelpView';
+import { DomainsView } from './views/DomainsView';
 import { AuthModal } from './components/AuthModal';
 import { GlobalNavbar } from './components/GlobalNavbar';
 import { FloatingChat } from './components/FloatingChat';
@@ -191,20 +192,22 @@ export default function App() {
                   {activeTab === 'tutorials' && <TutorialsView />}
                   {activeTab === 'help' && <HelpView credits={credits} setCredits={setCredits} />}
                   {['domains', 'settings'].includes(activeTab) && (
-                    <div className="max-w-2xl mx-auto py-24 text-center space-y-4">
-                      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-lg bg-blue-600 text-white dark:bg-white dark:text-black font-black">
-                        <Sparkles size={32} />
-                      </div>
-                      <h2 className="text-2xl font-black capitalize">
-                        Sekcja: {activeTab === 'domains' ? 'Domeny' : 'Ustawienia'}
-                      </h2>
-                      <p className="text-xs font-bold max-w-sm mx-auto opacity-80">
-                        Wdrożenie w toku. Kliknij przycisk poniżej, aby wrócić do pulpitu.
-                      </p>
-                      <Button variant="primary" size="sm" onClick={() => setActiveTab('dashboard')} className="shadow-md font-black">
-                        Wróć do Pulpitu
-                      </Button>
-                    </div>
+                    activeTab === 'domains'
+                      ? <DomainsView theme={theme} />
+                      : (
+                        <div className="max-w-2xl mx-auto py-24 text-center space-y-4">
+                          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-lg bg-blue-600 text-white dark:bg-white dark:text-black font-black">
+                            <Sparkles size={32} />
+                          </div>
+                          <h2 className="text-2xl font-black capitalize">Ustawienia</h2>
+                          <p className="text-xs font-bold max-w-sm mx-auto opacity-80">
+                            Wdrożenie w toku. Kliknij przycisk poniżej, aby wrócić do pulpitu.
+                          </p>
+                          <Button variant="primary" size="sm" onClick={() => setActiveTab('dashboard')} className="shadow-md font-black">
+                            Wróć do Pulpitu
+                          </Button>
+                        </div>
+                      )
                   )}
                 </motion.div>
               </AnimatePresence>
