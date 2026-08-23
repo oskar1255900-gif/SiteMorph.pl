@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/invoices", tags=["Invoices"])
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "sitemorph0@gmail.com")
+SMTP_USER = os.getenv("SMTP_USER", "sitemorph@op.pl")
 SMTP_PASS = os.getenv("SMTP_PASS", "")  # hasło aplikacji Gmaila (nie hasło do konta!)
 
 PAYMENT_METHODS = {"paypal", "blik", "przelew"}
