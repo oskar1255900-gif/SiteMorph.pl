@@ -164,24 +164,20 @@ class BuilderInput(BaseModel):
     sections: Optional[List[str]] = None
     extraPrompt: Optional[str] = ""
 
-IMPECCABLE_DESIGN_RULES = """Impeccable — reguły projektowe
+EDITORIAL_RULES = """Jesteś senior editorial designerem (poziom Linear, Stripe Docs, Relay) — Twoje strony wyglądają jak z papierowego atelier, nie jak z generatora AI.
 
-Jesteś doświadczonym dyrektorem kreatywnym, senior product designerem i typografem. Twoje zadanie to projektowanie interfejsów i stron na poziomie impeccable — bezbłędnych, premium, ponadczasowych.
-
-ZASADY NACZELNE:
-- Prostota ponad dekorację. Każdy piksel ma uzasadnienie. Usuń wszystko zbędne. Białe przestrzenie to luksus.
-- Hierarchia wizualna jest święta: nagłówek H1 dominuje, H2 wspiera, body jest ciche. Kontrast wielkości 1.6x–2.5x między poziomami.
-- Typografia: SF Pro Display / Inter, antyaliasing, tracking -0.015em dla nagłówków, line-height 1.05 dla hero, 1.6 dla body. Nigdy nie łam zasad rytmu pionowego (8px grid).
-- Paleta: neutralne tła (biały, #fafafa, #0a0a0a) + jeden akcent limonkowy #bef264 / #a3e635 / #34d399. Akcent używaj oszczędnie: CTA, aktywne stany, małe detale. 60-30-10.
-- Zaokrąglenia 16–28px dla kart, 9999px dla pigułek. Cienie miękkie, rozproszone (0 8px 32px rgba(0,0,0,0.06)), nigdy ostre.
-- Motion: spring 350/25 dla mikrointerakcji, stagger 0.08 dla list. Blur + scale + y dla wejść cinematic. Nigdy liniowo.
-- Dostępność: kontrast AA, focus visible (ring 2px), hit area min 44px, stany hover/pressed/disabled jawne.
-- Content first: prawdziwe teksty, nie lorem ipsum. Nagłówki sprzedażowe, konkretne liczby, CTA z czasownikiem.
-- Spójność: ten sam radius, ten sam border, ta sama siatka na całej stronie. Brak wyjątków.
-- Detale decydują: wyrównanie do pixela, równe paddingi, ikony optycznie wycentrowane, brak sierot typograficznych.
-- Mobile first: dotyk, kciuk, 16px min font, brak hover-only.
-- Zasada końcowa: jeśli coś wygląda „ładnie” ale nie pomaga użytkownikowi — usuń. Wybieraj zaangażowanie, nie ozdobę. Wybieraj konwersję, nie efekt. Wybieraj spokój, nie krzyk. Wybieraj impeccable. Wybieraj zaangażowanie.
+ZASADY PAPIEROWEGO ATELIER:
+- Papier #fcfcF9, tusz #131412, szałwia #d8e4bc tylko jako cienka linia/podkreślenie, glina #e8ddd3 na ciepłe tła. ZAKAZ niebieskiego #3b82f6, fioletów i tęczowych gradientów.
+- Typografia: Instrument Serif 400 dla H1/H2 (nie kursywa, chyba że <em>), SF Pro 400/500 dla body. H1 48-72px, H2 28-36px, body 15px, mono 11px uppercase dla mety. Jeden ciężar, nie font-black wszędzie.
+- Promień: 10-12px dla kart, 8px dla inputów, brak pełnych pigułek (poza mini tagami). Cienie max 0 1px 2px rgba(0,0,0,0.04) lub brak + 1px border #e7e5e0.
+- Układ: asymetryczna siatka 12 kolumn (np. 7/5, 8/4), hojne białe przestrzenie 80-120px między sekcjami, wyrównanie do lewej, dozwolone nachodzenie. Zakaz centrowania wszystkiego.
+- Ikony: cienki stroke 1.2px, 14-16px, NIGDY w wypełnionych kółkach. Numery 01 mono, nie ikonki.
+- Motion: tylko opacity + y 12px, 150-300ms ease, bez blur/rotate/scale. Brak infinite pulse.
+- Treść: prawdziwe teksty z danych klienta, zero lorem, użyj opinii z imionami.
+- Brzydkie AI-tells do usunięcia: zaokrąglone 2xl wszędzie, fioletowe cienie, backdrop-blur, gradientowe tytuły, Lucide w kółeczkach, glassmorphism, karuzele logo, glow na przyciskach, 3 kafelki w rzędzie.
 """
+
+IMPECCABLE_DESIGN_RULES = EDITORIAL_RULES
 
 INDEX_HTML_RULE = """- GŁÓWNY PLIK STRONY to "main/frontend/index.html" — JEDEN samowystarczalny plik z CAŁĄ stroną:
   * <script src="https://cdn.tailwindcss.com"></script> w <head> (Tailwind CDN),
@@ -258,32 +254,41 @@ def fallback_content(data: BuilderInput):
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>""" + title + """</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-<style>body{font-family:'Inter',system-ui,sans-serif}</style>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>:root{--paper:#fcfcF9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc} body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink)} h1,h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.02em}</style>
 </head>
-<body class="bg-white text-neutral-900">
-<header class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-  <span class="font-black text-xl tracking-tight">__BN__</span>
-  <a href="#kontakt" class="bg-neutral-900 text-white px-5 py-2 rounded-full text-sm font-bold">Kontakt</a>
+<body>
+<header class="max-w-[1120px] mx-auto px-6 py-6 flex items-center justify-between border-b border-[var(--line)]">
+  <span class="font-serif text-xl tracking-tight" style="font-family:'Instrument Serif',serif">__BN__</span>
+  <a href="#kontakt" class="px-5 py-2 rounded-[10px] bg-[var(--ink)] text-white text-sm font-medium">Kontakt</a>
 </header>
-<section class="max-w-6xl mx-auto px-6 py-20 text-center">
-  <h1 class="text-4xl sm:text-6xl font-black tracking-tight leading-tight">__HEAD__</h1>
-  <p class="mt-5 text-lg text-neutral-600 max-w-2xl mx-auto">__DESC__</p>
-  <a href="#kontakt" class="inline-block mt-8 bg-lime-300 text-black px-8 py-4 rounded-full font-black hover:brightness-95 transition">Umów bezpłatną wycenę</a>
-</section>
-<section class="max-w-6xl mx-auto px-6 pb-16 grid sm:grid-cols-3 gap-5">
-  <div class="p-7 rounded-2xl bg-neutral-50 border border-neutral-200"><div class="text-3xl mb-2">&#9889;</div><h3 class="font-black">Szybka realizacja</h3><p class="text-sm text-neutral-600 mt-1">Strona gotowa nawet w 48h od akceptacji projektu.</p></div>
-  <div class="p-7 rounded-2xl bg-neutral-50 border border-neutral-200"><div class="text-3xl mb-2">&#128142;</div><h3 class="font-black">Premium jakość</h3><p class="text-sm text-neutral-600 mt-1">Nowoczesny design dopasowany do Twojej marki.</p></div>
-  <div class="p-7 rounded-2xl bg-neutral-50 border border-neutral-200"><div class="text-3xl mb-2">&#128222;</div><h3 class="font-black">Pełne wsparcie</h3><p class="text-sm text-neutral-600 mt-1">Jesteśmy z Tobą także po wdrożeniu strony.</p></div>
-</section>
-<section id="kontakt" class="max-w-3xl mx-auto px-6 pb-24">
-  <div class="rounded-3xl bg-neutral-900 text-white p-10 text-center">
-    <h2 class="text-3xl font-black">Porozmawiajmy o Twojej stronie</h2>
-    <p class="mt-3 text-neutral-300">Zadzwoń lub napisz — odpowiadamy tego samego dnia.</p>
-    <a href="tel:+48000000000" class="inline-block mt-6 bg-lime-300 text-black px-8 py-3.5 rounded-full font-black">Zadzwoń teraz</a>
+<section class="max-w-[1120px] mx-auto px-6 pt-16 pb-12 grid md:grid-cols-12 gap-8 items-start">
+  <div class="md:col-span-7">
+    <p class="text-[11px] tracking-[0.12em] uppercase border border-[var(--line)] inline-block px-2.5 py-1 rounded-full">Dostępne od ręki</p>
+    <h1 class="text-[48px] md:text-[64px] leading-[0.9] mt-6">__HEAD__</h1>
+    <p class="mt-6 text-[15px] leading-relaxed opacity-70 max-w-[42ch]">__DESC__</p>
+    <a href="#kontakt" class="inline-block mt-8 px-6 py-3 rounded-[10px] bg-[var(--ink)] text-white text-sm font-medium">Umów bezpłatną wycenę — odpowiadamy dziś</a>
+  </div>
+  <div class="md:col-span-5 pt-4">
+    <div class="border border-[var(--line)] rounded-[12px] p-6 bg-white">
+      <div class="text-sm font-medium">Bez zobowiązań. Zadzwoń i zapytaj o wycenę w 15 minut.</div>
+      <div class="mt-4 flex items-center gap-3 text-xs"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Dostępni dziś do 18:00</div>
+    </div>
   </div>
 </section>
-<footer class="border-t py-8 text-center text-sm text-neutral-500">&copy; __YEAR__ __BN__ — Wszystkie prawa zastrzeżone.</footer>
+<section class="max-w-[1120px] mx-auto px-6 pb-16 grid sm:grid-cols-3 gap-6 border-t border-[var(--line)] pt-10">
+  <div class="border-t border-[var(--line)] pt-4"><div class="text-[11px] tracking-wide uppercase opacity-60">01 — Szybko</div><h3 class="font-medium mt-2">Realizacja 48h</h3><p class="text-sm opacity-70 mt-1">Projekt gotowy do akceptacji w dwa dni od briefu.</p></div>
+  <div class="border-t border-[var(--line)] pt-4 mt-6 sm:mt-12"><div class="text-[11px] tracking-wide uppercase opacity-60">02 — Dopracowane</div><h3 class="font-medium mt-2">Redakcyjny szlif</h3><p class="text-sm opacity-70 mt-1">Każdy nagłówek i akapit pisany pod Twoją branżę.</p></div>
+  <div class="border-t border-[var(--line)] pt-4"><div class="text-[11px] tracking-wide uppercase opacity-60">03 — Wsparcie</div><h3 class="font-medium mt-2">Jesteśmy obok</h3><p class="text-sm opacity-70 mt-1">Poprawki i wdrożenie bez dodatkowych kosztów.</p></div>
+</section>
+<section id="kontakt" class="max-w-[720px] mx-auto px-6 pb-20">
+  <div class="border border-[var(--line)] rounded-[12px] p-8 bg-white">
+    <h2 class="text-2xl" style="font-family:'Instrument Serif',serif">Porozmawiajmy o Twojej stronie</h2>
+    <p class="mt-2 text-sm opacity-70">Zadzwoń lub napisz — odpowiadamy tego samego dnia, bez formularzy.</p>
+    <a href="tel:+48000000000" class="inline-block mt-6 px-6 py-3 rounded-[10px] bg-[var(--sage)] text-[var(--ink)] text-sm font-medium border border-[var(--line)]">Zadzwoń teraz</a>
+  </div>
+</section>
+<footer class="border-t border-[var(--line)] py-8 text-center text-sm opacity-60">© __YEAR__ __BN__ — Marszałkowska 1, Warszawa · kontakt@sitemorph.pl</footer>
 </body>
 </html>"""
     html = (html.replace("__BN__", bn).replace("__HEAD__", headline)

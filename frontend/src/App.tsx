@@ -251,45 +251,8 @@ const GlobalStyles = () => (
       font-weight: 400;
       letter-spacing: -0.01em;
     }
-
-    /* Subtelny gradient limonkowo-szmaragdowy */
-    .text-gradient-lime-soft {
-      background: linear-gradient(135deg, #bef264 0%, #34d399 50%, #a3e635 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    /* Animowany, płynący gradient limonkowy (splash) */
-    @keyframes limeFlow {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 200% 50%; }
-    }
-    .text-gradient-lime-flow {
-      background: linear-gradient(90deg, #65a30d, #a3e635, #34d399, #bef264, #34d399, #a3e635, #65a30d);
-      background-size: 200% 100%;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: limeFlow 9s linear infinite;
-    }
-
-    /* Landing scale 90% -> 100% (desktop) */
-    .landing-scale { zoom: 1.095; }
-    @media (max-width: 768px) { .landing-scale { zoom: 1; } }
-
-    /* Morphing blob (legal modal) */
-    @keyframes legalMorph {
-      0%, 100% { border-radius: 62% 38% 58% 42% / 42% 62% 38% 58%; transform: rotate(0deg) scale(1); }
-      33% { border-radius: 38% 62% 42% 58% / 58% 38% 62% 42%; transform: rotate(7deg) scale(1.06); }
-      66% { border-radius: 58% 42% 38% 62% / 38% 58% 42% 62%; transform: rotate(-7deg) scale(0.96); }
-    }
-    .legal-blob { animation: legalMorph 7.5s ease-in-out infinite; }
-
-    /* Cinematic morphing blob (sekcje) */
-    .morph-blob {
-      animation: legalMorph 8s ease-in-out infinite;
-      will-change: transform, border-radius;
-    }
+    :root { --paper: #fcfcF9; --ink: #131412; --sage: #d8e4bc; --clay: #e8ddd3; --line: #e7e5e0; }
+    /* Usunięto: gradienty limeFlow, morph-blob, landing-scale, marquee — za bardzo AI */
 
     * {
       box-sizing: border-box;
@@ -297,17 +260,22 @@ const GlobalStyles = () => (
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* SF PRO dla całej reszty aplikacji */
+    /* Papierowy system — editorial, nie SaaS dashboard */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       min-height: 100%;
       font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      letter-spacing: -0.015em;
+      letter-spacing: -0.011em;
       overflow-x: hidden;
+      background: var(--paper);
+      color: var(--ink);
       transition: background-color 0.3s ease, color 0.3s ease;
     }
+    h1, h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -0.02em; line-height: 0.96; }
+    h1 em, h2 em { font-style: italic; font-weight: 400; color: #5a6b44; }
+    ::selection { background: var(--sage); }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -353,13 +321,12 @@ const Button = ({
 
   return (
     <motion.button
-      whileHover={{ scale: 1.03, y: -1 }}
-      whileTap={{ scale: 0.97 }}
-      transition={springTransition}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.15 }}
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
     >
       {children}
     </motion.button>
@@ -374,18 +341,15 @@ const Badge = ({
   type?: 'default' | 'lime' | 'blue';
 }) => {
   const styles = {
-    default: 'bg-blue-50 dark:bg-neutral-900 text-blue-600 dark:text-white border-blue-200 dark:border-neutral-800 font-bold',
-    lime: 'bg-lime-50 dark:bg-neutral-900 text-lime-700 dark:text-lime-300 border-lime-300 dark:border-lime-500/40 font-black',
-    blue: 'bg-blue-50 dark:bg-neutral-900 text-blue-600 dark:text-white border-blue-200 dark:border-neutral-800 font-bold'
+    default: 'bg-transparent text-[#131412] dark:text-white border-[#e7e5e0] dark:border-neutral-800 font-medium tracking-wide uppercase text-[10px]',
+    lime: 'bg-[#d8e4bc] text-[#131412] border-[#d8e4bc] font-semibold',
+    blue: 'bg-transparent text-[#131412] dark:text-white border-[#e7e5e0] dark:border-neutral-800 font-medium'
   };
 
   return (
-    <motion.span 
-      layout
-      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] border tracking-tight ${styles[type]}`}
-    >
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[8px] text-[11px] border tracking-tight ${styles[type]}`}>
       {children}
-    </motion.span>
+    </span>
   );
 };
 
