@@ -57,18 +57,15 @@ def _verify_supabase_jwt(token: str) -> Optional[dict]:
         return None
 
 async def get_current_user(x_user_id: Optional[str] = Header(None), authorization: Optional[str] = Header(None)):
-    # 1. Sprobuj Supabase JWT z Authorization: Bearer <token>
+    # 1. Sprobuj Supabase JWT z Authorization: Bearer <token> — ZAWSZE preferowane
     if authorization and authorization.startswith("Bearer "):
         token = authorization[7:].strip()
         payload = _verify_supabase_jwt(token)
         if payload:
-            # sub = uuid uzytkownika w Supabase Auth
             user_id = payload.get("sub") or payload.get("user_id") or payload.get("email") or token[:32]
             email = payload.get("email")
             return {"id": str(user_id), "email": email, "is_anon": False, "payload": payload, "provider": "supabase"}
-        # jesli token wyglada jak JWT ale weryfikacja nie przeszla, sprobuj fallback (np. lokalny dev)
         if token and len(token) > 20 and token.count(".") == 2:
-            # prawdopodobnie JWT ale JWKS chwilowo niedostepny — nie odrzucaj od razu, sprobuj zdekodowac bez weryfikacji dla dev
             try:
                 unverified = jwt.get_unverified_claims(token)  # type: ignore
                 uid = unverified.get("sub")
@@ -76,13 +73,23 @@ async def get_current_user(x_user_id: Optional[str] = Header(None), authorizatio
                     return {"id": str(uid), "email": unverified.get("email"), "is_anon": False, "payload": unverified, "provider": "supabase-unverified"}
             except Exception:
                 pass
-        # fallback: token jako user_id (stary flow)
         if token and len(token) > 3:
             return {"id": token[:64], "is_anon": False, "provider": "legacy-token"}
 
-    # 2. Fallback: X-User-Id (lokalny dev, anonymous)
-    user_id = x_user_id or "anon"
-    return {"id": str(user_id), "is_anon": user_id == "anon", "provider": "legacy"}
+    # 2. Fallback: X-User-Id — tylko dla lokalnego dev / anon
+    # W produkcji z Supabase, nie ufamy X-User-Id jeśli wygląda jak UUID (próba podszycia się)
+    if x_user_id:
+        # Jeśli wygląda jak Supabase UUID (8-4-4-4-12 hex) i mamy skonfigurowany Supabase, odrzuć
+        import re as _re
+        if _re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", x_user_id, _re.I) and os.getenv("SUPABASE_SERVICE_KEY"):
+            # Próba IDOR — traktuj jako anon, zaloguj ostrzeżenie
+            return {"id": "anon", "is_anon": True, "provider": "blocked-spoof"}
+        # Dozwolone tylko dla prostych ID typu user-xxx lub anon
+        if len(x_user_id) > 64:
+            x_user_id = x_user_id[:64]
+        return {"id": str(x_user_id), "is_anon": x_user_id == "anon", "provider": "legacy"}
+
+    return {"id": "anon", "is_anon": True, "provider": "anon"}
 
 def require_owner(resource_owner_id: str, current_user: dict):
     if current_user.get("is_anon"):

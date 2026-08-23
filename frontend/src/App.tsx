@@ -251,8 +251,11 @@ const GlobalStyles = () => (
       font-weight: 400;
       letter-spacing: -0.01em;
     }
-    :root { --paper: #fcfcF9; --ink: #131412; --sage: #d8e4bc; --clay: #e8ddd3; --line: #e7e5e0; }
-    /* Usunięto: gradienty limeFlow, morph-blob, landing-scale, marquee — za bardzo AI */
+    :root { --paper: #fcfcF9; --ink: #131412; --lime: #a3e635; --sage: #d8e4bc; --clay: #e8ddd3; --line: #e7e5e0; }
+    /* Limonkowy akcent — Twój kolor brandu, używany oszczędnie na CTA i detalach */
+    .text-lime { color: var(--lime); }
+    .bg-lime { background: var(--lime); }
+    /* Usunięto nadmiarowe gradienty i bloby — zostawiono tylko subtelny akcent */
 
     * {
       box-sizing: border-box;
@@ -647,7 +650,7 @@ const PublicLandingView = ({
           {/* Główny nagłówek 1:1 z czcionką Story Script dla ZARABIAJ. */}
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight leading-[1.08] text-blue-600 dark:text-white">
             Buduj strony.<br />
-            <span className="font-story-script text-6xl sm:text-7xl text-gradient-lime-soft pr-2 inline-block align-baseline">
+            <span className="pr-2 inline-block align-baseline" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635', letterSpacing: '-0.03em' }}>
               Zarabiaj.
             </span>
           </h1>
@@ -1443,8 +1446,8 @@ const MobileNav = ({
     <>
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-blue-100 dark:border-neutral-900 text-blue-600 dark:text-white">
         <button onClick={onExit} className="flex items-center gap-2 cursor-pointer bg-transparent border-none text-inherit p-1.5 rounded-lg active:scale-95 transition-transform">
-          <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
-          <span className="font-black text-sm tracking-tight">Site<span className="text-gradient-lime-soft font-story-script text-lg px-0.5">Morph</span></span>
+            <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
+            <span className="font-black text-sm tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
         </button>
         <div className="flex items-center gap-1">
           <span className="text-[10px] font-black px-2 py-1 rounded-full bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800">{credits} kr.</span>
@@ -1475,7 +1478,7 @@ const MobileNav = ({
             >
               <div>
                 <div className="h-14 flex items-center justify-between px-4 border-b border-blue-100 dark:border-neutral-900">
-                  <span className="font-black text-base tracking-tight">Site<span className="text-gradient-lime-soft font-story-script text-xl px-0.5">Morph</span></span>
+                  <span className="font-black text-base tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
                   <button onClick={() => setOpen(false)} aria-label="Zamknij" className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-neutral-900 cursor-pointer border-none bg-transparent"><X size={17} /></button>
                 </div>
                 <LayoutGroup id="mobile-nav">
@@ -3911,7 +3914,7 @@ const GlobalNavbar = ({
       <div className="pointer-events-auto w-full max-w-5xl backdrop-blur-xl border rounded-full py-2.5 px-5 shadow-xl flex items-center justify-between bg-white/95 dark:bg-black/95 border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white">
         <button onClick={() => { setCurrentView('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit">
           <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg" />
-          <span className="font-black text-base tracking-tight">Site<span className="font-story-script text-xl px-0.5" style={{ background: 'linear-gradient(135deg,#06b6d4 0%,#22d3ee 50%,#a3e635 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Morph</span></span>
+          <span className="font-black text-base tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span className="font-black text-base tracking-tight" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
         </button>
         <nav className="hidden md:flex items-center gap-6 text-xs font-bold opacity-90">
           <button onClick={() => scrollToId('jak-to-dziala')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Jak to działa</button>
