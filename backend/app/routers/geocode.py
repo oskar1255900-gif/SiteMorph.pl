@@ -190,39 +190,6 @@ def _autocomplete_nominatim(q: str, country: str) -> list:
         })
     return out
 
-@router.get("/autocomplete")
-def autocomplete(q: str = Query(..., min_length=1), country: str = Query("Polska")):
-    q = q.strip()
-    if len(q) < 2:
-        return {"results": []}
-    errors = {}
-    with ThreadPoolExecutor(max_workers=2) as ex:
-        f_om = ex.submit(_autocomplete_open_meteo, q, country)
-        f_nom = ex.submit(_autocomplete_nominatim, q, country) if len(q) >= 3 else None
-        try:
-            om_results = f_om.result()
-        except Exception as e:
-            om_results = []
-            errors["open-meteo"] = str(e)
-        try:
-            nom_results = f_nom.result() if f_nom else []
-        except Exception as e:
-            nom_results = []
-            errors["nominatim"] = str(e)
-    merged = []
-    seen = set()
-    for item in om_results + nom_results:
-        key = _fold(item.get("name"))
-        if not key or key in seen:
-            continue
-        seen.add(key)
-        merged.append(item)
-        if len(merged) >= 12:
-            break
-    if not merged and errors:
-        return {"results": [], "error": "; ".join(f"{k}: {v}" for k, v in errors.items())}
-    return {"results": merged}
-
 # ---------------------------------------------------------------------------
 # Pełna lista miejscowości danego kraju z OSM — prawdziwe nazwy, pobierane
 # z Overpass API po GRANICACH kraju (area), więc bez obcych miast z sąsiednich
@@ -234,7 +201,7 @@ COUNTRY_AREA: Dict[str, int] = {
     "USA": 3600148838,
 }
 _all_cities_cache: Dict[str, Tuple[float, List[dict]]] = {}
-ALL_CITIES_VERSION = 5
+ALL_CITIES_VERSION = 6
 ALL_CITIES_TTL = 24 * 3600
 _fetching = set()
 OVERPASS_ENDPOINTS = [

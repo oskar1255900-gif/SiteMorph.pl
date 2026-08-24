@@ -551,8 +551,8 @@ def generate_site(data: BuilderInput):
     package_name = package_map.get((data.package or "starter").lower(), "STARTER")
     credits = data.credits or 10
     
-    # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je
-    system_prompt_filled = SYSTEM_PROMPT.format(package_name=package_name, credits=credits)
+    # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je bezpiecznie (bez ruszenia JSONowych { })
+    system_prompt_filled = SYSTEM_PROMPT.replace("{package_name}", package_name).replace("{credits}", str(credits))
     
     user_prompt = f"""Dane firmy / instrukcja od użytkownika:
 ---
