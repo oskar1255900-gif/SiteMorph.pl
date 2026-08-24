@@ -539,22 +539,23 @@ export default {content:["./index.html","./src/**/*.{ts,tsx}"],theme:{extend:{fo
 
 @router.post("/generate")
 def generate_site(data: BuilderInput):
-    sections_str = ", ".join(data.sections or [])
-    
-    # Określ nazwę pakietu na podstawie kredytów
-    package_map = {
-        "starter": "STARTER",
-        "pro": "PRO", 
-        "business": "BUSINESS",
-        "agencja": "AGENCJA"
-    }
-    package_name = package_map.get((data.package or "starter").lower(), "STARTER")
-    credits = data.credits or 10
-    
-    # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je bezpiecznie (bez ruszenia JSONowych { })
-    system_prompt_filled = SYSTEM_PROMPT.replace("{package_name}", package_name).replace("{credits}", str(credits))
-    
-    user_prompt = f"""Dane firmy / instrukcja od użytkownika:
+    try:
+        sections_str = ", ".join(data.sections or [])
+        
+        # Określ nazwę pakietu na podstawie kredytów
+        package_map = {
+            "starter": "STARTER",
+            "pro": "PRO", 
+            "business": "BUSINESS",
+            "agencja": "AGENCJA"
+        }
+        package_name = package_map.get((data.package or "starter").lower(), "STARTER")
+        credits = data.credits or 10
+        
+        # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je bezpiecznie (bez ruszenia JSONowych { })
+        system_prompt_filled = SYSTEM_PROMPT.replace("{package_name}", package_name).replace("{credits}", str(credits))
+        
+        user_prompt = f"""Dane firmy / instrukcja od użytkownika:
 ---
 BUSINESS_NAME: {data.business_name}
 NICHE: {data.niche}
@@ -570,74 +571,87 @@ Wygeneruj stronę zgodnie z SYSTEM_PROMPT: React + Vite + TypeScript + Tailwind 
 Jeśli w DESCRIPTION/EXTRA jest wklejony surowy tekst z Google Maps — wyciągnij z niego fakty i użyj ich na stronie.
 NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
 
-    warning = None
-    provider = "fallback"
-    parsed_files = None
-    parsed_meta = None
-
-    # 1) Gemini (glowny provider)
-    if GEMINI_API_KEY:
-        text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=60000)
-        if text:
-            try:
-                parsed = extract_json(text)
-                pfiles = parsed.get("files") or {}
-                if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles):
-                    parsed_files = pfiles
-                    parsed_meta = parsed.get("meta", {})
-                    provider = "gemini"
-                else:
-                    warning = "Gemini nie zwrócił plików — próbuje zapasowego dostawcy"
-            except Exception as e:
-                warning = f"Gemini: nieparsowalna odpowiedź ({str(e)[:120]})"
-        else:
-            warning = f"Gemini niedostępny: {err}"
-
-    # 2) OpenRouter (zapas)
-    if parsed_files is None and OPENROUTER_API_KEY:
-        try:
-            resp = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "HTTP-Referer": OPENROUTER_SITE_URL,
-                    "X-Title": OPENROUTER_APP_NAME,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": OPENROUTER_MODEL,
-                    "messages": [
-                        {"role": "system", "content": system_prompt_filled},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    "temperature": 0.85,
-                    "max_tokens": 8000,
-                },
-                timeout=90,
-            )
-            resp.raise_for_status()
-            content_text = resp.json()["choices"][0]["message"]["content"]
-            parsed = extract_json(content_text)
-            ofiles = parsed.get("files") or {}
-            if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in ofiles):
-                parsed_files = ofiles
-                parsed_meta = parsed.get("meta", {})
-                provider = "openrouter"
-            elif warning is None:
-                warning = "OpenRouter nie zwrócił plików"
-        except Exception as e:
-            if warning is None:
-                warning = f"OpenRouter błąd: {str(e)[:150]}"
-
-    # 3) Fallback lokalny
-    fb = fallback_content(data)
-    if parsed_files is None:
-        parsed_files = fb["files"]
-        parsed_meta = fb["meta"]
+        warning = None
         provider = "fallback"
-        if warning is None:
-            warning = "Brak dostępnego dostawcy AI — pokazuję szablon awaryjny"
+        parsed_files = None
+        parsed_meta = None
 
-    meta = parsed_meta or fb["meta"]
-    hero = {"title": meta.get("headline", data.business_name), "subtitle": meta.get("subheadline", data.description), "cta_text": meta.get("ctaText", "Kontakt")}
-    return {"status": "success", "provider": provider, "warning": warning, "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": resolve_gemini_model(), "content": {"hero": hero, "services": [], "pricing": []}, "files": parsed_files, "meta": meta}
+        # 1) Gemini (glowny provider)
+        if GEMINI_API_KEY:
+            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=60000)
+            if text:
+                try:
+                    parsed = extract_json(text)
+                    pfiles = parsed.get("files") or {}
+                    if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles):
+                        parsed_files = pfiles
+                        parsed_meta = parsed.get("meta", {})
+                        provider = "gemini"
+                    else:
+                        warning = "Gemini nie zwrócił plików — próbuje zapasowego dostawcy"
+                except Exception as e:
+                    warning = f"Gemini: nieparsowalna odpowiedź ({str(e)[:120]})"
+            else:
+                warning = f"Gemini niedostępny: {err}"
+
+        # 2) OpenRouter (zapas)
+        if parsed_files is None and OPENROUTER_API_KEY:
+            try:
+                resp = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                        "HTTP-Referer": OPENROUTER_SITE_URL,
+                        "X-Title": OPENROUTER_APP_NAME,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": OPENROUTER_MODEL,
+                        "messages": [
+                            {"role": "system", "content": system_prompt_filled},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": 0.85,
+                        "max_tokens": 8000,
+                    },
+                    timeout=90,
+                )
+                resp.raise_for_status()
+                content_text = resp.json()["choices"][0]["message"]["content"]
+                parsed = extract_json(content_text)
+                ofiles = parsed.get("files") or {}
+                if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in ofiles):
+                    parsed_files = ofiles
+                    parsed_meta = parsed.get("meta", {})
+                    provider = "openrouter"
+                elif warning is None:
+                    warning = "OpenRouter nie zwrócił plików"
+            except Exception as e:
+                if warning is None:
+                    warning = f"OpenRouter błąd: {str(e)[:150]}"
+
+        # 3) Fallback lokalny
+        fb = fallback_content(data)
+        if parsed_files is None:
+            parsed_files = fb["files"]
+            parsed_meta = fb["meta"]
+            provider = "fallback"
+            if warning is None:
+                warning = "Brak dostępnego dostawcy AI — pokazuję szablon awaryjny"
+
+        meta = parsed_meta or fb["meta"]
+        hero = {"title": meta.get("headline", data.business_name), "subtitle": meta.get("subheadline", data.description), "cta_text": meta.get("ctaText", "Kontakt")}
+        try:
+            gm = resolve_gemini_model()
+        except Exception:
+            gm = None
+        return {"status": "success", "provider": provider, "warning": warning, "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": gm, "content": {"hero": hero, "services": [], "pricing": []}, "files": parsed_files, "meta": meta}
+    except Exception as e:
+        import traceback
+        print(f"[Builder] CRITICAL ERROR: {e}\n{traceback.format_exc()}", flush=True)
+        try:
+            fb = fallback_content(data)
+            return {"status": "success", "provider": "fallback", "warning": f"Błąd krytyczny, użyto fallback: {str(e)[:200]}", "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": None, "content": {"hero": {"title": data.business_name, "subtitle": data.description[:120] if data.description else "", "cta_text": "Kontakt"}, "services": [], "pricing": []}, "files": fb["files"], "meta": fb["meta"]}
+        except Exception as e2:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=500, content={"detail": f"Builder critical error: {str(e)[:300]} | fallback also failed: {str(e2)[:200]}"})
