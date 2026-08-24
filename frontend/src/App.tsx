@@ -271,7 +271,7 @@ export default function App() {
                         if (anyLead.rating) extra.push(`Ocena Google: ${anyLead.rating} (${anyLead.userRatingsTotal} opinii).`);
                         if (anyLead.website) extra.push(`Strona: ${anyLead.website}.`);
                         const loc = [cityName, countryName].filter(Boolean).join(', ');
-                        const base = `Stwórz premium stronę Vite+React+Tailwind dla firmy "${lead.name}" (${ind}) w ${loc || 'Polska'}. ${extra.join(' ')} Zadbaj o sekcje: Hero, Oferta, Cennik, Galeria, Opinie, Kontakt z mapą. Branża: ${ind}. Kolory: limonkowy #bef264 + neutralny. Styl: nowoczesny, premium, impeccable.`;
+                        const base = `Stwórz premium stronę Vite+React+Tailwind dla firmy "${lead.name}" (${ind}) w ${loc || 'Polska'}. ${extra.join(' ')} Zadbaj o sekcje dobrane do branży (nie sztywno Hero/Oferta/Cennik — AI ma dobrać sekcje pod branżę na podstawie danych). Branża: ${ind}.`;
                         const withImages = opts?.withImages ? ' Użyj zdjęć AI wygenerowanych oraz znajdź podobne w przeglądarce i wstaw je do galerii.' : '';
                         handleLaunchBuilderWithPrompt(base + withImages);
                       }}

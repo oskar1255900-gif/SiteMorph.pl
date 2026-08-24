@@ -609,7 +609,7 @@ def normalize(el, industry: str, city: str, country: str, only_without_website: 
         # legacy fields for compatibility with old frontend
         "category": industry,
         "location": city,
-        "websiteStatus": website if website else "Brak strony w danych OSM",
+        "websiteStatus": website if website else "Brak strony",
         "readinessScore": score,
         "estBudget": COUNTRIES.get(country, COUNTRIES["Polska"])["budget"],
         "rating": None,
@@ -678,7 +678,7 @@ def normalize_google(place: dict, industry: str, city: str, country: str, only_w
         "leadScore": score,
         "category": industry,
         "location": city,
-        "websiteStatus": website if website else "Brak strony w Google Places",
+        "websiteStatus": website if website else "Brak strony",
         "readinessScore": score,
         "estBudget": COUNTRIES.get(country, COUNTRIES["Polska"])["budget"],
         "rating": rating,

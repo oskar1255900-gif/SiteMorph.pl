@@ -488,7 +488,6 @@ export const LeadFinderView = ({
           <span className="text-[13px] font-bold">Tylko firmy bez strony</span>
           <span className="ml-auto text-[11px] font-bold opacity-50">domyślnie zaznaczone</span>
         </label>
-        <p className="text-[10px] font-semibold opacity-50 -mt-2 px-1">Wielkie sieci i marki (Żabka, McDonald's, dealerzy Opla itp.) są automatycznie pomijane — szukamy lokalnych firm, które realnie potrzebują strony.</p>
         <button
           onClick={handleFind}
           disabled={isSearching || !country || !citySelected || !industry}
@@ -575,7 +574,7 @@ export const LeadFinderView = ({
                             <div className="flex items-start gap-1.5 opacity-80"><MapPin size={12} className="mt-0.5 shrink-0" /><span>{cityCountry || 'Brak danych'}</span></div>
                             <div className="flex items-start gap-1.5 opacity-80"><MapPin size={12} className="mt-0.5 shrink-0" /><span className={addr ? '' : 'opacity-50'}>{addr || 'Brak danych'}</span></div>
                             <div className="flex items-center gap-1.5 opacity-80"><Phone size={12} className="shrink-0" /><span className={phone ? '' : 'opacity-50'}>{phone || 'Brak danych'}</span></div>
-                            <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-blue-600 dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony w danych OSM — sprawdź w Google Maps</span>}</div>
+                            <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-blue-600 dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony</span>}</div>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-50 dark:border-neutral-900">
                             <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-blue-600 dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>

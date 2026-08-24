@@ -469,9 +469,12 @@ export default defineConfig({plugins:[react()]})"""
     tailwind_config = """/** @type {import('tailwindcss').Config} */
 export default {content:["./index.html","./src/**/*.{ts,tsx}"],theme:{extend:{fontFamily:{serif:['Instrument Serif','serif']}}},plugins:[]}"""
     postcss_config = """export default {plugins:{tailwindcss:{},autoprefixer:{}}}"""
-    readme = f"# {title}\n\nStrona wygenerowana przez SiteMorph AI (fallback Vite+React).\n\n## Uruchomienie\n```\ncd main/frontend && npm install && npm run dev\n```\n"
+    # Preview-friendly standalone HTML (dla iframe srcDoc) — fallback zawsze ma podgląd
+    preview_html = f"""<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{title}</title><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500&display=swap" rel="stylesheet"><style>:root{{--paper:#fcfcf9;--ink:#131412;--line:#e7e5e0}}body{{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink)}}h1,h2{{font-family:'Instrument Serif',serif}}</style></head><body><header class="max-w-[1120px] mx-auto px-6 py-6 flex justify-between border-b"><span class="font-serif text-xl">{safe_bn}</span><a href="#kontakt" class="px-5 py-2 rounded-xl bg-black text-white text-sm">Kontakt</a></header><section class="max-w-[1120px] mx-auto px-6 pt-12 pb-10"><h1 class="text-4xl md:text-5xl font-serif leading-tight">{headline}</h1><p class="mt-4 opacity-70 max-w-[50ch]">{desc}</p><a href="#kontakt" class="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white text-sm">Umów wycenę</a></section><section id="kontakt" class="max-w-[720px] mx-auto px-6 pb-10"><div class="rounded-2xl border p-8 bg-white text-center"><h2 class="text-xl font-serif">Porozmawiajmy</h2><p class="text-sm opacity-70">Odpowiadamy tego samego dnia.</p><a href="tel:+48000000000" class="inline-block mt-4 px-6 py-3 rounded-xl bg-black text-white text-sm">Zadzwoń</a></div></section><footer class="border-t py-6 text-center text-sm opacity-60">© {year} {bn}</footer></body></html>"""
+    readme = f"# {title}\n\nStrona wygenerowana przez SiteMorph AI (fallback Vite+React).\n\n## Uruchomienie\n```\ncd main/frontend && npm install && npm run dev\n```\nPreview: `main/frontend/preview.html`\n"
     return {
         "files": {
+            "main/frontend/preview.html": preview_html,
             "main/frontend/index.html": index_html,
             "main/frontend/src/main.tsx": main_tsx,
             "main/frontend/src/App.tsx": app_tsx,

@@ -557,17 +557,21 @@ export const BuilderFullView = ({
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black hidden sm:inline">LIVE</span>
                     </div>
                   </div>
-                  <iframe
-                    ref={previewRef}
-                    title="Podgląd"
-                    className="flex-1 w-full border-0 bg-white"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                    srcDoc={
-                      generatedSite.files['main/frontend/index.html'] ||
-                      generatedSite.files['index.html'] ||
-                      `<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${generatedSite.title}</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-white text-neutral-900"><div class="max-w-6xl mx-auto px-6 py-16 text-center"><h1 class="text-4xl font-black">${generatedSite.headline}</h1><p class="mt-3 text-neutral-600">${generatedSite.subheadline}</p><a href="#" class="inline-block mt-6 bg-black text-white px-6 py-3 rounded-full font-black">${generatedSite.ctaText}</a></div></body></html>`
-                    }
-                  />
+                  {(() => {
+                    const viteShell = generatedSite.files['main/frontend/index.html'] || '';
+                    const isViteShell = viteShell.includes('src/main.tsx');
+                    const previewHtml = generatedSite.files['main/frontend/preview.html'] || (isViteShell ? '' : viteShell) || generatedSite.files['index.html'] || '';
+                    const srcDoc = previewHtml || `<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${generatedSite.title}</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-white text-neutral-900"><div class="max-w-6xl mx-auto px-6 py-16 text-center"><h1 class="text-4xl font-black">${generatedSite.headline}</h1><p class="mt-3 text-neutral-600">${generatedSite.subheadline}</p><a href="#" class="inline-block mt-6 bg-black text-white px-6 py-3 rounded-full font-black">${generatedSite.ctaText}</a></div></body></html>`;
+                    return (
+                      <iframe
+                        ref={previewRef}
+                        title="Podgląd"
+                        className="flex-1 w-full border-0 bg-white"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                        srcDoc={srcDoc}
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="hidden lg:flex w-64 border-l bg-white dark:bg-neutral-950 flex-col shrink-0 overflow-hidden">
                   <div className="p-4 border-b border-blue-100 dark:border-neutral-800 space-y-1">
