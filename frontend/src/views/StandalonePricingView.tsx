@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import {
   CheckCircle2,
+  Coins,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { cineParent, cineSoft, cineStagger } from '../lib/shared';
+import { apiFetch } from '../lib/api';
 
 export const StandalonePricingView = () => {
 
@@ -102,6 +104,51 @@ export const StandalonePricingView = () => {
             </motion.div>
           );
         })}
+      </motion.div>
+
+      {/* Sklep kredytów — zakup pojedynczy bez pakietu */}
+      <motion.div variants={cineSoft} className="rounded-3xl border p-6 lg:p-8 bg-white dark:bg-black border-blue-100 dark:border-neutral-800 space-y-4">
+        <div className="flex items-center gap-2">
+          <Coins size={18} className="text-emerald-500" />
+          <h3 className="text-lg font-black">Dokup kredyty jednorazowo</h3>
+          <span className="ml-auto text-[11px] font-bold opacity-60">bez pakietu — ważne 12 mies.</span>
+        </div>
+        <p className="text-xs font-bold opacity-70">Masz kredyty ≥5 = dostęp do Kreatora/Leadów/domen nawet bez pakietu. Poniżej 5 kredytów panel się blokuje.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { c: 50, price: 45 },
+            { c: 100, price: 85 },
+            { c: 250, price: 200 },
+            { c: 500, price: 450 },
+          ].map(p => (
+            <div key={p.c} className="rounded-2xl border p-4 flex flex-col gap-3 bg-blue-50/40 dark:bg-neutral-950 border-blue-100 dark:border-neutral-800">
+              <div className="text-2xl font-black">{p.c} <span className="text-xs opacity-60">kredytów</span></div>
+              <div className="text-sm font-black">{p.price} zł <span className="text-[10px] opacity-60">jednorazowo</span></div>
+              <Button size="sm" onClick={async () => {
+                const ok = confirm(`Kupić ${p.c} kredytów za ${p.price} zł? (demo — doda kredyty lokalnie)`);
+                if (!ok) return;
+                try { localStorage.setItem('sitemorph-credits-bought', String(p.c)); } catch {}
+                try {
+                  const r = await apiFetch('/api/credits/add', { method: 'POST', body: JSON.stringify({ credits: p.c }) });
+                  if (r.ok) {
+                    const d = await r.json();
+                    try { localStorage.setItem('sitemorph-credits', String(d.credits)); } catch {}
+                    alert(`Dodano ${p.c} kredytów. Stan: ${d.credits}`);
+                    location.reload();
+                    return;
+                  }
+                } catch {}
+                // fallback lokalny
+                try {
+                  const cur = parseInt(localStorage.getItem('sitemorph-credits')||'0',10);
+                  localStorage.setItem('sitemorph-credits', String(cur + p.c));
+                } catch {}
+                alert(`Dodano ${p.c} kredytów (lokalnie). Odśwież panel.`);
+                location.reload();
+              }} className="w-full">Kup {p.c}</Button>
+            </div>
+          ))}
+        </div>
       </motion.div>
     </motion.div>
   );

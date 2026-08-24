@@ -103,9 +103,28 @@ export default function App() {
     }
   }, [session]);
 
+  const getPlan = () => {
+    try { return (localStorage.getItem('sitemorph-plan') || '').toLowerCase(); } catch { return ''; }
+  };
+  const hasPackage = () => {
+    const p = getPlan();
+    return ['starter','pro','business','agencja','premium'].includes(p);
+  };
+  const canAccessGated = () => {
+    if (hasPackage()) return true;
+    return credits >= 5;
+  };
+  // Miasta: prawdziwe dane z GeoNames (PL/GB/US dump, import: display_name/lat/lon/importance)
   const handleEnterApp = (tab = 'dashboard') => {
     if (!session) {
       setShowAuth(true);
+      return;
+    }
+    const gated = ['dashboard','leadfinder','finance','domains','settings','tutorials','help','builder'];
+    if (gated.includes(tab) && !canAccessGated()) {
+      alert('Brak dostępu — kup pakiet lub kredyty (min. 5 kredytów). Przejdź do Cennika.');
+      setActiveTab('pricing');
+      setCurrentView('app');
       return;
     }
     setActiveTab(tab);
@@ -115,6 +134,12 @@ export default function App() {
   const handleLaunchBuilderWithPrompt = (prompt: string) => {
     if (!session) {
       setShowAuth(true);
+      return;
+    }
+    if (!canAccessGated()) {
+      alert('Brak dostępu — kup pakiet lub kredyty (min. 5 kredytów).');
+      setActiveTab('pricing');
+      setCurrentView('app');
       return;
     }
     setPrefilledPrompt(prompt);
@@ -144,6 +169,10 @@ export default function App() {
     );
   }
 
+  // Blokada bez pakietu/kredytów (<5) — przekieruj na cennik
+  if (!showSplash && currentView === 'app' && isProtectedTab && session && !canAccessGated() && activeTab !== 'pricing') {
+    setActiveTab('pricing');
+  }
   // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
   if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
     setCurrentView('landing');
