@@ -377,7 +377,7 @@ export const BuilderFullView = ({
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
               try {
-                const html = generatedSite.files['main/frontend/index.html'] || generatedSite.files['index.html'] || '';
+                const html = generatedSite.files['main/frontend/preview.html'] || generatedSite.files['main/frontend/index.html'] || generatedSite.files['index.html'] || '';
                 const res = await apiFetch('/api/publish', {
                   method: 'POST',
                   body: JSON.stringify({ html, title: generatedSite.title }),

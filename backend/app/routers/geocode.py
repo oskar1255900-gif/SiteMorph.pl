@@ -551,20 +551,44 @@ def autocomplete(q: str = Query(..., min_length=1), country: str = Query("Polska
     q = q.strip()
     if len(q) < 2:
         return {"results": []}
-    # Try Google Places first
+    qf = _fold(q)
+    # 1. INSTANT: filtruj statyczną listę GeoNames (Warszawa od razu pierwsza)
+    static_results: List[dict] = []
+    try:
+        static_file = {"Polska": "pl", "UK": "gb", "USA": "us"}.get(country)
+        if static_file:
+            data_path = Path(__file__).resolve().parent.parent / "data" / f"cities_{static_file}.json"
+            if not data_path.exists():
+                data_path = Path("/var/task/app/data") / f"cities_{static_file}.json"
+            if data_path.exists():
+                cities = json.loads(data_path.read_text(encoding="utf-8"))
+                starts, contains = [], []
+                for c in cities:
+                    nf = _fold(c.get("name",""))
+                    if nf.startswith(qf):
+                        starts.append(c)
+                    elif qf in nf:
+                        contains.append(c)
+                    if len(starts) >= 15:
+                        break
+                static_results = (starts + contains)[:15]
+    except Exception:
+        static_results = []
+    if static_results:
+        return {"results": static_results}
+    # 2. Fallback: Google + OSM dla małych wsi spoza listy
     gp_results = google_places_autocomplete(q, country)
-    # Fallback to existing Nominatim/Open-Meteo
     errors = {}
     with ThreadPoolExecutor(max_workers=2) as ex:
         f_om = ex.submit(_autocomplete_open_meteo, q, country)
         f_nom = ex.submit(_autocomplete_nominatim, q, country) if len(q) >= 3 else None
         try:
-            om_results = f_om.result()
+            om_results = f_om.result(timeout=6)
         except Exception as e:
             om_results = []
             errors["open-meteo"] = str(e)
         try:
-            nom_results = f_nom.result() if f_nom else []
+            nom_results = f_nom.result(timeout=6) if f_nom else []
         except Exception as e:
             nom_results = []
             errors["nominatim"] = str(e)
