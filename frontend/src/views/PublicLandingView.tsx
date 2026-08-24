@@ -699,7 +699,7 @@ export const PublicLandingView = ({
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-bold" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
           <div className="flex items-center gap-2 opacity-60">
             <span className="w-7 h-7 rounded-full bg-blue-600 dark:bg-white text-white dark:text-black grid place-items-center font-black"><Zap size={12} className="fill-current" /></span>
-            <span>© 2026 SiteMorph · Stworzone dla lokalnych firm.</span>
+            <span>© {new Date().getFullYear()} SiteMorph · Stworzone dla lokalnych firm.</span>
           </div>
           <div className="flex gap-1">
             {[
