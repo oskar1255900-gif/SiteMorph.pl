@@ -201,7 +201,7 @@ COUNTRY_AREA: Dict[str, int] = {
     "USA": 3600148838,
 }
 _all_cities_cache: Dict[str, Tuple[float, List[dict]]] = {}
-ALL_CITIES_VERSION = 6
+ALL_CITIES_VERSION = 7
 ALL_CITIES_TTL = 24 * 3600
 _fetching = set()
 OVERPASS_ENDPOINTS = [

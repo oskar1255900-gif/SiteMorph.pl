@@ -1,12 +1,12 @@
 import zipfile, io, json, urllib.request, os
 
-url = 'https://download.geonames.org/export/dump/cities15000.zip'
+# cities5000 = miejscowosci z populacja > 5000 (wiecej miast niz cities15000)
+url = 'https://download.geonames.org/export/dump/cities5000.zip'
 print('downloading...')
-d = urllib.request.urlopen(url, timeout=120).read()
+d = urllib.request.urlopen(url, timeout=180).read()
 print('zip bytes:', len(d))
 z = zipfile.ZipFile(io.BytesIO(d))
 data = z.read(z.namelist()[0]).decode('utf-8')
-os.makedirs('app/data', exist_ok=True)
 out = {'Polska': [], 'UK': [], 'USA': []}
 CC = {'PL': 'Polska', 'GB': 'UK', 'US': 'USA'}
 FN = {'Polska': 'pl', 'UK': 'gb', 'USA': 'us'}
@@ -19,6 +19,9 @@ for line in data.splitlines():
         continue
     country = CC[cc]
     pop = int(c[14] or 0)
+    fc = c[7] or ''
+    if not fc.startswith('PPL'):
+        continue
     out[country].append({
         'display_name': c[1] + ', ' + country,
         'name': c[1],
