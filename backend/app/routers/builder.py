@@ -23,8 +23,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_PREFERRED = [
     m.strip() for m in os.getenv(
         "GEMINI_MODELS",
-        # gemini-3.7-flash (user request) — fallback na lites gdy 404
-        "gemini-3.7-flash,gemini-2.5-flash-lite,gemini-flash-latest,gemini-3.1-flash-lite",
+        # poolside/laguna-s-2.1:free = PRIMARY (OpenRouter). Gemini = backup:
+        # 3.5 flash lite najczęściej, 3.7 flash rzadko (mimo że user prosi, drogi/wolny)
+        "gemini-3.5-flash-lite,gemini-flash-latest,gemini-3.7-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite",
     ).split(",") if m.strip()
 ]
 _gemini_model_cache: Optional[str] = None
@@ -78,9 +79,9 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     JEDEN szybki call na flash-lite (najszybszy model), timeout 9s, zero retry/resolve."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    # Kolejność: gemini-3.7-flash (user request) → lites. Vercel Hobby = 10s TOTAL:
-    # 1 próba × timeout 8s, potem od razu fallback (OpenRouter tylko poza Vercel).
-    candidates = ["gemini-3.7-flash", "gemini-2.5-flash-lite"]
+    # Kolejność: Laguna = PRIMARY, Gemini = backup. Vercel 10s → max 1-2 próby.
+    # Najczęściej 3.5 flash lite, 3.7 flash rzadko (droższy/wolniejszy) — stąd 3.7 na końcu listy.
+    candidates = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.7-flash"]
     per_try_timeout = 8 if os.getenv("VERCEL") else 12
     errs: List[str] = []
     last_err: str = "brak dostępnych modeli"
@@ -310,8 +311,9 @@ IMPLEMENTUJ FUNKCJE WG PAKIETU — nie generuj funkcji Business/Agencja dla Star
    - Przeczytaj uważnie: BUSINESS_NAME, NICHE, DESCRIPTION, STYLE, COLORS, SECTIONS, EXTRA, PACKAGE
    - Z DESCRIPTION/EXTRA wyciągnij WSZYSTKIE fakty: adres, telefon, godziny, opinie z imionami, ceny, nazwy usług/dań, ocenę, stronę www
    - Zrozum branżę z NICHE i DESCRIPTION — to determinuje ton, układ, typ hero, sekcje
-   - Jeśli COLORS podano — użyj TYLKO tych kolorów. Jeśli nie — dobeż paletę pod branżę i STYLE
-   - Jeśli STYLE podano ("nowoczesny, minimalistyczny", "rustykalny, ciepły", "elegancki, premium") — to determinuje typografię, odstępy, kształty, animacje
+    - Jeśli COLORS podano — użyj TYLKO tych kolorów. Jeśli nie — dobeż paletę pod branżę i STYLE
+    - Jeśli STYLE podano ("nowoczesny, minimalistyczny", "rustykalny, ciepły", "elegancki, premium") — to determinuje typografię, odstępy, kształty, animacje
+    - DOMYŚLNIE buduj NOWOCZESNE strony (clean, premium, minimalistyczne, dużo światła). Starodawny/retro/vintage klimat TYLKO gdy użytkownik jawnie napisze w prompcie "starodawna", "retro", "vintage", "old", "rustykalna retro"
    - SECTIONS mówi jakie sekcje mają być — ale KOLEJNOŚĆ i UKŁAD decydujesz sam na podstawie branży
    - DOSTOSUJ ZAKRES DO PAKIETU — Starter = 3-4 sekcje, Pro = 5-6, Business = 7-9, Agencja = 10+
 
@@ -564,26 +566,10 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
         parsed_files = None
         parsed_meta = None
 
-        # 1) Gemini (glowny provider) — max_tokens ograniczone pod 10s Vercel
-        if GEMINI_API_KEY:
-            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=14000)
-            if text:
-                try:
-                    parsed = extract_json(text)
-                    pfiles = parsed.get("files") or {}
-                    if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles):
-                        parsed_files = pfiles
-                        parsed_meta = parsed.get("meta", {})
-                        provider = "gemini"
-                    else:
-                        warning = "Gemini nie zwrócił plików — próbuje zapasowego dostawcy"
-                except Exception as e:
-                    warning = f"Gemini: nieparsowalna odpowiedź ({str(e)[:120]})"
-            else:
-                warning = f"Gemini niedostępny: {err}"
-
-        # 2) OpenRouter (zapas) — pomijamy na Vercel (limit 10s, fallback lokalny jest instant)
-        if parsed_files is None and OPENROUTER_API_KEY and not os.getenv("VERCEL"):
+        # 1) OpenRouter / Laguna S-2.1 = PRIMARY (częściej, nowoczesne strony)
+        if OPENROUTER_API_KEY:
+            # Vercel 10s → max 8s, inaczej 15s
+            _laguna_timeout = 8 if os.getenv("VERCEL") else 15
             try:
                 resp = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",
@@ -602,7 +588,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                         "temperature": 0.85,
                         "max_tokens": 8000,
                     },
-                    timeout=15,
+                    timeout=_laguna_timeout,
                 )
                 resp.raise_for_status()
                 content_text = resp.json()["choices"][0]["message"]["content"]
@@ -612,11 +598,32 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                     parsed_files = ofiles
                     parsed_meta = parsed.get("meta", {})
                     provider = "openrouter"
-                elif warning is None:
-                    warning = "OpenRouter nie zwrócił plików"
+                else:
+                    warning = "Laguna nie zwróciła plików — próbuję Gemini"
             except Exception as e:
+                warning = f"Laguna błąd: {str(e)[:150]}"
+                print(f"[SiteMorph][Laguna] fail: {warning}", flush=True)
+
+        # 2) Gemini = BACKUP (3.5 flash lite najczęściej, 3.7 flash rzadko)
+        if parsed_files is None and GEMINI_API_KEY:
+            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=14000)
+            if text:
+                try:
+                    parsed = extract_json(text)
+                    pfiles = parsed.get("files") or {}
+                    if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles):
+                        parsed_files = pfiles
+                        parsed_meta = parsed.get("meta", {})
+                        provider = "gemini"
+                    else:
+                        warning = "Gemini nie zwrócił plików — próbuje fallback"
+                except Exception as e:
+                    warning = f"Gemini: nieparsowalna odpowiedź ({str(e)[:120]})"
+            else:
                 if warning is None:
-                    warning = f"OpenRouter błąd: {str(e)[:150]}"
+                    warning = f"Gemini niedostępny: {err}"
+                else:
+                    warning = warning + f" | Gemini: {err}"
 
         # 3) Fallback lokalny
         fb = fallback_content(data)
