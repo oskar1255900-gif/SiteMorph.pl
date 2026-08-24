@@ -49,6 +49,24 @@ app = FastAPI(title="SiteMorph API", version="1.0.0")
 # Kompresja gzip odpowiedzi — mniejszy transfer (lista miast itp.) na mobile
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
+# Security headers (HSTS, CSP, XSS, Frame, Content-Type, Referrer)
+from starlette.middleware.base import BaseHTTPMiddleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # HSTS tylko w produkcji (Vercel zawsze HTTPS)
+        if _os.getenv("VERCEL") or _os.getenv("ENV") == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+        # CSP minimalistyczne — API zwraca JSON, nie HTML
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+        return response
+app.add_middleware(SecurityHeadersMiddleware)
+
 # CORS: konkretna lista originów (env CORS_ORIGINS, rozdzielone przecinkami).
 # W produkcji frontend idzie przez rewrite same-origin, więc domyślnie wystarczy dev.
 import os as _os

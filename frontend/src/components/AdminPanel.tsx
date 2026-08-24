@@ -194,16 +194,14 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora — dodaj kredyty dowolnemu użytkownikowi (demo).</p>
         </div>
 
-        </div>
-
         {/* Plan Management */}
         <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 mb-6">
           <h3 className="text-sm font-black mb-3">Zarządzanie planami użytkowników</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
             <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-xl border text-xs font-bold bg-blue-50/40 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 outline-none" />
             <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-black bg-blue-50/40 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 cursor-pointer">
-              {plans.map((p: any) => (
-                <option key={p.name?.toLowerCase() || p} value={p.name?.toLowerCase() || p}>
+              {(plans.length ? plans : [{name:'Starter',credits:10,price:49},{name:'Pro',credits:50,price:99},{name:'Business',credits:200,price:199},{name:'Agencja',credits:500,price:499}]).map((p: any) => (
+                <option key={(p.name||p).toLowerCase()} value={(p.name||p).toLowerCase()}>
                   {p.name} ({p.credits} kr/mies, {p.price} zł)
                 </option>
               ))}
@@ -214,16 +212,15 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           </div>
           {planMsg && <p className="text-xs font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
           <div className="mt-4 space-y-2">
-            {plans.map((p: any) => (
+            {(plans.length ? plans : [{name:'Starter',credits:10,price:49,features:['Builder podstawowy']},{name:'Pro',credits:50,price:99,features:['Galeria','Animacje']},{name:'Business',credits:200,price:199,features:['Team','FAQ']},{name:'Agencja',credits:500,price:499,features:['CMS','Multi-language']}]).map((p: any) => (
               <div key={p.name} className="text-[10px] font-bold opacity-80 flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-neutral-900 text-blue-600 dark:text-white">{p.name}</span>
                 <span className="opacity-60">{p.credits} kr/mies</span>
                 <span className="opacity-60">{p.price} zł/mies</span>
-                <span className="opacity-50">{p.features.join(', ')}</span>
+                <span className="opacity-50">{(p.features||[]).join(', ')}</span>
               </div>
             ))}
           </div>
-          {planMsg && <p className="text-xs font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -243,8 +240,8 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
                   {liveUsers.length === 0 ? (
                     <tr><td colSpan={5} className="px-4 py-10 text-center font-bold opacity-60">Brak danych — na razie 0 użytkowników</td></tr>
                   ) : liveUsers.map((u) => (
-                    <tr key={u.name} className="font-bold hover:bg-blue-50/40 dark:hover:bg-neutral-900/40">
-                      <td className="px-4 py-3 font-black">{u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.pages}</td><td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>
+                    <tr key={u.user_id || u.name} className="font-bold hover:bg-blue-50/40 dark:hover:bg-neutral-900/40">
+                      <td className="px-4 py-3 font-black truncate max-w-[180px]">{u.user_id || u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.credits ?? u.pages ?? 0}</td><td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>
                     </tr>
                   ))}
                 </tbody>

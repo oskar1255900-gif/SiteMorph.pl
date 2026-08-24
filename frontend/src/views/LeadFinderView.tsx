@@ -145,7 +145,7 @@ export const LeadFinderView = ({
     if (!q) return LEAD_INDUSTRIES as unknown as string[]
     return (LEAD_INDUSTRIES as unknown as string[]).filter(i => i.toLowerCase().includes(q))
   }, [industryQuery])
-  const MAX_CITY_ROWS = 400
+  const MAX_CITY_ROWS = 3000
   // Lista miast w dropdownie: pelna lista (filtr lokalnie, bez ogonkow) + zdalne
   // podpowiedzi mniejszych miejscowosci doklejone na koniec
   const cityDisplayList = React.useMemo(() => {

@@ -431,73 +431,102 @@ def fallback_content(data: BuilderInput):
     niche = data.niche or "Usługi lokalne"
     desc = data.description or f"Profesjonalne usługi {niche}. Skontaktuj się i umów bezpłatną wycenę."
     year = time.strftime("%Y")
-    html = """<!doctype html>
+    safe_bn = re.sub(r'[^a-zA-Z0-9]', '', bn)[:16] or "Site"
+    # Minimalist Vite + React + TS structure - fallback when AI fails
+    index_html = f"""<!doctype html>
 <html lang="pl">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>""" + title + """</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-<style>:root{--paper:#fcfcF9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc} body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink)} h1,h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.02em}</style>
-</head>
-<body>
-<header class="max-w-[1120px] mx-auto px-6 py-6 flex items-center justify-between border-b border-[var(--line)]">
-  <span class="font-serif text-xl tracking-tight" style="font-family:'Instrument Serif',serif">__BN__</span>
-  <a href="#kontakt" class="px-5 py-2 rounded-[10px] bg-[var(--ink)] text-white text-sm font-medium">Kontakt</a>
-</header>
-<section class="max-w-[1120px] mx-auto px-6 pt-16 pb-12 grid md:grid-cols-12 gap-8 items-start">
-  <div class="md:col-span-7">
-    <p class="text-[11px] tracking-[0.12em] uppercase border border-[var(--line)] inline-block px-2.5 py-1 rounded-full">Dostępne od ręki</p>
-    <h1 class="text-[48px] md:text-[64px] leading-[0.9] mt-6">__HEAD__</h1>
-    <p class="mt-6 text-[15px] leading-relaxed opacity-70 max-w-[42ch]">__DESC__</p>
-    <a href="#kontakt" class="inline-block mt-8 px-6 py-3 rounded-[10px] bg-[var(--ink)] text-white text-sm font-medium">Umów bezpłatną wycenę — odpowiadamy dziś</a>
-  </div>
-  <div class="md:col-span-5 pt-4">
-    <div class="border border-[var(--line)] rounded-[12px] p-6 bg-white">
-      <div class="text-sm font-medium">Bez zobowiązań. Zadzwoń i zapytaj o wycenę w 15 minut.</div>
-      <div class="mt-4 flex items-center gap-3 text-xs"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Dostępni dziś do 18:00</div>
-    </div>
-  </div>
-</section>
-<section class="max-w-[1120px] mx-auto px-6 pb-16 grid sm:grid-cols-3 gap-6 border-t border-[var(--line)] pt-10">
-  <div class="border-t border-[var(--line)] pt-4"><div class="text-[11px] tracking-wide uppercase opacity-60">01 — Szybko</div><h3 class="font-medium mt-2">Realizacja 48h</h3><p class="text-sm opacity-70 mt-1">Projekt gotowy do akceptacji w dwa dni od briefu.</p></div>
-  <div class="border-t border-[var(--line)] pt-4 mt-6 sm:mt-12"><div class="text-[11px] tracking-wide uppercase opacity-60">02 — Dopracowane</div><h3 class="font-medium mt-2">Redakcyjny szlif</h3><p class="text-sm opacity-70 mt-1">Każdy nagłówek i akapit pisany pod Twoją branżę.</p></div>
-  <div class="border-t border-[var(--line)] pt-4"><div class="text-[11px] tracking-wide uppercase opacity-60">03 — Wsparcie</div><h3 class="font-medium mt-2">Jesteśmy obok</h3><p class="text-sm opacity-70 mt-1">Poprawki i wdrożenie bez dodatkowych kosztów.</p></div>
-</section>
-<section id="kontakt" class="max-w-[720px] mx-auto px-6 pb-20">
-  <div class="border border-[var(--line)] rounded-[12px] p-8 bg-white">
-    <h2 class="text-2xl" style="font-family:'Instrument Serif',serif">Porozmawiajmy o Twojej stronie</h2>
-    <p class="mt-2 text-sm opacity-70">Zadzwoń lub napisz — odpowiadamy tego samego dnia, bez formularzy.</p>
-    <a href="tel:+48000000000" class="inline-block mt-6 px-6 py-3 rounded-[10px] bg-[var(--sage)] text-[var(--ink)] text-sm font-medium border border-[var(--line)]">Zadzwoń teraz</a>
-  </div>
-</section>
-<footer class="border-t border-[var(--line)] py-8 text-center text-sm opacity-60">© __YEAR__ __BN__ — Marszałkowska 1, Warszawa · kontakt@sitemorph.pl</footer>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>"""
-    html = (html.replace("__BN__", bn).replace("__HEAD__", headline)
-                .replace("__DESC__", desc).replace("__YEAR__", year))
-    pkg = json.dumps({
-        "name": "sitemorph-site",
-        "private": True,
-        "scripts": {
-            "dev": "python -m http.server 8080 --directory frontend",
-            "backend": "uvicorn main:app --app-dir backend --port 8000"
-        }
-    }, ensure_ascii=False, indent=2)
-    readme = (
-        "# " + title + "\n\n"
-        "Strona wygenerowana przez SiteMorph AI.\n\n"
-        "## Uruchomienie\n"
-        "Otwórz `frontend/index.html` w przeglądarce albo:\n"
-        "```\ncd main && python -m http.server 8080 --directory frontend\n```\n"
-        "Backend (jeśli istnieje backend/main.py):\n"
-        "```\nuvicorn main:app --app-dir backend --port 8000\n```"
-    )
+    main_tsx = """import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)"""
+    index_css = """@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root{--paper:#fcfcf9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+h1,h2{font-family:'Instrument Serif',Georgia,serif;letter-spacing:-.02em}"""
+    utils_ts = """export function cn(...c:(string|boolean|undefined)[]){return c.filter(Boolean).join(' ')}"""
+    types_ts = """export interface BusinessData{name:string;niche:string;description:string}"""
+    hook_ts = """import {useEffect,useRef,useState} from 'react'
+export function useScrollReveal(){const ref=useRef<HTMLDivElement>(null);const [v,setV]=useState(false);useEffect(()=>{const o=new IntersectionObserver(([e])=>e.isIntersecting&&setV(true),{threshold:.15});if(ref.current)o.observe(ref.current);return()=>o.disconnect()},[]);return {ref,visible:v}}"""
+    button_tsx = """import {cn} from '../lib/utils'
+export function Button({children,className,...p}:React.ButtonHTMLAttributes<HTMLButtonElement>&{variant?:'primary'|'ghost'}){return <button className={cn('px-5 py-2.5 rounded-xl font-medium text-sm',p.variant==='primary'?'bg-black text-white':'border',className)} {...p}>{children}</button>}"""
+    card_tsx = """export function Card({children,className}:{children:React.ReactNode;className?:string}){return <div className={'rounded-2xl border bg-white p-6 '+ (className||'')}>{children}</div>}"""
+    container_tsx = """export function Container({children}:{children:React.ReactNode}){return <div className="max-w-[1120px] mx-auto px-6">{children}</div>}"""
+    section_tsx = """export function Section({children,id,className}:{children:React.ReactNode;id?:string;className?:string}){return <section id={id} className={'py-16 '+ (className||'')}>{children}</section>}"""
+    hero_tsx = f"""import {{Container}} from '../ui/Container'
+import {{Section}} from '../ui/Section'
+export function Hero(){{return <Section><Container><div className="grid md:grid-cols-12 gap-8 items-start"><div className="md:col-span-7"><p className="text-xs uppercase tracking-widest border inline-block px-2.5 py-1 rounded-full">Dostępne od ręki</p><h1 className="text-[48px] md:text-[64px] leading-[0.9] mt-6 font-serif">{headline}</h1><p className="mt-6 opacity-70 max-w-[42ch]">{desc}</p><a href="#kontakt" className="inline-block mt-8 px-6 py-3 rounded-xl bg-black text-white text-sm">Umów wycenę — odpowiadamy dziś</a></div><div className="md:col-span-5"><div className="rounded-2xl border p-6 bg-white"><p className="text-sm font-medium">Bez zobowiązań. Zapytaj o wycenę w 15 min.</p><p className="mt-3 text-xs flex gap-2 items-center"><span className="w-2 h-2 rounded-full bg-emerald-500"/> Dostępni dziś do 18:00</p></div></div></div></Container></Section>}}"""
+    offer_tsx = """import {Container} from '../ui/Container'
+import {Section} from '../ui/Section'
+import {Card} from '../ui/Card'
+export function Offer(){return <Section><Container><div className="grid sm:grid-cols-3 gap-6 border-t pt-10"><Card><p className="text-xs uppercase opacity-60">01 — Szybko</p><h3 className="font-medium mt-2">Realizacja 48h</h3><p className="text-sm opacity-70">Projekt gotowy w dwa dni.</p></Card><Card><p className="text-xs uppercase opacity-60">02 — Dopracowane</p><h3 className="font-medium mt-2">Redakcyjny szlif</h3><p className="text-sm opacity-70">Każdy nagłówek pod branżę.</p></Card><Card><p className="text-xs uppercase opacity-60">03 — Wsparcie</p><h3 className="font-medium mt-2">Jesteśmy obok</h3><p className="text-sm opacity-70">Poprawki bez dopłat.</p></Card></div></Container></Section>}"""
+    pricing_tsx = """import {Container} from '../ui/Container'
+import {Section} from '../ui/Section'
+export function Pricing(){return <Section><Container><h2 className="text-2xl font-serif">Cennik</h2><p className="opacity-70">Skontaktuj się po wycenę dopasowaną do potrzeb.</p></Container></Section>}"""
+    testimonials_tsx = """import {Container} from '../ui/Container'
+import {Section} from '../ui/Section'
+export function Testimonials(){return <Section><Container><h2 className="text-2xl font-serif">Opinie</h2><p className="opacity-70">Klienci nas polecają.</p></Container></Section>}"""
+    contact_tsx = """import {Container} from '../ui/Container'
+import {Section} from '../ui/Section'
+export function Contact(){return <Section id="kontakt"><Container><div className="max-w-[720px] mx-auto"><div className="rounded-2xl border p-8 bg-white text-center"><h2 className="text-2xl font-serif">Porozmawiajmy</h2><p className="mt-2 text-sm opacity-70">Odpowiadamy tego samego dnia.</p><a href="tel:+48000000000" className="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white text-sm">Zadzwoń teraz</a></div></div></Container></Section>}"""
+    footer_tsx = f"""export function Footer(){{return <footer className="border-t py-8 text-center text-sm opacity-60">© {year} {bn} — Marszałkowska 1, Warszawa · kontakt@sitemorph.pl</footer>}}"""
+    app_tsx = f"""import {{Hero}} from './components/Hero'
+import {{Offer}} from './components/Offer'
+import {{Pricing}} from './components/Pricing'
+import {{Testimonials}} from './components/Testimonials'
+import {{Contact}} from './components/Contact'
+import {{Footer}} from './components/Footer'
+export default function App(){{return <><header className="max-w-[1120px] mx-auto px-6 py-6 flex justify-between border-b"><span className="font-serif text-xl">{safe_bn}</span><a href="#kontakt" className="px-5 py-2 rounded-xl bg-black text-white text-sm">Kontakt</a></header><Hero/><Offer/><Pricing/><Testimonials/><Contact/><Footer/></>}}"""
+    pkg = json.dumps({"name": f"{safe_bn.lower()}-site","private": True,"type": "module","scripts": {"dev": "vite","build": "tsc && vite build","preview": "vite preview"},"dependencies": {"react": "^18.2.0","react-dom": "^18.2.0","lucide-react": "^0.300.0"},"devDependencies": {"@types/react": "^18.2.0","@types/react-dom": "^18.2.0","@vitejs/plugin-react": "^4.2.0","autoprefixer": "^10.4.0","postcss": "^8.4.0","tailwindcss": "^3.4.0","typescript": "^5.3.0","vite": "^5.0.0"}}, ensure_ascii=False, indent=2)
+    tsconfig = json.dumps({"compilerOptions": {"target": "ES2020","useDefineForClassFields": True,"lib": ["ES2020","DOM","DOM.Iterable"],"module": "ESNext","skipLibCheck": True,"moduleResolution": "bundler","allowImportingTsExtensions": True,"resolveJsonModule": True,"isolatedModules": True,"noEmit": True,"jsx": "react-jsx","strict": True,"noUnusedLocals": True,"noUnusedParameters": True,"noFallthroughCasesInSwitch": True},"include": ["src"],"references": [{"path": "./tsconfig.node.json"}]}, indent=2)
+    tsconfig_node = json.dumps({"compilerOptions": {"composite": True,"skipLibCheck": True,"module": "ESNext","moduleResolution": "bundler","allowSyntheticDefaultImports": True},"include": ["vite.config.ts"]}, indent=2)
+    vite_config = """import {defineConfig} from 'vite'
+import react from '@vitejs/plugin-react'
+export default defineConfig({plugins:[react()]})"""
+    tailwind_config = """/** @type {import('tailwindcss').Config} */
+export default {content:["./index.html","./src/**/*.{ts,tsx}"],theme:{extend:{fontFamily:{serif:['Instrument Serif','serif']}}},plugins:[]}"""
+    postcss_config = """export default {plugins:{tailwindcss:{},autoprefixer:{}}}"""
+    readme = f"# {title}\n\nStrona wygenerowana przez SiteMorph AI (fallback Vite+React).\n\n## Uruchomienie\n```\ncd main/frontend && npm install && npm run dev\n```\n"
     return {
         "files": {
-            "main/frontend/index.html": html,
-            "main/package.json": pkg,
+            "main/frontend/index.html": index_html,
+            "main/frontend/src/main.tsx": main_tsx,
+            "main/frontend/src/App.tsx": app_tsx,
+            "main/frontend/src/index.css": index_css,
+            "main/frontend/src/components/Hero.tsx": hero_tsx,
+            "main/frontend/src/components/Offer.tsx": offer_tsx,
+            "main/frontend/src/components/Pricing.tsx": pricing_tsx,
+            "main/frontend/src/components/Testimonials.tsx": testimonials_tsx,
+            "main/frontend/src/components/Contact.tsx": contact_tsx,
+            "main/frontend/src/components/Footer.tsx": footer_tsx,
+            "main/frontend/src/ui/Button.tsx": button_tsx,
+            "main/frontend/src/ui/Card.tsx": card_tsx,
+            "main/frontend/src/ui/Container.tsx": container_tsx,
+            "main/frontend/src/ui/Section.tsx": section_tsx,
+            "main/frontend/src/hooks/useScrollReveal.ts": hook_ts,
+            "main/frontend/src/lib/utils.ts": utils_ts,
+            "main/frontend/src/types.ts": types_ts,
+            "main/frontend/package.json": pkg,
+            "main/frontend/tsconfig.json": tsconfig,
+            "main/frontend/tsconfig.node.json": tsconfig_node,
+            "main/frontend/vite.config.ts": vite_config,
+            "main/frontend/tailwind.config.js": tailwind_config,
+            "main/frontend/postcss.config.js": postcss_config,
+            "main/frontend/public/favicon.svg": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="black"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#a3e635" font-size="14" font-weight="900">SM</text></svg>',
+            "main/frontend/README.md": readme,
+            "main/package.json": json.dumps({"name": "sitemorph-site","private": True}, indent=2),
             "main/README.md": readme,
         },
         "meta": {
@@ -553,7 +582,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
             try:
                 parsed = extract_json(text)
                 pfiles = parsed.get("files") or {}
-                if any(k.endswith("index.html") for k in pfiles):
+                if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles):
                     parsed_files = pfiles
                     parsed_meta = parsed.get("meta", {})
                     provider = "gemini"
@@ -590,7 +619,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
             content_text = resp.json()["choices"][0]["message"]["content"]
             parsed = extract_json(content_text)
             ofiles = parsed.get("files") or {}
-            if any(k.endswith("index.html") for k in ofiles):
+            if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in ofiles):
                 parsed_files = ofiles
                 parsed_meta = parsed.get("meta", {})
                 provider = "openrouter"
