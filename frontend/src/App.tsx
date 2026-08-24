@@ -120,13 +120,7 @@ export default function App() {
       setShowAuth(true);
       return;
     }
-    const gated = ['dashboard','leadfinder','finance','domains','settings','tutorials','help','builder'];
-    if (gated.includes(tab) && !canAccessGated()) {
-      alert('Brak dostępu — kup pakiet lub kredyty (min. 5 kredytów). Przejdź do Cennika.');
-      setActiveTab('pricing');
-      setCurrentView('app');
-      return;
-    }
+    // Wejście do panelu zawsze dozwolone gdy zalogowany — blokada tylko przy generowaniu/wyszukiwaniu
     setActiveTab(tab);
     setCurrentView('app');
   };
@@ -134,12 +128,6 @@ export default function App() {
   const handleLaunchBuilderWithPrompt = (prompt: string) => {
     if (!session) {
       setShowAuth(true);
-      return;
-    }
-    if (!canAccessGated()) {
-      alert('Brak dostępu — kup pakiet lub kredyty (min. 5 kredytów).');
-      setActiveTab('pricing');
-      setCurrentView('app');
       return;
     }
     setPrefilledPrompt(prompt);
@@ -169,12 +157,7 @@ export default function App() {
     );
   }
 
-  // Blokada bez pakietu/kredytów (<5) — przekieruj na cennik (useEffect, nie setState w renderze)
-  useEffect(() => {
-    if (!showSplash && currentView === 'app' && isProtectedTab && session && !canAccessGated() && activeTab !== 'pricing') {
-      setActiveTab('pricing');
-    }
-  }, [showSplash, currentView, activeTab, session, credits]);
+  // Blokada kredytów sprawdzana dopiero przy generowaniu/wyszukiwaniu, nie przy wejściu do panelu
   // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
   useEffect(() => {
     if (!showSplash && currentView === 'app' && isProtectedTab && !session) {

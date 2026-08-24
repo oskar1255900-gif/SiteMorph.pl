@@ -604,8 +604,8 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                 warning = f"Laguna błąd: {str(e)[:150]}"
                 print(f"[SiteMorph][Laguna] fail: {warning}", flush=True)
 
-        # 2) Gemini = BACKUP (3.5 flash lite najczęściej, 3.7 flash rzadko)
-        if parsed_files is None and GEMINI_API_KEY:
+        # 2) Gemini = BACKUP (3.5 flash lite najczęściej, 3.7 flash rzadko) — na Vercel tylko Laguna, potem fallback (limit 10s)
+        if parsed_files is None and GEMINI_API_KEY and not os.getenv("VERCEL"):
             text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=14000)
             if text:
                 try:
