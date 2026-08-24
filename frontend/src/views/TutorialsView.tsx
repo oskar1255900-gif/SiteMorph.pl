@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
@@ -11,61 +11,61 @@ import { cineParent, cineSoft, cineStagger } from '../lib/shared';
 
 export const ACADEMY_GUIDES: Array<{ title: string; category: string; level: string; time: string; excerpt: string; content: Array<{ h: string; p: string }> }> = [
   {
-    title: 'Jak zdobyć pierwszego klienta w 7 dni',
-    category: 'Sprzedaż',
-    level: 'Początkujący',
+    title: 'Jak zdobyÄ‡ pierwszego klienta w 7 dni',
+    category: 'SprzedaĹĽ',
+    level: 'PoczÄ…tkujÄ…cy',
     time: '9 min',
-    excerpt: 'Gotowy plan outreach: od wyboru niszy po pierwszą fakturę.',
+    excerpt: 'Gotowy plan outreach: od wyboru niszy po pierwszÄ… fakturÄ™.',
     content: [
-      { h: '1. Wybierz wąską niszę', p: 'Zamiast pisać do wszystkich, skup się na 1 branży w 1 mieście. Przykład: „gabinet stomatologiczny w Poznaniu” lub „warsztat samochodowy w Gdańsku”. W Lead Finderze ustaw kraj Polska → miasto Poznań → branża Gabinet stomatologiczny. Otrzymasz 20–40 rekordów, z których połowa nie ma strony — to Twoja ciepła lista.' },
-      { h: '2. Przygotuj darmowy mockup', p: 'W Kreatorze AI wpisz: „Stwórz nowoczesną stronę dla gabinetu Dentika w Poznaniu, jasna kolorystyka, sekcja cennik i rezerwacja online”. Wygeneruj, popraw nagłówek i skopiuj link podglądu (Podgląd na żywo). Masz dowód zamiast obietnicy.' },
-      { h: '3. Wiadomość, która działa', p: 'Temat: Szybka propozycja dla Dentika – darmowy projekt strony\nCześć Anna,\nPrzygotowałem darmowy projekt strony dla Was — zobacz: dentika.sitemorph.pl/podglad-91x\nStrona jest gotowa do uruchomienia w 1 dzień, z rezerwacją online i mapą. Jeśli chcesz, wdrożę ją na Waszej domenie za 1 900 zł netto — płatność dopiero po akceptacji.\nPozdrawiam, Jan — Morph Studio\nWyślij 10 takich maili dziennie. Śledź otwarcia w Lead Finderze.' },
-      { h: '4. Follow-up i zamknięcie', p: 'Dzień 3: „Cześć Anna, podbijam — projekt wygaśnie za 2 dni, mam wolny termin w piątek na wdrożenie.” Dzień 7: telefon. Zamknięcie: wyślij fakturę z modułu Finanse (Szablon: Projekt i wdrożenie strony 1 450 zł + copywriting 380 zł). 0% prowizji — całość trafia na Twoje konto. Po 3 klientów masz proces, który możesz powtarzać.' }
+      { h: '1. Wybierz wÄ…skÄ… niszÄ™', p: 'Zamiast pisaÄ‡ do wszystkich, skup siÄ™ na 1 branĹĽy w 1 mieĹ›cie. PrzykĹ‚ad: â€žgabinet stomatologiczny w Poznaniuâ€ť lub â€žwarsztat samochodowy w GdaĹ„skuâ€ť. W Lead Finderze ustaw kraj Polska â†’ miasto PoznaĹ„ â†’ branĹĽa Gabinet stomatologiczny. Otrzymasz 20â€“40 rekordĂłw, z ktĂłrych poĹ‚owa nie ma strony â€” to Twoja ciepĹ‚a lista.' },
+      { h: '2. Przygotuj darmowy mockup', p: 'W Kreatorze AI wpisz: â€žStwĂłrz nowoczesnÄ… stronÄ™ dla gabinetu Dentika w Poznaniu, jasna kolorystyka, sekcja cennik i rezerwacja onlineâ€ť. Wygeneruj, popraw nagĹ‚Ăłwek i skopiuj link podglÄ…du (PodglÄ…d na ĹĽywo). Masz dowĂłd zamiast obietnicy.' },
+      { h: '3. WiadomoĹ›Ä‡, ktĂłra dziaĹ‚a', p: 'Temat: Szybka propozycja dla Dentika â€“ darmowy projekt strony\nCzeĹ›Ä‡ Anna,\nPrzygotowaĹ‚em darmowy projekt strony dla Was â€” zobacz: dentika.sitemorph.pl/podglad-91x\nStrona jest gotowa do uruchomienia w 1 dzieĹ„, z rezerwacjÄ… online i mapÄ…. JeĹ›li chcesz, wdroĹĽÄ™ jÄ… na Waszej domenie za 1 900 zĹ‚ netto â€” pĹ‚atnoĹ›Ä‡ dopiero po akceptacji.\nPozdrawiam, Jan â€” Morph Studio\nWyĹ›lij 10 takich maili dziennie. ĹšledĹş otwarcia w Lead Finderze.' },
+      { h: '4. Follow-up i zamkniÄ™cie', p: 'DzieĹ„ 3: â€žCzeĹ›Ä‡ Anna, podbijam â€” projekt wygaĹ›nie za 2 dni, mam wolny termin w piÄ…tek na wdroĹĽenie.â€ť DzieĹ„ 7: telefon. ZamkniÄ™cie: wyĹ›lij fakturÄ™ z moduĹ‚u Finanse (Szablon: Projekt i wdroĹĽenie strony 1 450 zĹ‚ + copywriting 380 zĹ‚). 0% prowizji â€” caĹ‚oĹ›Ä‡ trafia na Twoje konto. Po 3 klientĂłw masz proces, ktĂłry moĹĽesz powtarzaÄ‡.' }
     ]
   },
   {
     title: 'Kreator AI: od promptu do publikacji w 5 minut',
     category: 'Kreator',
-    level: 'Początkujący',
+    level: 'PoczÄ…tkujÄ…cy',
     time: '7 min',
-    excerpt: 'Prompt → edycja → podgląd → publikacja. Dokładny flow krok po kroku.',
+    excerpt: 'Prompt â†’ edycja â†’ podglÄ…d â†’ publikacja. DokĹ‚adny flow krok po kroku.',
     content: [
-      { h: 'Krok 1: Napisz prompt', p: 'W Pulpicie wpisz jedno zdanie: „Stwórz stronę dla barbera Złoty Grzebień w Warszawie, ciemny motyw, sekcje: usługi, cennik, rezerwacja, opinie, Instagram”. Unikaj ogólników typu „ładna strona” — AI potrzebuje branży, miasta i stylu.' },
-      { h: 'Krok 2: Edytuj sekcje', p: 'Kliknij sekcję → wpisz „rozjaśnij tło” lub „dodaj sekcję z opiniami 4.9 ★”. Każda edycja to 2–5 kredytów i pojawia się w podglądzie na żywo. Użyj starterów (Nieruchomości, SaaS, Restauracja) jeśli brakuje Ci pomysłu.' },
-      { h: 'Krok 3: Podgląd i akceptacja', p: 'Skopiuj link podglądu i wyślij klientowi. Klient otwiera na telefonie — widzi zmiany na żywo bez logowania. Gdy zaakceptuje, kliknij Opublikuj. Strona ląduje na *.sitemorph.io lub Twojej domenie (Business).' },
-      { h: 'Krok 4: Publikacja', p: 'W Kreatorze → Opublikuj → wybierz domenę. SSL i hosting w cenie. Czas generowania 2–3 min, edycje 9–14 s. Historia wersji bez limitu — wrócisz do dowolnej wersji.' }
+      { h: 'Krok 1: Napisz prompt', p: 'W Pulpicie wpisz jedno zdanie: â€žStwĂłrz stronÄ™ dla barbera ZĹ‚oty GrzebieĹ„ w Warszawie, ciemny motyw, sekcje: usĹ‚ugi, cennik, rezerwacja, opinie, Instagramâ€ť. Unikaj ogĂłlnikĂłw typu â€žĹ‚adna stronaâ€ť â€” AI potrzebuje branĹĽy, miasta i stylu.' },
+      { h: 'Krok 2: Edytuj sekcje', p: 'Kliknij sekcjÄ™ â†’ wpisz â€žrozjaĹ›nij tĹ‚oâ€ť lub â€ždodaj sekcjÄ™ z opiniami 4.9 â…â€ť. KaĹĽda edycja to 2â€“5 kredytĂłw i pojawia siÄ™ w podglÄ…dzie na ĹĽywo. UĹĽyj starterĂłw (NieruchomoĹ›ci, SaaS, Restauracja) jeĹ›li brakuje Ci pomysĹ‚u.' },
+      { h: 'Krok 3: PodglÄ…d i akceptacja', p: 'Skopiuj link podglÄ…du i wyĹ›lij klientowi. Klient otwiera na telefonie â€” widzi zmiany na ĹĽywo bez logowania. Gdy zaakceptuje, kliknij Opublikuj. Strona lÄ…duje na *.sitemorph.pl lub Twojej domenie (Business).' },
+      { h: 'Krok 4: Publikacja', p: 'W Kreatorze â†’ Opublikuj â†’ wybierz domenÄ™. SSL i hosting w cenie. Czas generowania 2â€“3 min, edycje 9â€“14 s. Historia wersji bez limitu â€” wrĂłcisz do dowolnej wersji.' }
     ]
   },
   {
-    title: 'Cennik, który sprzedaje: 1 500 – 12 000 zł',
+    title: 'Cennik, ktĂłry sprzedaje: 1 500 â€“ 12 000 zĹ‚',
     category: 'Biznes',
-    level: 'Średniozaawansowany',
+    level: 'Ĺšredniozaawansowany',
     time: '11 min',
-    excerpt: 'Jak wyceniać bez zaniżania i jak sprzedawać pakiety.',
+    excerpt: 'Jak wyceniaÄ‡ bez zaniĹĽania i jak sprzedawaÄ‡ pakiety.',
     content: [
-      { h: 'Widełki realne', p: 'Polska 2024/2025: wizytówka AI: 800–1 900 zł, strona firmowa 5–7 podstron: 2 500–4 500 zł, landing + copywriting SEO: 4 000–7 000 zł, white-label dla agencji: 8 000–12 000 zł. Poniżej 800 zł psujesz rynek i marżę.' },
-      { h: 'Pakiety', p: 'Pakiet Start: strona + podgląd + 1 poprawka — 1 900 zł. Pakiet Growth: Start + Lead Finder (20 leadów) + 3 poprawki + domena — 3 900 zł. Pakiet Premium: Growth + 12 miesięcy utrzymania — 7 900 zł. Klient wybiera środek — efekt kotwicy.' },
-      { h: 'Upsell bez wciskania', p: 'Po akceptacji dodaj: „Chcesz rezerwację online? +400 zł, wdrożę w 1 dzień.” lub „Teksty SEO na bloga — 5 artykułów 380 zł”. Wystawiasz drugą fakturę w Finanse → Nowa faktura → status Oczekująca.' },
-      { h: 'Negocjacje', p: 'Gdy klient mówi „za drogo”: nie obniżaj stawki, zmniejsz zakres. „OK, zrobimy 3 podstrony zamiast 6 za 1 450 zł”. Zawsze zostaw furtkę do dokupienia reszty później.' }
+      { h: 'WideĹ‚ki realne', p: 'Polska 2024/2025: wizytĂłwka AI: 800â€“1 900 zĹ‚, strona firmowa 5â€“7 podstron: 2 500â€“4 500 zĹ‚, landing + copywriting SEO: 4 000â€“7 000 zĹ‚, white-label dla agencji: 8 000â€“12 000 zĹ‚. PoniĹĽej 800 zĹ‚ psujesz rynek i marĹĽÄ™.' },
+      { h: 'Pakiety', p: 'Pakiet Start: strona + podglÄ…d + 1 poprawka â€” 1 900 zĹ‚. Pakiet Growth: Start + Lead Finder (20 leadĂłw) + 3 poprawki + domena â€” 3 900 zĹ‚. Pakiet Premium: Growth + 12 miesiÄ™cy utrzymania â€” 7 900 zĹ‚. Klient wybiera Ĺ›rodek â€” efekt kotwicy.' },
+      { h: 'Upsell bez wciskania', p: 'Po akceptacji dodaj: â€žChcesz rezerwacjÄ™ online? +400 zĹ‚, wdroĹĽÄ™ w 1 dzieĹ„.â€ť lub â€žTeksty SEO na bloga â€” 5 artykuĹ‚Ăłw 380 zĹ‚â€ť. Wystawiasz drugÄ… fakturÄ™ w Finanse â†’ Nowa faktura â†’ status OczekujÄ…ca.' },
+      { h: 'Negocjacje', p: 'Gdy klient mĂłwi â€žza drogoâ€ť: nie obniĹĽaj stawki, zmniejsz zakres. â€žOK, zrobimy 3 podstrony zamiast 6 za 1 450 zĹ‚â€ť. Zawsze zostaw furtkÄ™ do dokupienia reszty pĂłĹşniej.' }
     ]
   },
   {
-    title: 'Domena i publikacja bez bólu',
+    title: 'Domena i publikacja bez bĂłlu',
     category: 'Techniczne',
     level: 'Wszyscy',
     time: '6 min',
-    excerpt: 'Podłącz własną domenę, SSL i przekierowania w 10 minut.',
+    excerpt: 'PodĹ‚Ä…cz wĹ‚asnÄ… domenÄ™, SSL i przekierowania w 10 minut.',
     content: [
-      { h: 'Opcja A: subdomena SiteMorph', p: 'Najprostsza: twojklient.sitemorph.io — działa od razu po kliknięciu Opublikuj. Dobre na pokaz i test. Możesz zmienić później na własną domenę bez utraty treści.' },
-      { h: 'Opcja B: własna domena (zalecane)', p: 'Kup domenę (np. OVH, Aftermarket) → w Kreatorze → Opublikuj → Własna domena → wpisz np. zlotygrzebien.pl → skopiuj rekordy DNS (CNAME → cname.sitemorph.io, TXT do weryfikacji) → wklej u rejestratora. Propagacja 5–60 min.' },
-      { h: 'SSL i przekierowania', p: 'Certyfikat Let’s Encrypt wystawia się automatycznie. Wymuś HTTPS w panelu Kreatora. Ustaw przekierowanie www → bez www (lub odwrotnie) jednym przełącznikiem. Test: wpisz https://twojadomena.pl — kłódka musi być zielona.' },
-      { h: 'Checklista przed wysyłką do klienta', p: '1) favicon i tytuł SEO, 2) formularz kontaktowy test (wyślij próbkę), 3) RODO i cookies (wygeneruj w stopce), 4) podgląd na telefonie (link działa?), 5) faktura gotowa w Finanse. Dopiero wtedy wyślij link klientowi.' }
+      { h: 'Opcja A: subdomena SiteMorph', p: 'Najprostsza: twojklient.sitemorph.pl â€” dziaĹ‚a od razu po klikniÄ™ciu Opublikuj. Dobre na pokaz i test. MoĹĽesz zmieniÄ‡ pĂłĹşniej na wĹ‚asnÄ… domenÄ™ bez utraty treĹ›ci.' },
+      { h: 'Opcja B: wĹ‚asna domena (zalecane)', p: 'Kup domenÄ™ (np. OVH, Aftermarket) â†’ w Kreatorze â†’ Opublikuj â†’ WĹ‚asna domena â†’ wpisz np. zlotygrzebien.pl â†’ skopiuj rekordy DNS (CNAME â†’ cname.sitemorph.pl, TXT do weryfikacji) â†’ wklej u rejestratora. Propagacja 5â€“60 min.' },
+      { h: 'SSL i przekierowania', p: 'Certyfikat Letâ€™s Encrypt wystawia siÄ™ automatycznie. WymuĹ› HTTPS w panelu Kreatora. Ustaw przekierowanie www â†’ bez www (lub odwrotnie) jednym przeĹ‚Ä…cznikiem. Test: wpisz https://twojadomena.pl â€” kĹ‚Ăłdka musi byÄ‡ zielona.' },
+      { h: 'Checklista przed wysyĹ‚kÄ… do klienta', p: '1) favicon i tytuĹ‚ SEO, 2) formularz kontaktowy test (wyĹ›lij prĂłbkÄ™), 3) RODO i cookies (wygeneruj w stopce), 4) podglÄ…d na telefonie (link dziaĹ‚a?), 5) faktura gotowa w Finanse. Dopiero wtedy wyĹ›lij link klientowi.' }
     ]
   }
 ];
 
 // ============================================================================
-// 6. WIDOK: EKRAN GŁÓWNY (LANDING SCROLLABLE)
+// 6. WIDOK: EKRAN GĹĂ“WNY (LANDING SCROLLABLE)
 // ============================================================================
 export const TutorialsView = () => {
   const [activeGuide, setActiveGuide] = useState<number | null>(null);
@@ -84,7 +84,7 @@ export const TutorialsView = () => {
         </div>
         <div>
           <h1 className="text-2xl font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Akademia SiteMorph</h1>
-          <p className="text-xs font-bold opacity-80">Poradniki tekstowe — czytaj, kopiuj szablony, wdrażaj od razu.</p>
+          <p className="text-xs font-bold opacity-80">Poradniki tekstowe â€” czytaj, kopiuj szablony, wdraĹĽaj od razu.</p>
         </div>
       </motion.div>
 
@@ -136,7 +136,7 @@ export const TutorialsView = () => {
               <div className="pointer-events-none absolute -top-24 -right-24 w-[340px] h-[340px] bg-gradient-to-tr from-lime-200 via-emerald-200 to-lime-100 opacity-25 blur-2xl legal-blob" />
               <div className="relative flex items-center justify-between p-6 border-b border-blue-100 dark:border-neutral-900 bg-white/85 dark:bg-neutral-950/85 backdrop-blur sticky top-0">
                 <div className="pr-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} · {ACADEMY_GUIDES[activeGuide].time}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} Â· {ACADEMY_GUIDES[activeGuide].time}</div>
                   <h3 className="text-lg font-black tracking-tight mt-1.5 leading-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{ACADEMY_GUIDES[activeGuide].title}</h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.08, rotate: 90 }} whileTap={{ scale: 0.92 }} onClick={() => setActiveGuide(null)} className="w-8 h-8 rounded-full grid place-items-center bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800 cursor-pointer shrink-0">
@@ -163,4 +163,5 @@ export const TutorialsView = () => {
 };
 
 
-// Cookie banner — tylko pierwszy raz
+// Cookie banner â€” tylko pierwszy raz
+

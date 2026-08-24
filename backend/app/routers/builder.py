@@ -23,8 +23,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_PREFERRED = [
     m.strip() for m in os.getenv(
         "GEMINI_MODELS",
-        # gemini-2.5-flash / 2.0-flash sa juz wycofane dla nowych kluczy (404)
-        "gemini-3.7-flash,gemini-flash-latest,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-2.5-flash-lite",
+        # gemini-3.7-flash (user request) — fallback na lites gdy 404
+        "gemini-3.7-flash,gemini-2.5-flash-lite,gemini-flash-latest,gemini-3.1-flash-lite",
     ).split(",") if m.strip()
 ]
 _gemini_model_cache: Optional[str] = None
@@ -78,11 +78,13 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     JEDEN szybki call na flash-lite (najszybszy model), timeout 9s, zero retry/resolve."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    # Kolejność od najszybszego — flash-lite ma najniższy latency (~2-4s na 8k tokens)
-    candidates = ["gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-3.1-flash-lite"]
+    # Kolejność: gemini-3.7-flash (user request) → lites. Vercel Hobby = 10s TOTAL:
+    # 1 próba × timeout 8s, potem od razu fallback (OpenRouter tylko poza Vercel).
+    candidates = ["gemini-3.7-flash", "gemini-2.5-flash-lite"]
+    per_try_timeout = 8 if os.getenv("VERCEL") else 12
     errs: List[str] = []
     last_err: str = "brak dostępnych modeli"
-    for mdl in candidates[:3]:
+    for mdl in candidates[:2]:
         try:
             r = requests.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{mdl}:generateContent",
@@ -96,7 +98,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
                         "responseMimeType": "application/json",
                     },
                 },
-                timeout=9,
+                timeout=per_try_timeout,
             )
             print(f"[SiteMorph][Gemini] {mdl} -> HTTP {r.status_code}", flush=True)
             if r.status_code >= 500 or r.status_code == 404:
@@ -580,8 +582,8 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
             else:
                 warning = f"Gemini niedostępny: {err}"
 
-        # 2) OpenRouter (zapas)
-        if parsed_files is None and OPENROUTER_API_KEY:
+        # 2) OpenRouter (zapas) — pomijamy na Vercel (limit 10s, fallback lokalny jest instant)
+        if parsed_files is None and OPENROUTER_API_KEY and not os.getenv("VERCEL"):
             try:
                 resp = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",

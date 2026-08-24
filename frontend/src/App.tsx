@@ -169,15 +169,19 @@ export default function App() {
     );
   }
 
-  // Blokada bez pakietu/kredytów (<5) — przekieruj na cennik
-  if (!showSplash && currentView === 'app' && isProtectedTab && session && !canAccessGated() && activeTab !== 'pricing') {
-    setActiveTab('pricing');
-  }
+  // Blokada bez pakietu/kredytów (<5) — przekieruj na cennik (useEffect, nie setState w renderze)
+  useEffect(() => {
+    if (!showSplash && currentView === 'app' && isProtectedTab && session && !canAccessGated() && activeTab !== 'pricing') {
+      setActiveTab('pricing');
+    }
+  }, [showSplash, currentView, activeTab, session, credits]);
   // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
-  if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
-    setCurrentView('landing');
-    setShowAuth(true);
-  }
+  useEffect(() => {
+    if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
+      setCurrentView('landing');
+      setShowAuth(true);
+    }
+  }, [showSplash, currentView, activeTab, session]);
 
   return (
     <>

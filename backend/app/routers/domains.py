@@ -33,8 +33,16 @@ PLAN_UPGRADE_MSG = (
 )
 
 
-def _require_domain_plan(x_user_plan: Optional[str]):
-    plan = (x_user_plan or "").strip().lower()
+def _require_domain_plan(x_user_plan: Optional[str], db: Session = None, user_id: str = None):
+    """Plan z DB (UserSettings.data.plan) — nagłówek X-User-Plan łatwo podrobić."""
+    plan = ""
+    if db is not None and user_id:
+        from ..models import UserSettings
+        us = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+        if us and us.data:
+            plan = (us.data.get("plan") or "").strip().lower()
+    if not plan:
+        plan = (x_user_plan or "").strip().lower()  # fallback dla kompatybilności
     if plan not in DOMAIN_PLANS:
         raise HTTPException(status_code=403, detail=PLAN_UPGRADE_MSG)
 
@@ -136,7 +144,7 @@ def attach_domain(body: DomainAttach, db: Session = Depends(get_db), current_use
     """Podpięcie własnej domeny pod opublikowaną stronę. Zwraca instrukcje DNS."""
     if current_user.get("is_anon"):
         raise HTTPException(status_code=401, detail="Wymagane zalogowanie")
-    _require_domain_plan(x_user_plan)
+    _require_domain_plan(x_user_plan, db=db, user_id=current_user["id"])
     page = _get_owned_page(db, body.page_id, current_user["id"])
     domain = _normalize_domain(body.domain)
     conflict = (

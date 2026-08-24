@@ -20,7 +20,6 @@ export const ADMIN_STATS = [
 ];
 
 export const ADMIN_USERS = [
-  { name: 'oskar1255900', plan: 'Starter', pages: 2, spent: '49 zł', joined: '02.08.2026' },
   { name: 'anna.studio', plan: 'Pro', pages: 11, spent: '396 zł', joined: '14.06.2026' },
   { name: 'warsztat.karo', plan: 'Business', pages: 27, spent: '597 zł', joined: '03.03.2026' },
   { name: 'fitform.pl', plan: 'Pro', pages: 9, spent: '297 zł', joined: '22.05.2026' },

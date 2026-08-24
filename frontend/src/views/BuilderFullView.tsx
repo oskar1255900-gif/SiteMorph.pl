@@ -282,7 +282,7 @@ export const BuilderFullView = ({
       setGeneratedSite({
         title: p.slice(0, 25),
         category: q1,
-        domain: 'mojastrona.sitemorph.io',
+        domain: 'mojastrona.sitemorph.pl',
         headline: p,
         subheadline: `Błąd: ${msg}`,
         ctaText: 'Skontaktuj się',

@@ -701,8 +701,16 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
     if body.industry not in INDUSTRY_OSM:
         industry_warning = f"Branża '{body.industry}' nie ma dedykowanych tagów OSM — szukam wszystkich firm w okolicy"
     quota_key = current_user["id"] if not current_user.get("is_anon") else (request.client.host if request.client else "anon")
+    # SECURITY: plan z DB, nie z nagłówka (X-User-Plan łatwo podrobić)
+    from ..models import UserSettings
+    db_plan = None
+    if not current_user.get("is_anon"):
+        us = db.query(UserSettings).filter(UserSettings.user_id == current_user["id"]).first()
+        if us and us.data:
+            db_plan = (us.data.get("plan") or "").lower()
+    effective_plan = db_plan or "starter"
     try:
-        remaining = check_rate_limit(x_user_plan or "Starter", quota_key)
+        remaining = check_rate_limit(effective_plan, quota_key)
     except HTTPException as e:
         raise e
     cache_key = f"{body.country}|{body.city.lower().strip()}|{body.industry}|{body.onlyWithoutWebsite}|{body.limit}|{body.osmId}|{body.osmType}"
