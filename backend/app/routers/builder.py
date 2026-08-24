@@ -74,85 +74,56 @@ def resolve_gemini_model() -> Optional[str]:
 
 
 def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 32768):
-    """Zwroc (tekst, None) albo (None, opis_bledu). Probuje kilka nazw modeli.
-    Uzywa natywnego trybu JSON (responseMimeType) — odpowiedz jest zawsze
-    kompletnym JSON-em, bez markdown i bez obcinania."""
+    """Zwroc (tekst, None) albo (None, opis_bledu). Vercel Hobby limit 10s:
+    JEDEN szybki call na flash-lite (najszybszy model), timeout 9s, zero retry/resolve."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    primary = resolve_gemini_model()
-    candidates: List[str] = []
-    for m in [primary] + GEMINI_PREFERRED:
-        if m and m not in candidates:
-            candidates.append(m)
+    # Kolejność od najszybszego — flash-lite ma najniższy latency (~2-4s na 8k tokens)
+    candidates = ["gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-3.1-flash-lite"]
     errs: List[str] = []
     last_err: str = "brak dostępnych modeli"
-    for mdl in candidates[:5]:
-        # wariant A: tryb JSON; wariant B: zwykly tekst (gdyby model nie wspieral mime)
-        for use_json_mime in (True, False):
-            gen_cfg: dict = {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-            }
-            if use_json_mime:
-                gen_cfg["responseMimeType"] = "application/json"
-            try:
-                # Vercel Hobby timeout 10s - szybkie próby bez długiego sleep
-                data = None
-                for attempt in range(2):
-                    r = requests.post(
-                        f"https://generativelanguage.googleapis.com/v1beta/models/{mdl}:generateContent",
-                        params={"key": GEMINI_API_KEY},
-                        json={
-                            "systemInstruction": {"parts": [{"text": system_prompt}]},
-                            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-                            "generationConfig": gen_cfg,
-                        },
-                        timeout=12,
-                    )
-                    print(f"[SiteMorph][Gemini] {mdl} mime={use_json_mime} proba={attempt+1} -> HTTP {r.status_code}", flush=True)
-                    if r.status_code >= 500:
-                        time.sleep(0.5)
-                        continue
-                    break
-                if r is None:
-                    last_err = f"{mdl}: brak odpowiedzi"
-                    errs.append(last_err)
-                    break
-                if r.status_code >= 500:
-                    last_err = f"{mdl}: HTTP {r.status_code} po 3 probach (przeciazenie)"
-                    errs.append(last_err)
-                    break
-                if r.status_code == 404:
-                    last_err = f"{mdl}: model niedostepny (404)"
-                    errs.append(f"{mdl}:404")
-                    break  # kolejny model, nie wariant
-                if r.status_code == 400 and use_json_mime:
-                    errs.append(f"{mdl}(mime):400:{r.text[:100]}")
-                    last_err = f"{mdl}: 400 przy responseMimeType — probuje bez trybu JSON"
-                    continue  # wariant B
-                if r.status_code in (400, 403):
-                    errs.append(f"{mdl}:HTTP{r.status_code}:{r.text[:120]}")
-                    last_err = f"{mdl}: HTTP {r.status_code}: {r.text[:180]}"
-                    break
-                r.raise_for_status()
-                data = r.json()
-                cands = data.get("candidates") or []
-                if not cands:
-                    errs.append(f"{mdl}: brak candidates")
-                    last_err = f"{mdl}: brak candidates"
-                    break
-                parts = cands[0].get("content", {}).get("parts", []) or []
-                text = "".join(p.get("text", "") for p in parts)
-                finish = (cands[0].get("finishReason") or "").upper()
-                if not text.strip():
-                    errs.append(f"{mdl}: pusta (finish={finish})")
-                    last_err = f"{mdl}: pusta odpowiedz (finish={finish})"
-                    break
-                return text, None
-            except Exception as e:
-                errs.append(f"{mdl}: EXC {str(e)[:100]}")
-                last_err = f"{mdl}: {str(e)[:150]}"
-                break
+    for mdl in candidates[:3]:
+        try:
+            r = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{mdl}:generateContent",
+                params={"key": GEMINI_API_KEY},
+                json={
+                    "systemInstruction": {"parts": [{"text": system_prompt}]},
+                    "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+                    "generationConfig": {
+                        "temperature": temperature,
+                        "maxOutputTokens": min(max_tokens, 14000),
+                        "responseMimeType": "application/json",
+                    },
+                },
+                timeout=9,
+            )
+            print(f"[SiteMorph][Gemini] {mdl} -> HTTP {r.status_code}", flush=True)
+            if r.status_code >= 500 or r.status_code == 404:
+                last_err = f"{mdl}: HTTP {r.status_code}"
+                errs.append(last_err)
+                continue
+            if r.status_code in (400, 403):
+                last_err = f"{mdl}: HTTP {r.status_code}"
+                errs.append(last_err)
+                continue
+            r.raise_for_status()
+            cands = r.json().get("candidates") or []
+            if not cands:
+                last_err = f"{mdl}: brak candidates"
+                errs.append(last_err)
+                continue
+            parts = cands[0].get("content", {}).get("parts", []) or []
+            text = "".join(p.get("text", "") for p in parts)
+            if not text.strip():
+                last_err = f"{mdl}: pusta odpowiedz"
+                errs.append(last_err)
+                continue
+            return text, None
+        except Exception as e:
+            last_err = f"{mdl}: {str(e)[:120]}"
+            errs.append(last_err)
+            continue
     print(f"[SiteMorph][Gemini] wszystkie proby nieudane: {errs}", flush=True)
     return None, last_err
 
@@ -576,9 +547,9 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
         parsed_files = None
         parsed_meta = None
 
-        # 1) Gemini (glowny provider)
+        # 1) Gemini (glowny provider) — max_tokens ograniczone pod 10s Vercel
         if GEMINI_API_KEY:
-            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=60000)
+            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=14000)
             if text:
                 try:
                     parsed = extract_json(text)
@@ -641,11 +612,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
 
         meta = parsed_meta or fb["meta"]
         hero = {"title": meta.get("headline", data.business_name), "subtitle": meta.get("subheadline", data.description), "cta_text": meta.get("ctaText", "Kontakt")}
-        try:
-            gm = resolve_gemini_model()
-        except Exception:
-            gm = None
-        return {"status": "success", "provider": provider, "warning": warning, "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": gm, "content": {"hero": hero, "services": [], "pricing": []}, "files": parsed_files, "meta": meta}
+        return {"status": "success", "provider": provider, "warning": warning, "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": None, "content": {"hero": hero, "services": [], "pricing": []}, "files": parsed_files, "meta": meta}
     except Exception as e:
         import traceback
         print(f"[Builder] CRITICAL ERROR: {e}\n{traceback.format_exc()}", flush=True)

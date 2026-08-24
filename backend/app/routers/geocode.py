@@ -590,6 +590,22 @@ def all_cities(country: str = Query("Polska")):
     cached = _all_cities_cache.get(cache_key)
     if cached and now - cached[0] < ALL_CITIES_TTL:
         return {"results": cached[1], "cached": True}
+    # PRIORYTET: statyczne dane GeoNames wbudowane w repo — instant, tysiące miast, zero timeoutu
+    static_file = {
+        "Polska": "pl", "UK": "gb", "USA": "us",
+    }.get(country)
+    if static_file:
+        try:
+            data_path = Path(__file__).resolve().parent.parent / "data" / f"cities_{static_file}.json"
+            if not data_path.exists():
+                data_path = Path("/var/task/app/data") / f"cities_{static_file}.json"
+            if data_path.exists():
+                cities = json.loads(data_path.read_text(encoding="utf-8"))
+                if isinstance(cities, list) and cities:
+                    _all_cities_cache[cache_key] = (now, cities)
+                    return {"results": cities, "cached": True, "static": True, "count": len(cities)}
+        except Exception as e:
+            print(f"[geocode] static load error {country}: {e}", flush=True)
     disk = _load_disk_cache(country)
     if disk is not None:
         _all_cities_cache[cache_key] = (now, disk)
