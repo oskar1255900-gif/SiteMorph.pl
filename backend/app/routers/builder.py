@@ -44,7 +44,7 @@ def resolve_gemini_model() -> Optional[str]:
         r = requests.get(
             "https://generativelanguage.googleapis.com/v1beta/models",
             params={"key": GEMINI_API_KEY},
-            timeout=20,
+            timeout=8,
         )
         r.raise_for_status()
         for m in r.json().get("models", []):
@@ -96,9 +96,9 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
             if use_json_mime:
                 gen_cfg["responseMimeType"] = "application/json"
             try:
-                # 5xx bywa chwilowe (przeciazenie Google) — 3 proby z czekaniem
+                # Vercel Hobby timeout 10s - szybkie próby bez długiego sleep
                 data = None
-                for attempt in range(3):
+                for attempt in range(2):
                     r = requests.post(
                         f"https://generativelanguage.googleapis.com/v1beta/models/{mdl}:generateContent",
                         params={"key": GEMINI_API_KEY},
@@ -107,11 +107,11 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
                             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
                             "generationConfig": gen_cfg,
                         },
-                        timeout=300,
+                        timeout=12,
                     )
                     print(f"[SiteMorph][Gemini] {mdl} mime={use_json_mime} proba={attempt+1} -> HTTP {r.status_code}", flush=True)
                     if r.status_code >= 500:
-                        time.sleep(2 + attempt * 3)
+                        time.sleep(0.5)
                         continue
                     break
                 if r is None:
@@ -614,7 +614,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                         "temperature": 0.85,
                         "max_tokens": 8000,
                     },
-                    timeout=90,
+                    timeout=15,
                 )
                 resp.raise_for_status()
                 content_text = resp.json()["choices"][0]["message"]["content"]

@@ -242,6 +242,8 @@ export const BuilderFullView = ({
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
         headers: { 'X-User-Plan': plan },
+        // @ts-ignore timeoutMs for builder - Vercel maxDuration 60s, backend timeouts ~25s
+        timeoutMs: 55000,
         body: JSON.stringify({
           business_name: q1,
           niche: q1,
@@ -251,7 +253,7 @@ export const BuilderFullView = ({
           sections: q4,
           extraPrompt: promptText || builderPrompt,
         }),
-      });
+      } as any);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || errData.warning || `Błąd generowania: HTTP ${res.status}`);

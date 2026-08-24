@@ -328,17 +328,40 @@ def get_bbox_from_osm(osm_id: str, osm_type: str):
     except Exception:
         return None
 
-def overpass_query(bbox, filters: List[str]):
+OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de",
+    "https://overpass.kumi.systems",
+    "https://overpass.private.coffee",
+]
+
+def overpass_query(bbox, filters: List[str], timeout: int = 12, rounds: int = 2):
     parts = "\n".join(f"  nwr{f}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});" for f in filters)
-    q = f"[out:json][timeout:90];\n(\n{parts}\n);\nout center {200};"
-    r = requests.post(
-        "https://overpass-api.de/api/interpreter",
-        data={"data": q},
-        headers={**UA, "Content-Type": "application/x-www-form-urlencoded"},
-        timeout=120,
-    )
-    r.raise_for_status()
-    return r.json().get("elements", [])
+    q = f"[out:json][timeout:25];\n(\n{parts}\n);\nout center {60};"
+    last_err = ""
+    for rnd in range(rounds):
+        for base in OVERPASS_ENDPOINTS:
+            try:
+                r = requests.post(
+                    f"{base}/api/interpreter",
+                    data={"data": q},
+                    headers={**UA, "Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=timeout,
+                )
+                if r.status_code in (429, 502, 504) or r.status_code >= 500:
+                    last_err = f"{base}: HTTP {r.status_code}"
+                    time.sleep(0.5 + rnd)
+                    continue
+                r.raise_for_status()
+                return r.json().get("elements", [])
+            except requests.exceptions.Timeout as e:
+                last_err = f"{base}: timeout"
+                time.sleep(0.5)
+                continue
+            except Exception as e:
+                last_err = str(e)[:150]
+                continue
+    print(f"[Overpass] fail after {rounds*len(OVERPASS_ENDPOINTS)} tries: {last_err}", flush=True)
+    return None
 
 # ---------------------------------------------------------------------------
 # Wielkie sieci i marki — bez sensu jako leady (maja strony i dzial marketingu).
@@ -423,17 +446,17 @@ class OpenStreetMapProvider(BusinessDataProvider):
     def searchBusinesses(self, bbox: Tuple[float,float,float,float], industry: str) -> List[dict]:
         filters = INDUSTRY_OSM.get(industry)
         if not filters:
-            # fallback generic
             filters = ["[shop]", "[craft]", "[office]", "[amenity]"]
         elements = overpass_query(bbox, filters)
-        # Filter non-businesses
+        if elements is None:
+            print(f"[Overpass] No elements (timeout), returning empty for {industry}", flush=True)
+            return []
         filtered = []
         seen = set()
         for el in elements:
             tags = el.get("tags", {})
             if not is_business_element(tags):
                 continue
-            # dedup by osm type+id
             key = f"{el.get('type')}_{el.get('id')}"
             if key in seen:
                 continue
@@ -704,23 +727,36 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
     if not bbox:
         raise HTTPException(status_code=400, detail=f"Nie znaleziono lokalizacji: {body.city}, {body.country} — sprawdź pisownię lub wybierz z podpowiedzi")
     
-    # Overpass jako główne źródło — wszystkie nazwy/adresy/ulice z OSM (lepsza dokładność adresów)
+    # Overpass jako główne źródło — wszystkie nazwy/adresy/ulice z OSM
     leads_out = []
     try:
         provider = OpenStreetMapProvider()
         elements = provider.searchBusinesses(bbox, body.industry)
         for el in elements:
-            norm = normalize(el, body.industry, body.city, body.country, False)  # na razie bez filtra strony
+            norm = normalize(el, body.industry, body.city, body.country, False)
             if not norm:
                 continue
             leads_out.append(norm)
-            if len(leads_out) >= body.limit * 2:  # pobierz więcej, bo potem odfiltrujemy po weryfikacji Google
+            if len(leads_out) >= body.limit * 2:
                 break
-    except requests.exceptions.Timeout:
-        raise HTTPException(status_code=504, detail="Overpass timeout — spróbuj ponownie za chwilę")
     except Exception as e:
         print(f"[Overpass] Search error: {e}")
-        raise HTTPException(status_code=502, detail=f"Overpass error: {str(e)[:200]}")
+        elements = []
+
+    # Fallback na Google Places gdy Overpass zwrócił pusto (np. 504) — żeby nie było pustego wyniku
+    if not leads_out and GOOGLE_KEY:
+        try:
+            print(f"[Overpass] empty, trying Google Places fallback for {body.city}", flush=True)
+            gp = GooglePlacesProvider(GOOGLE_KEY)
+            g_places = gp.searchBusinesses(bbox, body.industry)
+            for p in g_places:
+                g_norm = normalize_google(p, body.industry, body.city, body.country, False)
+                if g_norm:
+                    leads_out.append(g_norm)
+                    if len(leads_out) >= body.limit:
+                        break
+        except Exception as ge:
+            print(f"[Google fallback] fail: {ge}", flush=True)
 
     # Google Places TYLKO do 2 rzeczy: 1) czy ma stronę 2) numer tel — reszta zostaje z Overpass
     if GOOGLE_KEY and leads_out:

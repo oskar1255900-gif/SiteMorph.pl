@@ -9,7 +9,7 @@ export const API_BASE: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 
 /** fetch z JSON-em, bazą API i automatycznym tokenem Supabase (jeśli zalogowany). */
-export async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<Response> {
+export async function apiFetch<T = any>(path: string, options: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> | undefined),
   }
@@ -24,7 +24,19 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
   } catch {
     // brak sesji — idziemy jako anon
   }
-  return fetch(`${API_BASE}${path}`, { ...options, headers })
+  const timeoutMs = (options as any).timeoutMs ?? 25000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const { timeoutMs: _, ...fetchOpts } = options as any
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { ...fetchOpts, headers, signal: controller.signal })
+    clearTimeout(timer)
+    return res
+  } catch (e: any) {
+    clearTimeout(timer)
+    if (e.name === 'AbortError') throw new Error('Przekroczono czas oczekiwania — spróbuj ponownie (Vercel limit 60s)')
+    throw e
+  }
 }
 
 /** apiFetch + parsowanie JSON z rzucaniem błędu na !ok. */
