@@ -704,56 +704,84 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
     if not bbox:
         raise HTTPException(status_code=400, detail=f"Nie znaleziono lokalizacji: {body.city}, {body.country} — sprawdź pisownię lub wybierz z podpowiedzi")
     
-    # PRIORITY 1: Google Places API (primary - better data quality)
+    # Overpass jako główne źródło — wszystkie nazwy/adresy/ulice z OSM (lepsza dokładność adresów)
     leads_out = []
-    if GOOGLE_KEY:
-        try:
-            gp_provider = GooglePlacesProvider(GOOGLE_KEY)
-            gp_elements = gp_provider.searchBusinesses(bbox, body.industry)
-            for place in gp_elements:
-                norm = normalize_google(place, body.industry, body.city, body.country, body.onlyWithoutWebsite)
-                if norm:
-                    leads_out.append(norm)
-                    if len(leads_out) >= body.limit:
-                        break
-        except Exception as e:
-            print(f"[Google Places] Search error: {e}")
-    
-    # PRIORITY 2: Overpass/OSM (fallback - more coverage, less accuracy)
-    if len(leads_out) < body.limit:
-        try:
-            provider = OpenStreetMapProvider()
-            elements = provider.searchBusinesses(bbox, body.industry)
-            for el in elements:
-                norm = normalize(el, body.industry, body.city, body.country, body.onlyWithoutWebsite)
-                if not norm:
-                    continue
-                if any(l['id'] == norm['id'] for l in leads_out):
-                    continue
-                leads_out.append(norm)
-                if len(leads_out) >= body.limit:
-                    break
-        except requests.exceptions.Timeout:
-            pass  # ignore timeout, use what we have
-        except Exception as e:
-            print(f"[Overpass] Search error: {e}")
-    
-    # Deduplicate by name + coordinates
-    seen_keys = set()
-    deduped = []
-    for lead in leads_out:
-        key = f"{lead['name'].lower().strip()}_{round(lead['latitude'] or 0, 4)}_{round(lead['longitude'] or 0, 4)}"
-        if key in seen_keys:
-            continue
-        seen_keys.add(key)
-        deduped.append(lead)
-        if len(deduped) >= body.limit:
-            break
-    leads_out = deduped
-    
-    # Filter by onlyWithoutWebsite if still needed (Google Places already filtered)
-    if body.onlyWithoutWebsite:
-        leads_out = [l for l in leads_out if not l.get("website")]
+    try:
+        provider = OpenStreetMapProvider()
+        elements = provider.searchBusinesses(bbox, body.industry)
+        for el in elements:
+            norm = normalize(el, body.industry, body.city, body.country, False)  # na razie bez filtra strony
+            if not norm:
+                continue
+            leads_out.append(norm)
+            if len(leads_out) >= body.limit * 2:  # pobierz więcej, bo potem odfiltrujemy po weryfikacji Google
+                break
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="Overpass timeout — spróbuj ponownie za chwilę")
+    except Exception as e:
+        print(f"[Overpass] Search error: {e}")
+        raise HTTPException(status_code=502, detail=f"Overpass error: {str(e)[:200]}")
+
+    # Google Places TYLKO do 2 rzeczy: 1) czy ma stronę 2) numer tel — reszta zostaje z Overpass
+    if GOOGLE_KEY and leads_out:
+        def _enrich_with_google(lead: dict):
+            try:
+                q = " ".join(x for x in [lead.get("name"), lead.get("address") or "", lead.get("city") or body.city, lead.get("country") or body.country] if x).strip()
+                if not q:
+                    return lead, None, None
+                r = requests.post(
+                    "https://places.googleapis.com/v1/places:searchText",
+                    headers={"Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_KEY, "X-Goog-FieldMask": "places.websiteUri,places.nationalPhoneNumber,places.displayName"},
+                    json={"textQuery": q, "maxResultCount": 1},
+                    timeout=7,
+                )
+                if r.status_code != 200:
+                    return lead, None, None
+                pls = r.json().get("places") or []
+                if not pls:
+                    return lead, None, None
+                p = pls[0]
+                return lead, p.get("websiteUri"), p.get("nationalPhoneNumber")
+            except Exception:
+                return lead, None, None
+
+        # Wzbogać pierwsze 60 leadów równolegle (Overpass ma ~60), Google tylko dla strony/tel
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        enriched = []
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            fut_map = {ex.submit(_enrich_with_google, ld): ld for ld in leads_out[:60]}
+            for fut in as_completed(fut_map):
+                ld, g_website, g_phone = fut.result()
+                # Uzupełnij tel jeśli brak w OSM, a Google ma
+                if not ld.get("phone") and g_phone:
+                    ld["phone"] = g_phone
+                # Zapisz website z Google do filtra
+                ld["_g_website"] = g_website
+                enriched.append(ld)
+        # Reszta bez wzbogacenia
+        enriched.extend(leads_out[60:])
+        leads_out = enriched
+
+        # Filtr "tylko bez strony" — używamy Google website jako źródła prawdy
+        if body.onlyWithoutWebsite:
+            leads_out = [l for l in leads_out if not l.get("_g_website") and not l.get("website")]
+
+        # Posprzątaj tymczasowe pole
+        for l in leads_out:
+            l.pop("_g_website", None)
+
+        # Dedup po nazwie + koordynatach
+        seen_keys = set()
+        deduped = []
+        for lead in leads_out:
+            key = f"{lead['name'].lower().strip()}_{round(lead['latitude'] or 0, 4)}_{round(lead['longitude'] or 0, 4)}"
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduped.append(lead)
+            if len(deduped) >= body.limit:
+                break
+        leads_out = deduped
     
     # Sort by leadScore desc
     leads_out.sort(key=lambda x: x.get("leadScore", 0), reverse=True)
