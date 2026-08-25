@@ -59,11 +59,15 @@ export const BuilderFullView = ({
     return () => clearInterval(id);
   }, [isGenerating]);
 
+  // NIE generuj automatycznie — użytkownik musi kliknąć Generuj (naprawia "odrazu generuje bez komendy")
   useEffect(() => {
     if (initialPrompt) {
-      handleGenerate(initialPrompt);
+      setBuilderPrompt(initialPrompt);
+      // wyciągnij nazwę firmy z promptu dla podglądu q1
+      const m = initialPrompt.match(/dla firmy\s*["„]([^"”]+)["”]/i);
+      if (m && m[1]) setQ1(m[1].trim());
     }
-  }, []);
+  }, [initialPrompt]);
 
   const [q1, setQ1] = useState('Restauracja');
   const [q2, setQ2] = useState('Nowoczesny, minimalistyczny');
@@ -227,7 +231,13 @@ export const BuilderFullView = ({
   ];
 
   const handleGenerate = async (promptText?: string) => {
-    const p = buildPrompt(promptText);
+    let p = buildPrompt(promptText);
+    // Jeśli prompt zawiera nazwę firmy (z Leada), użyj jej jako business_name
+    let bizName = q1;
+    const m = (promptText || builderPrompt || p).match(/dla firmy\s*["„]([^"”]+)["”]/i);
+    if (m && m[1]) bizName = m[1].trim();
+    // Nie wysyłaj całego buildPrompt drugi raz w extraPrompt — unikaj duplikacji
+    const extra = promptText && promptText !== p ? promptText : builderPrompt;
     if (!p.trim()) return;
     if (credits < cost) {
       alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}. Sprawdź dostępne plany w sekcji Cennik.`);
@@ -245,13 +255,13 @@ export const BuilderFullView = ({
         // Vercel Hobby 10s → frontend 9s (Laguna 8s + fallback instant)
         timeoutMs: 9000,
         body: JSON.stringify({
-          business_name: q1,
+          business_name: bizName,
           niche: q1,
           description: p,
           style: q2,
           colors: q3,
           sections: q4,
-          extraPrompt: promptText || builderPrompt,
+          extraPrompt: extra,
         }),
       } as any);
       if (!res.ok) {
