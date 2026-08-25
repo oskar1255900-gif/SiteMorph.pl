@@ -242,8 +242,8 @@ export const BuilderFullView = ({
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
         headers: { 'X-User-Plan': plan },
-        // @ts-ignore timeoutMs for builder - Vercel maxDuration 60s, backend timeouts ~25s
-        timeoutMs: 55000,
+        // Vercel Hobby 10s → frontend 9s (Laguna 8s + fallback instant)
+        timeoutMs: 9000,
         body: JSON.stringify({
           business_name: q1,
           niche: q1,
