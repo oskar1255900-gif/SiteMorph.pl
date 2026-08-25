@@ -153,153 +153,104 @@ export const PublicLandingView = ({
   return (
     <div className="min-h-screen bg-white dark:bg-black text-blue-600 dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
-      {/* Hero Section (Lewa: Tekst, Prawa: Mockup ze wszystkimi pływającymi badge'ami) */}
-      <section className="max-w-6xl mx-auto px-6 py-12 lg:py-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
-        
-        {/* LEWA KOLUMNA: TYTUŁ, BADGE, OPIS, PRZYCISKI (1:1) */}
+      {/* Hero Section — NOWY UKŁAD: centralny nagłówek + mockup poniżej, nie 1:1 */}
+      <section className="max-w-6xl mx-auto px-6 pt-10 lg:pt-16 pb-12 lg:pb-16 space-y-10">
         <motion.div 
-          initial={{ opacity: 0, x: -60, filter: 'blur(16px)', scale: 0.94 }}
-          animate={{ opacity: 1, x: 0, filter: 'blur(0px)', scale: 1 }}
+          initial={{ opacity: 0, y: 30, filter: 'blur(16px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           transition={{ type: 'spring' as const, stiffness: 90, damping: 18, delay: 0.05 }}
-          className="lg:col-span-5 space-y-6"
+          className="text-center space-y-6 max-w-3xl mx-auto"
         >
-          {/* Górna pigułka 1:1 */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold text-blue-600 dark:text-white bg-blue-50 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 shadow-sm">
             <Zap size={13} className="fill-current text-blue-600 dark:text-white" /> 
-            <span>Zamień AI w stały zysk</span>
+            <span>Zamień AI w stały zysk — bez kodowania</span>
           </div>
-
-          {/* Główny nagłówek 1:1 z czcionką Story Script dla ZARABIAJ. */}
-          <h1 className="text-5xl sm:text-6xl font-black tracking-tight leading-[1.08] text-blue-600 dark:text-white">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-blue-600 dark:text-white">
             Buduj strony.<br />
-            <span className="pr-2 inline-block align-baseline" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635', letterSpacing: '-0.03em' }}>
+            <span className="inline-block" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635', letterSpacing: '-0.04em' }}>
               Zarabiaj.
             </span>
+            <span className="inline-block w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-blue-600 dark:bg-white ml-1 align-super animate-pulse" />
           </h1>
-
-          {/* Opis pod tytułem 1:1 */}
-          <p className="text-blue-600 dark:text-white text-sm sm:text-base font-semibold leading-relaxed max-w-md opacity-90">
-            Twórz zachwycające serwisy dla lokalnych firm w kilka minut dzięki AI. Bez kodowania. Wyceniaj od 1 500 do 12 000 zł za stronę.
+          <p className="text-blue-600 dark:text-white text-sm sm:text-base font-semibold leading-relaxed max-w-xl mx-auto opacity-80">
+            Jedno zdanie → gotowa strona dla lokalnej firmy. Wyceniaj od 1 500 do 12 000 zł. Preview, poprawki i faktura w jednym miejscu.
           </p>
-
-          {/* Dwa przyciski CTA 1:1 */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="font-black">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="font-black shadow-lg">
               Zacznij zarabiać <ArrowRight size={16} />
             </Button>
             <Button variant="outline" size="lg" onClick={() => onEnterApp('pricing')} className="font-black">
-              <Play size={15} className="fill-current" /> Zobacz jak to działa
+              <Play size={15} className="fill-current" /> Zobacz 90s demo
             </Button>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-[11px] font-bold opacity-60">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 2 847 stron zbudowanych w tym miesiącu
           </div>
         </motion.div>
 
-        {/* PRAWA KOLUMNA: MOCKUP PRZEGLĄDARKI 1:1 */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.86, x: 70, rotateY: -16, filter: 'blur(18px)' }}
-          animate={{ opacity: 1, scale: 1, x: 0, rotateY: 0, filter: 'blur(0px)' }}
-          transition={{ type: 'spring' as const, stiffness: 80, damping: 17, delay: 0.15 }}
-          className="lg:col-span-7 relative"
-          style={{ perspective: 1200 }}
+          initial={{ opacity: 0, y: 40, scale: 0.98, filter: 'blur(18px)' }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+          transition={{ type: 'spring' as const, stiffness: 80, damping: 18, delay: 0.18 }}
+          className="relative max-w-5xl mx-auto"
+          style={{ perspective: 1400 }}
         >
-          {/* Cinematic morphing blob za mockupem */}
-          <div className="pointer-events-none absolute -inset-10 -z-10 morph-blob bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-200 dark:from-lime-500/20 dark:via-emerald-400/10 dark:to-lime-400/20 blur-3xl opacity-60 dark:opacity-40" />
-
-          {/* Pływający badge PRAWY GÓRNY 1:1 */}
-          <motion.div 
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -top-6 right-2 sm:right-6 z-20 bg-white dark:bg-black border border-blue-200 dark:border-neutral-800 p-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-bold text-blue-600 dark:text-white"
-          >
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white dark:bg-white dark:text-black flex items-center justify-center font-black">
-              <Zap size={14} className="fill-current" />
-            </div>
-            <div>
-              <div className="text-blue-600 dark:text-white font-black text-xs">Zbudowano w 2m 45s</div>
-              <div className="text-[10px] opacity-75 font-semibold">Napędzane przez AI</div>
-            </div>
-          </motion.div>
-
-          {/* Ramka Przeglądarki 1:1 */}
-          <div className="rounded-3xl p-5 border shadow-2xl space-y-4 bg-white dark:bg-black border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white relative">
-            
-            {/* Pasek URL i Kropki 1:1 */}
-            <div className="flex items-center justify-between border-b border-blue-100 dark:border-neutral-900 pb-3">
+          <div className="pointer-events-none absolute -inset-12 -z-10 morph-blob bg-gradient-to-tr from-lime-200 via-emerald-100 to-blue-100 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-blue-500/10 blur-3xl opacity-60" />
+          <div className="rounded-[28px] p-4 sm:p-5 border shadow-2xl bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-900">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               </div>
-              <div className="text-[11px] font-mono text-blue-600 dark:text-white bg-blue-50 dark:bg-neutral-900 px-4 py-0.5 rounded-full border border-blue-200 dark:border-neutral-800 font-bold opacity-80">
-                fryzjer-studio.pl
+              <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold">
+                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">fryzjer-studio.pl — podgląd LIVE</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               </div>
-              <div className="w-4" />
+              <div className="text-[10px] font-bold opacity-60 hidden sm:block">2 online</div>
             </div>
-
-            {/* Wnętrze makiety strony www 1:1 */}
-            <div className="p-6 rounded-2xl bg-blue-50/60 dark:bg-neutral-950 text-blue-600 dark:text-white space-y-6 border border-blue-100 dark:border-neutral-900 relative">
-              
-              {/* Header makiety */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 shadow-sm" />
-                  <span className="font-black text-xs tracking-tight">STUDIO ANNA</span>
-                </div>
-                <div className="flex gap-4 text-[10px] font-bold opacity-80">
-                  <span>Oferta</span>
-                  <span>Termin</span>
-                  <span>O nas</span>
-                </div>
-              </div>
-
-              {/* Treść hero makiety */}
-              <div className="py-2 space-y-3">
-                <div className="text-[9px] font-black uppercase tracking-wider opacity-75">
-                  OTWARTE CODZIENNIE • KRAKÓW
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-black leading-tight">
-                  Zmień styl. <br />
-                  Poczuj się pewnie.
+            <div className="grid grid-cols-12 gap-4 pt-4">
+              <div className="col-span-12 lg:col-span-5 space-y-4">
+                <div className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-lime-100 dark:bg-lime-900/30 text-lime-700 dark:text-lime-300">Otwarte codziennie • Kraków</div>
+                <h3 className="text-3xl font-black leading-tight">
+                  Zmień styl.<br />Poczuj się pewnie.
                 </h3>
-                
-                {/* Przyciski w makiecie */}
-                <div className="flex gap-2 pt-1">
-                  <span className="bg-blue-600 text-white dark:bg-white dark:text-black text-[10px] font-bold px-3.5 py-1.5 rounded-full shadow-sm">
-                    Umów termin
-                  </span>
-                  <span className="border border-blue-300 dark:border-neutral-800 text-[10px] font-bold px-3.5 py-1.5 rounded-full">
-                    Zobacz cennik
-                  </span>
+                <p className="text-sm font-semibold opacity-70 leading-relaxed">Studio Anna — strzyżenie, broda, modelowanie. Rezerwacja online, kawa na miejscu.</p>
+                <div className="flex gap-2">
+                  <span className="bg-blue-600 text-white dark:bg-white dark:text-black text-xs font-bold px-4 py-2 rounded-full shadow-md">Umów termin</span>
+                  <span className="border border-neutral-200 dark:border-neutral-800 text-xs font-bold px-4 py-2 rounded-full">Zobacz cennik</span>
+                </div>
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="flex -space-x-2">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-lime-300 to-emerald-400 border-2 border-white dark:border-neutral-950" />
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 border-2 border-white dark:border-neutral-950" />
+                    <div className="w-7 h-7 rounded-full bg-neutral-900 text-white border-2 border-white dark:border-neutral-950 grid place-items-center text-[10px] font-black">+2k</div>
+                  </div>
+                  <span className="text-xs font-bold opacity-70">Zaufało nam 2 847 klientów</span>
                 </div>
               </div>
-
-              {/* 3 kolorowe kafelki 1:1 ze zdjęcia */}
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="h-20 rounded-2xl bg-gradient-to-br from-lime-300 to-emerald-400 shadow-md opacity-90" />
-                <div className="h-20 rounded-2xl bg-gradient-to-br from-emerald-300 to-lime-400 shadow-md opacity-90" />
-                <div className="h-20 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 shadow-md opacity-90 relative">
-                  {/* Badge LIVE 1:1 na trzecim kafelku */}
-                  <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 border border-white/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE
+              <div className="col-span-12 lg:col-span-7 space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="h-28 rounded-2xl bg-gradient-to-br from-lime-200 to-emerald-300 shadow-sm border border-white dark:border-neutral-800" />
+                  <div className="h-28 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-200 shadow-sm border border-white dark:border-neutral-800" />
+                  <div className="h-28 rounded-2xl bg-gradient-to-br from-amber-200 to-orange-300 shadow-sm border border-white dark:border-neutral-800 relative">
+                    <div className="absolute bottom-2 right-2 bg-black text-white text-[8px] font-black px-2 py-1 rounded-full flex items-center gap-1">● LIVE</div>
                   </div>
                 </div>
+                <div className="rounded-2xl border p-3 bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white grid place-items-center"><Wallet size={14} /></div>
+                    <div><div className="text-xs font-black">9 600 zł w tym tygodniu</div><div className="text-[10px] opacity-60 font-bold">Zbudowano w 2m 45s • AI</div></div>
+                  </div>
+                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">+18%</span>
+                </div>
               </div>
-
-              {/* Pływający badge LEWY DOLNY 1:1 */}
-              <motion.div 
-                animate={{ y: [0, 5, 0] }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                className="absolute -bottom-4 left-4 z-20 bg-white dark:bg-black border border-blue-200 dark:border-neutral-800 py-2.5 px-4 rounded-2xl shadow-2xl flex items-center gap-3 text-xs"
-              >
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-neutral-900 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                  <Wallet size={16} />
-                </div>
-                <div>
-                  <div className="font-black text-xs text-blue-600 dark:text-white">9 600 zł zarobione</div>
-                  <div className="text-[10px] opacity-75 font-semibold text-blue-600 dark:text-white">W tym tygodniu</div>
-                </div>
-              </motion.div>
             </div>
           </div>
+          <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity }} className="hidden lg:flex absolute -right-6 top-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-2xl shadow-xl items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white grid place-items-center"><Zap size={14} className="fill-current" /></div>
+            <div><div className="text-xs font-black">Gotowe w 2m 45s</div><div className="text-[10px] opacity-60">Napędzane przez Laguna S-2.1</div></div>
+          </motion.div>
         </motion.div>
       </section>
 
