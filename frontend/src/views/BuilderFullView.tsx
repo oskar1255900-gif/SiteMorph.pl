@@ -327,9 +327,9 @@ export const BuilderFullView = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] text-[#131412]"
+      className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] dark:bg-[#0a0a0a] text-[#131412] dark:text-white"
     >
-      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white border-neutral-200 text-[#131412]">
+      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 text-[#131412] dark:text-white">
         <motion.button 
           whileHover={{ x: -2 }}
           onClick={onBack} 
@@ -402,7 +402,7 @@ export const BuilderFullView = ({
       <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div
           style={isDesktop ? { width: leftW } : undefined}
-          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white border-neutral-200 text-[#131412]"
+          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-[#131412] dark:text-white rounded-r-2xl shadow-sm"
         >
           <div className="flex-1 p-4 overflow-y-auto no-scrollbar space-y-5">
             <div className="text-center space-y-2">
@@ -424,8 +424,8 @@ export const BuilderFullView = ({
             </div>
           </div>
 
-          <div className="p-3 border-t bg-blue-50/30 dark:bg-black border-blue-100 dark:border-neutral-900">
-            <div className="rounded-lg border p-3 shadow-md bg-white dark:bg-neutral-950 border-blue-200 dark:border-neutral-800">
+          <div className="p-3 border-t bg-neutral-50/50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800">
+            <div className="rounded-2xl border p-4 shadow-lg bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
               <textarea
                 rows={5}
                 value={builderPrompt}
@@ -482,7 +482,7 @@ export const BuilderFullView = ({
           <div className={`w-[3px] h-14 rounded-lg transition-colors ${isDraggingSplit ? 'bg-blue-500' : 'bg-blue-200 dark:bg-neutral-800'}`} />
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden flex bg-[#fcfcf9]">
+        <div className="flex-1 min-h-0 overflow-hidden flex bg-[#fcfcf9] dark:bg-[#0a0a0a] p-2 gap-2">
           <AnimatePresence mode="wait">
             {isGenerating ? (
               <motion.div 
@@ -490,7 +490,7 @@ export const BuilderFullView = ({
                 initial={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
                 animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
-                className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 relative overflow-hidden bg-[#fcfcf9]"
+                className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 relative overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
                 <div className="pointer-events-none absolute w-[360px] h-[360px] bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-200 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl morph-blob opacity-70" />
                 <motion.div
@@ -528,9 +528,9 @@ export const BuilderFullView = ({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex items-center justify-center p-6 bg-[#fcfcf9]"
+                className="flex-1 flex items-center justify-center p-6 bg-transparent"
               >
-                <div className="text-center space-y-2 p-12 rounded-3xl border shadow-xl bg-white border-neutral-200">
+                <div className="text-center space-y-2 p-12 rounded-3xl border shadow-xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border bg-blue-50 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800">
                     <Monitor size={28} />
                   </div>
@@ -545,7 +545,7 @@ export const BuilderFullView = ({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
                 transition={springTransition}
-                className="flex-1 flex min-h-0 overflow-hidden bg-white dark:bg-black"
+                className="flex-1 flex min-h-0 overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                   <div className="h-9 border-b border-blue-100 dark:border-neutral-900 flex items-center justify-between px-3 bg-blue-50/40 dark:bg-neutral-950 text-[11px] font-bold shrink-0 gap-2">
@@ -642,7 +642,7 @@ export const BuilderFullView = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex font-mono text-xs overflow-hidden"
+                className="flex-1 flex font-mono text-xs overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
                 <div className="w-56 bg-blue-50 dark:bg-neutral-950 border-r border-blue-200 dark:border-neutral-900 p-3 space-y-1 overflow-y-auto no-scrollbar">
                   <span className="text-[9px] font-black block mb-2 opacity-70 uppercase tracking-wider">Drzewo plikow — Vite</span>
