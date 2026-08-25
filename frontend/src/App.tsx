@@ -139,6 +139,14 @@ export default function App() {
   const isProtectedTab = ['dashboard', 'leadfinder', 'finance', 'domains', 'settings', 'tutorials', 'help'].includes(activeTab);
   const shouldShowApp = currentView === 'app' && (!isProtectedTab || session);
 
+  // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
+  useEffect(() => {
+    if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
+      setCurrentView('landing');
+      setShowAuth(true);
+    }
+  }, [showSplash, currentView, activeTab, session]);
+
   if (!showSplash && currentView === 'app' && activeTab === 'builder') {
     return (
       <>
@@ -156,15 +164,6 @@ export default function App() {
       </>
     );
   }
-
-  // Blokada kredytów sprawdzana dopiero przy generowaniu/wyszukiwaniu, nie przy wejściu do panelu
-  // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
-  useEffect(() => {
-    if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
-      setCurrentView('landing');
-      setShowAuth(true);
-    }
-  }, [showSplash, currentView, activeTab, session]);
 
   return (
     <>
