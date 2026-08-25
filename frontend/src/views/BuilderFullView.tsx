@@ -327,9 +327,9 @@ export const BuilderFullView = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-screen flex flex-col overflow-hidden select-none bg-white dark:bg-black text-blue-600 dark:text-white"
+      className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] text-[#131412]"
     >
-      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white dark:bg-black border-blue-200 dark:border-neutral-900 text-blue-600 dark:text-white">
+      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white border-neutral-200 text-[#131412]">
         <motion.button 
           whileHover={{ x: -2 }}
           onClick={onBack} 
@@ -402,7 +402,7 @@ export const BuilderFullView = ({
       <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div
           style={isDesktop ? { width: leftW } : undefined}
-          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-black border-blue-100 dark:border-neutral-900 text-blue-600 dark:text-white"
+          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white border-neutral-200 text-[#131412]"
         >
           <div className="flex-1 p-4 overflow-y-auto no-scrollbar space-y-5">
             <div className="text-center space-y-2">
@@ -482,7 +482,7 @@ export const BuilderFullView = ({
           <div className={`w-[3px] h-14 rounded-lg transition-colors ${isDraggingSplit ? 'bg-blue-500' : 'bg-blue-200 dark:bg-neutral-800'}`} />
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden flex bg-blue-50/20 dark:bg-black">
+        <div className="flex-1 min-h-0 overflow-hidden flex bg-[#fcfcf9]">
           <AnimatePresence mode="wait">
             {isGenerating ? (
               <motion.div 
@@ -490,7 +490,7 @@ export const BuilderFullView = ({
                 initial={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
                 animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
-                className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 relative overflow-hidden"
+                className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 relative overflow-hidden bg-[#fcfcf9]"
               >
                 <div className="pointer-events-none absolute w-[360px] h-[360px] bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-200 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl morph-blob opacity-70" />
                 <motion.div
@@ -528,9 +528,9 @@ export const BuilderFullView = ({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex items-center justify-center p-6"
+                className="flex-1 flex items-center justify-center p-6 bg-[#fcfcf9]"
               >
-                <div className="text-center space-y-2 p-12 rounded-3xl border shadow-xl bg-white dark:bg-neutral-950 border-blue-200 dark:border-neutral-900">
+                <div className="text-center space-y-2 p-12 rounded-3xl border shadow-xl bg-white border-neutral-200">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border bg-blue-50 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800">
                     <Monitor size={28} />
                   </div>
