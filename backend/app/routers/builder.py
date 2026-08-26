@@ -156,6 +156,28 @@ ZASADY PAPIEROWEGO ATELIER:
 
 IMPECCABLE_DESIGN_RULES = EDITORIAL_RULES
 
+# 10 losowych templatów — każdy inny kolor/zdjęcia/układ, losowany per generacja
+TEMPLATES = [
+    {"id": 1, "name": "Papier Atelier", "palette": "papier #fcfcf9 + tusz #131412 + szałwia #d8e4bc", "accent": "#d8e4bc", "images": "cozy cafe interior, paper texture, warm light", "layout": "asymetria 7/5, dużo bieli, numeracja 01 mono"},
+    {"id": 2, "name": "Midnight Navy", "palette": "granat #0f172a + ecru #fefce8 + limonka #bef264", "accent": "#bef264", "images": "dark premium barber, midnight city, neon sign", "layout": "hero full-screen z nakładką, tabela cennika, zespół 3 kolumny"},
+    {"id": 3, "name": "Terracotta Clay", "palette": "glina #e8ddd3 + tusz #1c1917 + terakota #c2410c", "accent": "#c2410c", "images": "restaurant clay pottery, warm terracotta interior", "layout": "galeria masonry, menu karty z ceną po prawej"},
+    {"id": 4, "name": "Forest Sage", "palette": "leśna zieleń #14532d + krem #fef7cd + szałwia #a3e635", "accent": "#a3e635", "images": "forest spa, natural wood, green plants", "layout": "hero split 5/7 z portretem, oferta listą z ikonkami"},
+    {"id": 5, "name": "Slate Minimal", "palette": "grafit #27272a + biel #ffffff + niebieski #3b82f6", "accent": "#3b82f6", "images": "minimal office, slate architecture, tech startup", "layout": "centered hero, 3 filary, cennik tabela"},
+    {"id": 6, "name": "Amber Glow", "palette": "bursztyn #f59e0b + ecru #fffbeb + grafit #1f2937", "accent": "#f59e0b", "images": "bakery amber light, croissant, warm bread", "layout": "hero z obrazem na pół, oferta kartami, opinie carousel"},
+    {"id": 7, "name": "Ocean Slate", "palette": "ocean #0e7490 + mgła #f1f5f9 + koral #f97316", "accent": "#0e7490", "images": "hotel ocean view, slate coast, yacht", "layout": "hero panorama, pokoje kartami, atrakcje listą"},
+    {"id": 8, "name": "Blush Rose", "palette": "róż #fce7f3 + grafit #1f2937 + róż #ec4899", "accent": "#ec4899", "images": "beauty salon pink, rose spa, makeup", "layout": "hero z portretem, zespół, galeria 2x2"},
+    {"id": 9, "name": "Charcoal Graphite", "palette": "węgiel #18181b + popiół #e4e4e7 + limonka #84cc16", "accent": "#84cc16", "images": "gym industrial, charcoal workout, fitness", "layout": "hero video background, cennik tabela, team"},
+    {"id": 10, "name": "Cream Olive", "palette": "śmietanka #fef3c7 + oliwka #365314 + kość #fff7ed", "accent": "#365314", "images": "furniture wood, olive cream interior, scandinavian", "layout": "galeria grid, kategorie kafelki, promocje"},
+]
+def pick_template(business_name: str) -> dict:
+    import hashlib, random
+    # Losowy per request, ale deterministyczny fallback gdy brak random (seed z nazwy)
+    h = int(hashlib.md5(business_name.encode()).hexdigest()[:8], 16)
+    # 80% losowy, 20% hash (żeby ta sama firma czasem dostała inny, ale nie zawsze)
+    if random.random() < 0.8:
+        return random.choice(TEMPLATES)
+    return TEMPLATES[h % len(TEMPLATES)]
+
 INDEX_HTML_RULE = """- STRUKTURA PROJEKTU: React + Vite + TypeScript + Tailwind CSS
   main/
   ├── frontend/
@@ -407,6 +429,13 @@ def fallback_content(data: BuilderInput):
     desc = data.description or f"Profesjonalne usługi {niche}. Skontaktuj się i umów bezpłatną wycenę."
     year = time.strftime("%Y")
     safe_bn = re.sub(r'[^a-zA-Z0-9]', '', bn)[:16] or "Site"
+    # Fallback też losuje template żeby nie każdy fallback był identyczny
+    try:
+        tpl = pick_template(bn)
+        accent = tpl.get("accent", "#a3e635")
+    except Exception:
+        tpl = TEMPLATES[0]
+        accent = "#a3e635"
     # Minimalist Vite + React + TS structure - fallback when AI fails
     index_html = f"""<!doctype html>
 <html lang="pl">
@@ -541,9 +570,11 @@ def generate_site(data: BuilderInput):
         }
         package_name = package_map.get((data.package or "starter").lower(), "STARTER")
         credits = data.credits or 10
-        
+        template = pick_template(data.business_name or data.niche or "Site")
         # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je bezpiecznie (bez ruszenia JSONowych { })
         system_prompt_filled = SYSTEM_PROMPT.replace("{package_name}", package_name).replace("{credits}", str(credits))
+        # Doklej losowy template do system promptu — każda strona inny kolor/zdjęcia/układ
+        system_prompt_filled += f"\n\nWYLOSOWANY TEMPLATE {template['id']}/10: {template['name']} — paleta {template['palette']}, akcent {template['accent']}, zdjęcia: {template['images']}, layout: {template['layout']}. UŻYJ TEGO TEMPLATE (kolory/zdjęcia/układ)."
         
         user_prompt = f"""Dane firmy / instrukcja od użytkownika:
 ---
