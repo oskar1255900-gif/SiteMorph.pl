@@ -162,18 +162,18 @@ export const PublicLandingView = ({
           className="text-center space-y-6 max-w-3xl mx-auto"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold text-[#111111] dark:text-white bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 shadow-sm">
-            <Zap size={13} className="fill-current text-[#111111] dark:text-white" /> 
-            <span>Zamień AI w stały zysk - bez kodowania</span>
+            <Zap size={13} className="fill-current" /> 
+            <span className="v2-badge">v2 • Nowy hero — centralny • 2026</span>
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-[#111111] dark:text-white">
-            Buduj strony.<br />
-            <span className="inline-block" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635', letterSpacing: '-0.04em' }}>
-              Zarabiaj.
+            Strony, które<br />
+            <span className="inline-block" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400, color: '#111111', letterSpacing: '-0.04em' }}>
+              sprzedają.
             </span>
-            <span className="inline-block w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-[#111111] dark:bg-white ml-1 align-super animate-pulse" />
+            <span className="inline-block w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-[#a3e635] ml-2 align-super animate-pulse" />
           </h1>
           <p className="text-[#111111] dark:text-white text-sm sm:text-base font-semibold leading-relaxed max-w-xl mx-auto opacity-80">
-            Jedno zdanie → gotowa strona dla lokalnej firmy. Wyceniaj od 1 500 do 12 000 zł. Preview, poprawki i faktura w jednym miejscu.
+            Wpisz branżę i miasto — AI buduje gotowy serwis w 2 minuty. Preview LIVE, poprawki w locie, faktura bez prowizji.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="font-black shadow-lg">
@@ -211,9 +211,9 @@ export const PublicLandingView = ({
             </div>
             <div className="grid grid-cols-12 gap-4 pt-4">
               <div className="col-span-12 lg:col-span-5 space-y-4">
-                <div className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-lime-100 dark:bg-lime-900/30 text-lime-700 dark:text-lime-300">Otwarte codziennie • Kraków</div>
+                <div className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-lime-100 dark:bg-lime-900/30 text-lime-700 dark:text-lime-300">Kawiarnia • Warszawa • Specialty</div>
                 <h3 className="text-3xl font-black leading-tight">
-                  Zmień styl.<br />Poczuj się pewnie.
+                  Kawa, która<br />budzi miasto.
                 </h3>
                 <p className="text-sm font-semibold opacity-70 leading-relaxed">Studio Anna - strzyżenie, broda, modelowanie. Rezerwacja online, kawa na miejscu.</p>
                 <div className="flex gap-2">
