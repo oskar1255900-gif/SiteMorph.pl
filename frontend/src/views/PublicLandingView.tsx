@@ -166,12 +166,11 @@ export const PublicLandingView = ({
               ● Nowy — <span className="text-[#a3e635]">10 losowych templatów</span>
             </div>
             <h1 className="text-5xl sm:text-6xl lg:text-[72px] font-[700] tracking-[-0.03em] leading-[0.9] text-[#111111] dark:text-white">
-              Strony,<br />
-              które <span className="italic font-[400] pr-1" style={{ fontFamily: "'Instrument Serif', serif" }}>sprzedają</span><br />
-              nie szumią.
+              Buduj strony.<br />
+              <span className="italic font-[400] pr-1" style={{ fontFamily: "'Instrument Serif', serif" }}>Zarabiaj.</span>
             </h1>
             <p className="text-[17px] leading-[1.5] text-[#787774] max-w-[42ch]">
-              Jedno zdanie i masz gotowy serwis dla lokalnej firmy. Bez szablonów, bez fioletowych gradientów — tylko papier, tusz i jedna akcentowa barwa losowana per projekt.
+              Jedno zdanie → gotowa strona dla lokalnej firmy. Wyceniaj od 1 500 do 12 000 zł. Preview, poprawki i faktura w jednym miejscu.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="rounded-full px-6 shadow-none bg-[#111111] hover:bg-[#333333]">
