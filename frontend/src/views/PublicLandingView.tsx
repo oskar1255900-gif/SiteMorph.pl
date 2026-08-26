@@ -153,105 +153,82 @@ export const PublicLandingView = ({
   return (
     <div className="min-h-screen bg-white dark:bg-black text-[#111111] dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
-      {/* Hero Section - NOWY UKŁAD: centralny nagłówek + mockup poniżej, nie 1:1 */}
-      <section className="max-w-6xl mx-auto px-6 pt-10 lg:pt-16 pb-12 lg:pb-16 space-y-10 min-h-[100dvh] flex flex-col justify-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 30, filter: 'blur(16px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ type: 'spring' as const, stiffness: 90, damping: 18, delay: 0.05 }}
-          className="text-center space-y-6 max-w-3xl mx-auto"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold text-[#111111] dark:text-white bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 shadow-sm">
-            <Zap size={13} className="fill-current" /> 
-            <span className="v2-badge">v2 • Nowy hero — centralny • 2026</span>
-          </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-[#111111] dark:text-white">
-            Strony, które<br />
-            <span className="inline-block" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400, color: '#111111', letterSpacing: '-0.04em' }}>
-              sprzedają.
-            </span>
-            <span className="inline-block w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-[#a3e635] ml-2 align-super animate-pulse" />
-          </h1>
-          <p className="text-[#111111] dark:text-white text-sm sm:text-base font-semibold leading-relaxed max-w-xl mx-auto opacity-80">
-            Wpisz branżę i miasto — AI buduje gotowy serwis w 2 minuty. Preview LIVE, poprawki w locie, faktura bez prowizji.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="font-black shadow-lg">
-              Zacznij zarabiać <ArrowRight size={16} />
-            </Button>
-            <Button variant="outline" size="lg" onClick={() => onEnterApp('pricing')} className="font-black">
-              <Play size={15} className="fill-current" /> Zobacz 90s demo
-            </Button>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-[11px] font-bold opacity-60">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 2 847 stron zbudowanych w tym miesiącu
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 40, scale: 0.98, filter: 'blur(18px)' }}
-          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-          transition={{ type: 'spring' as const, stiffness: 80, damping: 18, delay: 0.18 }}
-          className="relative max-w-5xl mx-auto"
-          style={{ perspective: 1400 }}
-        >
-          <div className="pointer-events-none absolute -inset-12 -z-10 morph-blob bg-gradient-to-tr from-lime-200 via-emerald-100 to-blue-100 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-blue-500/10 blur-3xl opacity-60" />
-          <div className="rounded-[28px] p-4 sm:p-5 border shadow-2xl bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 relative">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-900">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold">
-                <span className="px-3 py-1 rounded-full bg-[#F7F6F3] dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">fryzjer-studio.pl - podgląd LIVE</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <div className="text-[10px] font-bold opacity-60 hidden sm:block">2 online</div>
+      {/* Hero — EDITORIAL SPLIT: lewa typografia + prawa horizontal pills, KOMPLETNIE inny niż centralny */}
+      <section className="max-w-[1400px] mx-auto px-6 pt-10 lg:pt-12 pb-12 lg:pb-16 min-h-[100dvh] flex flex-col justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <motion.div 
+            initial={{ opacity: 0, x: -40, filter: 'blur(12px)' }}
+            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+            className="lg:col-span-6 space-y-6"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] text-white text-[10px] font-black tracking-[0.18em] uppercase">
+              ● Nowy — <span className="text-[#a3e635]">10 losowych templatów</span>
             </div>
-            <div className="grid grid-cols-12 gap-4 pt-4">
-              <div className="col-span-12 lg:col-span-5 space-y-4">
-                <div className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-lime-100 dark:bg-lime-900/30 text-lime-700 dark:text-lime-300">Kawiarnia • Warszawa • Specialty</div>
-                <h3 className="text-3xl font-black leading-tight">
-                  Kawa, która<br />budzi miasto.
-                </h3>
-                <p className="text-sm font-semibold opacity-70 leading-relaxed">Studio Anna - strzyżenie, broda, modelowanie. Rezerwacja online, kawa na miejscu.</p>
-                <div className="flex gap-2">
-                  <span className="bg-[#111111] text-white dark:bg-white dark:text-black text-xs font-bold px-4 py-2 rounded-full shadow-md">Umów termin</span>
-                  <span className="border border-neutral-200 dark:border-neutral-800 text-xs font-bold px-4 py-2 rounded-full">Zobacz cennik</span>
-                </div>
-                <div className="flex items-center gap-3 pt-2">
-                  <div className="flex -space-x-2">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-lime-300 to-emerald-400 border-2 border-white dark:border-neutral-950" />
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 border-2 border-white dark:border-neutral-950" />
-                    <div className="w-7 h-7 rounded-full bg-neutral-900 text-white border-2 border-white dark:border-neutral-950 grid place-items-center text-[10px] font-black">+2k</div>
-                  </div>
-                  <span className="text-xs font-bold opacity-70">Zaufało nam 2 847 klientów</span>
-                </div>
-              </div>
-              <div className="col-span-12 lg:col-span-7 space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="h-28 rounded-2xl bg-gradient-to-br from-lime-200 to-emerald-300 shadow-sm border border-white dark:border-neutral-800" />
-                  <div className="h-28 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-200 shadow-sm border border-white dark:border-neutral-800" />
-                  <div className="h-28 rounded-2xl bg-gradient-to-br from-amber-200 to-orange-300 shadow-sm border border-white dark:border-neutral-800 relative">
-                    <div className="absolute bottom-2 right-2 bg-black text-white text-[8px] font-black px-2 py-1 rounded-full flex items-center gap-1">● LIVE</div>
-                  </div>
-                </div>
-                <div className="rounded-2xl border p-3 bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-[#111111] text-white grid place-items-center"><Wallet size={14} /></div>
-                    <div><div className="text-xs font-black">9 600 zł w tym tygodniu</div><div className="text-[10px] opacity-60 font-bold">Zbudowano w 2m 45s • AI</div></div>
-                  </div>
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">+18%</span>
-                </div>
-              </div>
+            <h1 className="text-5xl sm:text-6xl lg:text-[72px] font-[700] tracking-[-0.03em] leading-[0.9] text-[#111111] dark:text-white">
+              Strony,<br />
+              które <span className="italic font-[400] pr-1" style={{ fontFamily: "'Instrument Serif', serif" }}>sprzedają</span><br />
+              nie szumią.
+            </h1>
+            <p className="text-[17px] leading-[1.5] text-[#787774] max-w-[42ch]">
+              Jedno zdanie i masz gotowy serwis dla lokalnej firmy. Bez szablonów, bez fioletowych gradientów — tylko papier, tusz i jedna akcentowa barwa losowana per projekt.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="rounded-full px-6 shadow-none bg-[#111111] hover:bg-[#333333]">
+                Zacznij zarabiać <ArrowRight size={16} />
+              </Button>
+              <Button variant="outline" size="lg" onClick={() => onEnterApp('pricing')} className="rounded-full border-[#EAEAEA]">
+                <Play size={15} className="fill-current" /> 90s demo
+              </Button>
             </div>
-          </div>
-          <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity }} className="hidden lg:flex absolute -right-6 top-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3 rounded-2xl shadow-xl items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#111111] text-white grid place-items-center"><Zap size={14} className="fill-current" /></div>
-            <div><div className="text-xs font-black">Gotowe w 2m 45s</div><div className="text-[10px] opacity-60">Napędzane przez Laguna S-2.1</div></div>
+            <div className="flex items-center gap-3 text-[13px] pt-2">
+              <div className="flex -space-x-2">
+                <img src="https://picsum.photos/seed/a1/64/64" className="w-7 h-7 rounded-full border-2 border-white dark:border-black object-cover" alt="" />
+                <img src="https://picsum.photos/seed/a2/64/64" className="w-7 h-7 rounded-full border-2 border-white dark:border-black object-cover" alt="" />
+                <img src="https://picsum.photos/seed/a3/64/64" className="w-7 h-7 rounded-full border-2 border-white dark:border-black object-cover" alt="" />
+              </div>
+              <span className="font-[600]">2 847 stron</span><span className="text-[#787774]">w tym miesiącu • 4.9/5 (995 opinii)</span>
+            </div>
           </motion.div>
-        </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: 40, scale: 0.98, filter: 'blur(12px)' }}
+            animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+            className="lg:col-span-6 relative"
+          >
+            <div className="p-2 rounded-[32px] bg-[#F7F6F3] dark:bg-zinc-900 border border-[#EAEAEA] dark:border-white/[0.06]">
+              <div className="rounded-[24px] overflow-hidden bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                <div className="h-8 flex items-center gap-1.5 px-4 border-b border-[#EAEAEA] dark:border-white/[0.06] bg-[#F7F6F3] dark:bg-zinc-900">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]" />
+                  <span className="ml-auto text-[10px] font-mono text-[#787774]">hotfun-cafe.pl — LIVE</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
+                <div className="p-4 grid grid-cols-12 gap-3">
+                  <div className="col-span-5 space-y-3">
+                    <span className="inline-flex text-[9px] font-mono uppercase tracking-[0.14em] px-2 py-1 rounded-[4px] bg-[#E1F3FE] text-[#1F6C9F]">Kawiarnia • Warszawa</span>
+                    <h3 className="text-[22px] font-[700] leading-[1.1] tracking-[-0.02em]">Kawa, która<br />budzi miasto.</h3>
+                    <p className="text-[13px] leading-[1.5] text-[#787774]">Niemcewicza 3 — 5.0/5, 1 opinia. Czynne całą dobę.</p>
+                    <div className="flex gap-2">
+                      <span className="px-3 py-1.5 rounded-full bg-[#111111] text-white text-[11px] font-bold">Odwiedź nas</span>
+                      <span className="px-3 py-1.5 rounded-full border border-[#EAEAEA] text-[11px] font-bold">Menu</span>
+                    </div>
+                  </div>
+                  <div className="col-span-7 grid grid-cols-3 gap-2">
+                    <img src="https://picsum.photos/seed/coffee1/400/400" className="h-24 w-full object-cover rounded-[12px] border border-[#EAEAEA]" alt="" />
+                    <img src="https://picsum.photos/seed/coffee2/400/400" className="h-24 w-full object-cover rounded-[12px] border border-[#EAEAEA]" alt="" />
+                    <div className="h-24 rounded-[12px] bg-[#F7F6F3] border border-[#EAEAEA] flex flex-col items-center justify-center">
+                      <span className="text-[10px] font-mono uppercase tracking-widest">LIVE</span>
+                      <span className="text-[11px] font-bold">9 600 zł / tydz.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Ticker */}
