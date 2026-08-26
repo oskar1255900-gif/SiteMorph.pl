@@ -43,11 +43,11 @@ export const DashboardMainView = ({
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-4xl mx-auto py-8 px-6 space-y-8 pb-20 text-blue-600 dark:text-white"
+      className="max-w-4xl mx-auto py-8 px-6 space-y-8 pb-20 text-[#111111] dark:text-white"
     >
       <motion.div variants={itemVariants} className="flex justify-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border shadow-sm bg-white dark:bg-neutral-950 border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white">
-          <span className="bg-blue-600 text-white dark:bg-white dark:text-black text-[9px] font-black px-1.5 py-0.5 rounded-md">NOWOŚĆ</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border shadow-sm bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#111111] dark:text-white">
+          <span className="bg-[#111111] text-white dark:bg-white dark:text-black text-[9px] font-black px-1.5 py-0.5 rounded-md">NOWOŚĆ</span>
           Generowanie serwisów www nowej generacji <ArrowRight size={12} />
         </div>
       </motion.div>
@@ -115,23 +115,23 @@ export const DashboardMainView = ({
 
       <motion.div 
         variants={cineChild}
-        className="rounded-3xl p-6 border shadow-xl space-y-6 bg-white dark:bg-black border-blue-100 dark:border-neutral-900 text-blue-600 dark:text-white"
+        className="rounded-3xl p-6 border shadow-xl space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#111111] dark:text-white"
       >
-        <div className="flex items-center gap-2 text-xs font-bold border-b border-blue-100 dark:border-neutral-900 pb-3">
+        <div className="flex items-center gap-2 text-xs font-bold border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
           <div className="relative flex gap-2">
             {(['my', 'recent'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTabSub(tab)}
                 className={`relative px-4 py-1.5 rounded-full transition-colors cursor-pointer border-none font-black text-xs ${
-                  activeTabSub === tab ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white hover:opacity-75'
+                  activeTabSub === tab ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white hover:opacity-75'
                 }`}
               >
                 {activeTabSub === tab && (
                   <motion.div
                     layoutId="dashboardSubTab"
                     transition={springTransition}
-                    className="absolute inset-0 bg-blue-600 dark:bg-white rounded-full shadow-md"
+                    className="absolute inset-0 bg-[#111111] dark:bg-white rounded-full shadow-md"
                   />
                 )}
                 <span className="relative z-10">{tab === 'my' ? 'Moje projekty' : 'Ostatnio przeglądane'}</span>
@@ -152,7 +152,7 @@ export const DashboardMainView = ({
             <motion.div 
               animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.06, 1] }}
               transition={{ duration: 5, repeat: Infinity }}
-              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-lime-50 dark:from-neutral-900 dark:to-neutral-950 text-blue-600 dark:text-white flex items-center justify-center mb-1 border border-blue-200 dark:border-neutral-800 shadow-inner"
+              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-lime-50 dark:from-neutral-900 dark:to-neutral-950 text-[#111111] dark:text-white flex items-center justify-center mb-1 border border-[#EAEAEA] dark:border-neutral-800 shadow-inner"
             >
               {activeTabSub === 'my' ? <Sparkles size={28} className="text-emerald-400" /> : <Clock size={28} className="opacity-60" />}
             </motion.div>

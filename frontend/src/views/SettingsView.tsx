@@ -51,18 +51,18 @@ export const SettingsView = () => {
     }
   };
 
-  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-blue-600 dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-blue-50/40 dark:bg-neutral-950 border-blue-200 dark:border-neutral-800";
+  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
 
   return (
     <motion.div
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-3xl mx-auto py-8 px-6 pb-16 text-blue-600 dark:text-white"
+      className="max-w-3xl mx-auto py-8 px-6 pb-16 text-[#111111] dark:text-white"
       style={{ perspective: 1200 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-blue-600 dark:text-white border border-blue-200 dark:border-neutral-800">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
           <Settings size={22} />
         </div>
         <div>
@@ -72,14 +72,14 @@ export const SettingsView = () => {
       </motion.div>
 
       {needLogin ? (
-        <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-blue-50/40 dark:bg-neutral-950 border-blue-200 dark:border-neutral-800 text-center space-y-2">
+        <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-center space-y-2">
           <p className="text-sm font-black">Zaloguj się, aby zarządzać ustawieniami</p>
           <p className="text-xs font-bold opacity-70">Ustawienia są przypisane do Twojego konta SiteMorph.</p>
         </motion.div>
       ) : loading ? (
         <div className="py-16 text-center text-xs font-black opacity-60">Ładowanie…</div>
       ) : (
-        <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 space-y-4">
+        <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.hint ? 'sm:col-span-2' : ''}>

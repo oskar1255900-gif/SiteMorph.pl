@@ -47,10 +47,10 @@ export const DashboardSidebar = ({
   return (
     <motion.aside
       layout
-      className="hidden lg:flex w-64 border-r h-screen sticky top-0 flex-col justify-between z-30 shrink-0 select-none bg-white dark:bg-black border-blue-100 dark:border-neutral-900 text-blue-600 dark:text-white"
+      className="hidden lg:flex w-64 border-r h-screen sticky top-0 flex-col justify-between z-30 shrink-0 select-none bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#111111] dark:text-white"
     >
       <div>
-        <div className="h-16 flex items-center justify-between px-6 border-b border-blue-100 dark:border-neutral-900">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[#EAEAEA] dark:border-neutral-900">
           <motion.button 
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -58,7 +58,7 @@ export const DashboardSidebar = ({
             className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit"
           >
             <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
-            <span className="font-black text-base tracking-tight text-blue-600 dark:text-white">
+            <span className="font-black text-base tracking-tight text-[#111111] dark:text-white">
               Site<span className="font-story-script text-xl px-0.5" style={{ background: 'linear-gradient(135deg,#06b6d4 0%,#22d3ee 50%,#a3e635 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Morph</span>
             </span>
           </motion.button>
@@ -68,15 +68,15 @@ export const DashboardSidebar = ({
             whileTap={{ scale: 0.9 }}
             transition={springTransition}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-neutral-900 text-blue-600 dark:text-white cursor-pointer border-none bg-transparent"
+            className="p-1.5 rounded-lg hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 text-[#111111] dark:text-white cursor-pointer border-none bg-transparent"
           >
-            {theme === 'dark' ? <Sun size={15} className="text-white" /> : <Moon size={15} className="text-blue-600" />}
+            {theme === 'dark' ? <Sun size={15} className="text-white" /> : <Moon size={15} className="text-[#111111]" />}
           </motion.button>
         </div>
 
         <LayoutGroup id="sidebar-nav">
           <div className="p-3 space-y-1">
-            <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 text-blue-600 dark:text-white opacity-70">
+            <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 text-[#111111] dark:text-white opacity-70">
               MENU GŁÓWNE
             </div>
             {menuItems.map((item) => {
@@ -87,23 +87,23 @@ export const DashboardSidebar = ({
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black transition-colors cursor-pointer border-none ${
-                    isActive ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white hover:bg-blue-50/60 dark:hover:bg-neutral-900/60'
+                    isActive ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="sidebarActivePill"
                       transition={springTransition}
-                      className="absolute inset-0 bg-blue-600 dark:bg-white rounded-xl shadow-md"
+                      className="absolute inset-0 bg-[#111111] dark:bg-white rounded-xl shadow-md"
                     />
                   )}
                   <div className="flex items-center gap-2.5 relative z-10">
-                    <item.icon size={16} className={isActive ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white'} />
+                    <item.icon size={16} className={isActive ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white'} />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
                     <span className={`relative z-10 text-[9px] font-black px-1.5 py-0.5 rounded-md ${
-                      isActive ? 'bg-white text-blue-600 dark:bg-black dark:text-white' : 'bg-blue-100 text-blue-800 dark:bg-neutral-800 dark:text-white'
+                      isActive ? 'bg-white text-[#111111] dark:bg-black dark:text-white' : 'bg-blue-100 text-blue-800 dark:bg-neutral-800 dark:text-white'
                     }`}>
                       {item.badge}
                     </span>
@@ -114,37 +114,37 @@ export const DashboardSidebar = ({
           </div>
 
           <div className="p-3 pt-0">
-            <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 text-blue-600 dark:text-white opacity-70">
+            <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 text-[#111111] dark:text-white opacity-70">
               KONTO
             </div>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setActiveTab('settings')}
               className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-black transition-colors cursor-pointer border-none ${
-                activeTab === 'settings' ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white hover:bg-blue-50/60 dark:hover:bg-neutral-900/60'
+                activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
               }`}
             >
               {activeTab === 'settings' && (
                 <motion.div
                   layoutId="sidebarActivePill"
                   transition={springTransition}
-                  className="absolute inset-0 bg-blue-600 dark:bg-white rounded-xl shadow-md"
+                  className="absolute inset-0 bg-[#111111] dark:bg-white rounded-xl shadow-md"
                 />
               )}
-              <Settings size={16} className={`relative z-10 ${activeTab === 'settings' ? 'text-white dark:text-black' : 'text-blue-600 dark:text-white'}`} />
+              <Settings size={16} className={`relative z-10 ${activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white'}`} />
               <span className="relative z-10">Ustawienia</span>
             </motion.button>
           </div>
         </LayoutGroup>
       </div>
 
-      <div className="p-3 space-y-2 border-t border-blue-100 dark:border-neutral-900">
+      <div className="p-3 space-y-2 border-t border-[#EAEAEA] dark:border-neutral-900">
         <motion.div 
           whileHover={{ scale: 1.02 }}
-          className="p-3 rounded-2xl border flex items-center justify-between bg-blue-50/50 dark:bg-neutral-950 border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white"
+          className="p-3 rounded-2xl border flex items-center justify-between bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#111111] dark:text-white"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 text-white dark:bg-white dark:text-black flex items-center justify-center font-black">
+            <div className="w-7 h-7 rounded-lg bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center font-black">
               <Coins size={16} />
             </div>
             <div>
@@ -157,9 +157,9 @@ export const DashboardSidebar = ({
           </button>
         </motion.div>
 
-        <div className="p-2 flex items-center justify-between rounded-xl hover:bg-blue-50 dark:hover:bg-neutral-900 transition-colors">
+        <div className="p-2 flex items-center justify-between rounded-xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">
               O
             </div>
             <div className="min-w-0">
@@ -171,7 +171,7 @@ export const DashboardSidebar = ({
             whileHover={{ scale: 1.2, rotate: 10 }}
             whileTap={{ scale: 0.9 }}
             onClick={onExit} 
-            className="p-1 text-blue-600 dark:text-white hover:text-rose-500 cursor-pointer bg-transparent border-none" 
+            className="p-1 text-[#111111] dark:text-white hover:text-rose-500 cursor-pointer bg-transparent border-none" 
             title="Wyloguj"
           >
             <LogOut size={15} />

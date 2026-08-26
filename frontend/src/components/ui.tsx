@@ -128,11 +128,11 @@ export const Button = ({
   };
 
   const variantStyles = {
-    primary: 'bg-blue-600 text-white dark:bg-white dark:text-black shadow-lg shadow-blue-600/20 dark:shadow-white/10 hover:opacity-90',
+    primary: 'bg-[#111111] text-white dark:bg-white dark:text-black shadow-lg shadow-blue-600/20 dark:shadow-white/10 hover:opacity-90',
     lime: 'bg-gradient-to-r from-lime-300 to-emerald-400 text-black hover:opacity-95 font-black shadow-lg shadow-lime-400/20',
-    blue: 'bg-blue-600 text-white hover:bg-blue-700 font-black shadow-md shadow-blue-600/30',
-    outline: 'bg-transparent text-blue-600 dark:text-white border border-blue-300 dark:border-neutral-700 hover:bg-blue-50 dark:hover:bg-neutral-900',
-    ghost: 'bg-transparent text-blue-600 dark:text-white hover:bg-blue-50 dark:hover:bg-neutral-900'
+    blue: 'bg-[#111111] text-white hover:bg-blue-700 font-black shadow-md shadow-blue-600/30',
+    outline: 'bg-transparent text-[#111111] dark:text-white border border-blue-300 dark:border-neutral-700 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900',
+    ghost: 'bg-transparent text-[#111111] dark:text-white hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'
   };
 
   return (

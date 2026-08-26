@@ -365,7 +365,7 @@ export const BuilderFullView = ({
                 <motion.div
                   layoutId="builderModePill"
                   transition={springTransition}
-                  className="absolute inset-0 bg-blue-600 dark:bg-white rounded-lg shadow-sm"
+                  className="absolute inset-0 bg-[#111111] dark:bg-white rounded-lg shadow-sm"
                 />
               )}
               <span className="relative z-10 flex items-center gap-1.5">
@@ -475,7 +475,7 @@ export const BuilderFullView = ({
                   <button onClick={() => setBuilderPrompt(p => p + (p ? ' ' : '') + ` Dodaj galerię 6 prawdziwych zdjęć z Unsplash dla branży ${q1} (https://source.unsplash.com/800x600/?${encodeURIComponent(q1)})`)} className="px-2 py-0.5 rounded-full text-[10px] font-black border bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:brightness-95 flex items-center gap-1">
                     <ImageIcon size={10} /> Zdjęcia
                   </button>
-                  <button onClick={() => setIsProMode(!isProMode)} className={`px-2 py-0.5 rounded-full text-[10px] font-black cursor-pointer border ${isProMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent opacity-60 hover:opacity-100 border-blue-200 dark:border-neutral-700'}`}>
+                  <button onClick={() => setIsProMode(!isProMode)} className={`px-2 py-0.5 rounded-full text-[10px] font-black cursor-pointer border ${isProMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-transparent opacity-60 hover:opacity-100 border-[#EAEAEA] dark:border-neutral-700'}`}>
                     PRO · {cost} kr
                   </button>
                 </div>
@@ -486,10 +486,10 @@ export const BuilderFullView = ({
 
         <div
           onMouseDown={(e) => { e.preventDefault(); setIsDraggingSplit(true); }}
-          className={`hidden md:flex w-[9px] shrink-0 cursor-col-resize items-center justify-center transition-colors ${isDraggingSplit ? 'bg-blue-100 dark:bg-neutral-900' : 'hover:bg-blue-50 dark:hover:bg-neutral-900/60'}`}
+          className={`hidden md:flex w-[9px] shrink-0 cursor-col-resize items-center justify-center transition-colors ${isDraggingSplit ? 'bg-blue-100 dark:bg-neutral-900' : 'hover:bg-[#F7F6F3] dark:hover:bg-neutral-900/60'}`}
           title="Przeciągnij, aby zmienić szerokość panelu"
         >
-          <div className={`w-[3px] h-14 rounded-lg transition-colors ${isDraggingSplit ? 'bg-blue-500' : 'bg-blue-200 dark:bg-neutral-800'}`} />
+          <div className={`w-[3px] h-14 rounded-lg transition-colors ${isDraggingSplit ? 'bg-[#F7F6F3]0' : 'bg-blue-200 dark:bg-neutral-800'}`} />
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden flex bg-[#fcfcf9] dark:bg-[#0a0a0a] p-2 gap-2">
@@ -527,7 +527,7 @@ export const BuilderFullView = ({
                     <motion.span
                       key={i}
                       animate={{ scale: genStep === i ? 1.6 : 1, opacity: genStep === i ? 1 : 0.3 }}
-                      className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-white"
+                      className="w-1.5 h-1.5 rounded-full bg-[#111111] dark:bg-white"
                     />
                   ))}
                 </div>
@@ -558,10 +558,10 @@ export const BuilderFullView = ({
                 className="flex-1 flex min-h-0 overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="h-9 border-b border-[#EAEAEA] dark:border-white/[0.06] flex items-center justify-between px-3 bg-blue-50/40 dark:bg-neutral-950 text-[11px] font-bold shrink-0 gap-2">
+                  <div className="h-9 border-b border-[#EAEAEA] dark:border-white/[0.06] flex items-center justify-between px-3 bg-[#F7F6F3]/40 dark:bg-neutral-950 text-[11px] font-bold shrink-0 gap-2">
                     <span className="flex items-center gap-2 truncate"><Globe size={12} className="shrink-0" /> {generatedSite.domain} — Podgląd</span>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <button onClick={() => { const on = !isEditMode; setIsEditMode(on); try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = on ? 'true' : 'false'; } catch {} }} className={`px-2.5 py-1 rounded-full text-[10px] font-black border flex items-center gap-1 ${isEditMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-blue-50'}`}>
+                      <button onClick={() => { const on = !isEditMode; setIsEditMode(on); try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = on ? 'true' : 'false'; } catch {} }} className={`px-2.5 py-1 rounded-full text-[10px] font-black border flex items-center gap-1 ${isEditMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-[#F7F6F3]'}`}>
                         <MousePointer2 size={11} /> {isEditMode ? 'Edycja: ON' : 'Kliknij by edytować'}
                       </button>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black hidden sm:inline">LIVE</span>
@@ -609,7 +609,7 @@ export const BuilderFullView = ({
                   <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                     <div className="text-[10px] font-black opacity-60">Dostosuj, co tylko chcesz</div>
                     <p className="text-xs leading-relaxed opacity-80">Kliknij tekst w podglądzie (tryb edycji) lub poproś AI: „zmień nagłówek na…”, „dodaj zdjęcie”.</p>
-                    <button onClick={() => setIsEditMode(v => { const nv=!v; try{const d=previewRef.current?.contentDocument; if(d) d.body.contentEditable=nv?'true':'false';}catch{} return nv; })} className={`w-full py-2 rounded-xl text-xs font-black border ${isEditMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-blue-50'}`}>{isEditMode ? 'Wyłącz edycję' : 'Włącz edycję tekstu'}</button>
+                    <button onClick={() => setIsEditMode(v => { const nv=!v; try{const d=previewRef.current?.contentDocument; if(d) d.body.contentEditable=nv?'true':'false';}catch{} return nv; })} className={`w-full py-2 rounded-xl text-xs font-black border ${isEditMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-[#F7F6F3]'}`}>{isEditMode ? 'Wyłącz edycję' : 'Włącz edycję tekstu'}</button>
                     <div className="pt-3 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-2">
                       <div className="text-[10px] font-black opacity-60">Link do podglądu</div>
                       <div className="text-[11px] font-mono truncate bg-[#F7F6F3] dark:bg-zinc-900 p-2 rounded-lg border border-[#EAEAEA] dark:border-white/[0.08]">{generatedSite.domain}</div>
@@ -629,7 +629,7 @@ export const BuilderFullView = ({
                               onChange={(e) => setRenameDraft(e.target.value)}
                               onBlur={() => handleRenameProject(p.id)}
                               onKeyDown={(e) => { if (e.key === 'Enter') handleRenameProject(p.id); if (e.key === 'Escape') setRenamingId(null); }}
-                              className="w-full text-[11px] font-bold bg-blue-50 dark:bg-neutral-950 border border-[#EAEAEA] dark:border-white/[0.08] rounded px-1.5 py-0.5 outline-none"
+                              className="w-full text-[11px] font-bold bg-[#F7F6F3] dark:bg-neutral-950 border border-[#EAEAEA] dark:border-white/[0.08] rounded px-1.5 py-0.5 outline-none"
                             />
                           ) : (
                             <button onClick={() => { setRenameDraft(p.name); setRenamingId(p.id); }} className="w-full text-left text-[11px] font-black truncate hover:text-emerald-500 flex items-center gap-1 cursor-pointer bg-transparent border-none text-inherit">
@@ -637,7 +637,7 @@ export const BuilderFullView = ({
                             </button>
                           )}
                           <div className="flex gap-1">
-                            <button onClick={() => handleLoadProject(p)} className="flex-1 py-1 rounded-md text-[10px] font-black bg-blue-50 dark:bg-neutral-950 border border-[#EAEAEA] dark:border-white/[0.08] hover:bg-blue-100 cursor-pointer">Wczytaj</button>
+                            <button onClick={() => handleLoadProject(p)} className="flex-1 py-1 rounded-md text-[10px] font-black bg-[#F7F6F3] dark:bg-neutral-950 border border-[#EAEAEA] dark:border-white/[0.08] hover:bg-blue-100 cursor-pointer">Wczytaj</button>
                             <button onClick={() => handleDeleteProject(p.id)} className="px-2 py-1 rounded-md text-[10px] font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-neutral-950 border border-transparent hover:border-rose-200 cursor-pointer bg-transparent"><Trash2 size={11} /></button>
                           </div>
                         </div>
@@ -654,7 +654,7 @@ export const BuilderFullView = ({
                 exit={{ opacity: 0 }}
                 className="flex-1 flex font-mono text-xs overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
-                <div className="w-56 bg-blue-50 dark:bg-neutral-950 border-r border-blue-200 dark:border-neutral-900 p-3 space-y-1 overflow-y-auto no-scrollbar">
+                <div className="w-56 bg-[#F7F6F3] dark:bg-neutral-950 border-r border-[#EAEAEA] dark:border-neutral-900 p-3 space-y-1 overflow-y-auto no-scrollbar">
                   <span className="text-[9px] font-black block mb-2 opacity-70 uppercase tracking-wider">Drzewo plikow — Vite</span>
                   {Object.keys(generatedSite.files).map((fname) => (
                     <button

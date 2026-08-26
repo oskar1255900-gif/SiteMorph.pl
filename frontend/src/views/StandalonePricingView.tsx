@@ -14,7 +14,7 @@ export const StandalonePricingView = () => {
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-6xl mx-auto py-6 lg:py-10 px-6 lg:px-4 space-y-10 pb-24 text-blue-600 dark:text-white"
+      className="max-w-6xl mx-auto py-6 lg:py-10 px-6 lg:px-4 space-y-10 pb-24 text-[#111111] dark:text-white"
       style={{ perspective: 1600 }}
     >
       <motion.div variants={cineSoft} className="text-center space-y-3 relative">
@@ -55,11 +55,11 @@ export const StandalonePricingView = () => {
               className={`rounded-3xl p-7 lg:p-8 flex flex-col justify-between border transition-all relative shadow-xl ${
                 plan.popular
                   ? 'border-blue-600 dark:border-white ring-2 ring-blue-600/20 dark:ring-white/20'
-                  : 'bg-white dark:bg-black border-blue-100 dark:border-neutral-900'
+                  : 'bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white dark:bg-white dark:text-black text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#111111] text-white dark:bg-white dark:text-black text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
                   Najpopularniejszy
                 </div>
               )}
@@ -73,11 +73,11 @@ export const StandalonePricingView = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5 mb-6">
-                  <div className="p-3 rounded-xl text-center border bg-blue-50/60 dark:bg-neutral-950 border-blue-100 dark:border-neutral-900">
+                  <div className="p-3 rounded-xl text-center border bg-[#F7F6F3]/60 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
                     <div className="text-base font-black text-emerald-500">{plan.credits}</div>
                     <div className="text-[10px] uppercase font-black opacity-60 tracking-wide">Kredytów</div>
                   </div>
-                  <div className="p-3 rounded-xl text-center border bg-blue-50/60 dark:bg-neutral-950 border-blue-100 dark:border-neutral-900">
+                  <div className="p-3 rounded-xl text-center border bg-[#F7F6F3]/60 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
                     <div className="text-base font-black text-emerald-500">{plan.name === 'Agencja' ? '∞' : plan.name === 'Business' ? '100' : plan.name === 'Pro' ? '25' : '5'}</div>
                     <div className="text-[10px] uppercase font-black opacity-60 tracking-wide">Projektów</div>
                   </div>
@@ -107,7 +107,7 @@ export const StandalonePricingView = () => {
       </motion.div>
 
       {/* Sklep kredytów — zakup pojedynczy bez pakietu */}
-      <motion.div variants={cineSoft} className="rounded-3xl border p-6 lg:p-8 bg-white dark:bg-black border-blue-100 dark:border-neutral-800 space-y-4">
+      <motion.div variants={cineSoft} className="rounded-3xl border p-6 lg:p-8 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 space-y-4">
         <div className="flex items-center gap-2">
           <Coins size={18} className="text-emerald-500" />
           <h3 className="text-lg font-black">Dokup kredyty jednorazowo</h3>
@@ -121,7 +121,7 @@ export const StandalonePricingView = () => {
             { c: 250, price: 200 },
             { c: 500, price: 450 },
           ].map(p => (
-            <div key={p.c} className="rounded-2xl border p-4 flex flex-col gap-3 bg-blue-50/40 dark:bg-neutral-950 border-blue-100 dark:border-neutral-800">
+            <div key={p.c} className="rounded-2xl border p-4 flex flex-col gap-3 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
               <div className="text-2xl font-black">{p.c} <span className="text-xs opacity-60">kredytów</span></div>
               <div className="text-sm font-black">{p.price} zł <span className="text-[10px] opacity-60">jednorazowo</span></div>
               <Button size="sm" onClick={async () => {

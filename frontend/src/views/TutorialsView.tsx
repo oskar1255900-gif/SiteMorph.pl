@@ -75,11 +75,11 @@ export const TutorialsView = () => {
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 pb-16 text-blue-600 dark:text-white"
+      className="max-w-5xl mx-auto py-8 px-6 pb-16 text-[#111111] dark:text-white"
       style={{ perspective: 1600 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-blue-600 dark:text-white border border-blue-200 dark:border-neutral-800">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
           <GraduationCap size={22} />
         </div>
         <div>
@@ -96,18 +96,18 @@ export const TutorialsView = () => {
             variants={cineStagger}
             whileHover={{ y: -8, scale: 1.02, rotateX: 6 }}
             onClick={() => setActiveGuide(i)}
-            className="rounded-2xl p-6 border shadow-xl transition-all flex flex-col justify-between cursor-pointer bg-white dark:bg-black border-blue-100 dark:border-neutral-900 hover:border-blue-300 dark:hover:border-neutral-700 hover:shadow-2xl"
+            className="rounded-2xl p-6 border shadow-xl transition-all flex flex-col justify-between cursor-pointer bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 hover:border-blue-300 dark:hover:border-neutral-700 hover:shadow-2xl"
             style={{ transformStyle: 'preserve-3d' }}
           >
             <div>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-50 dark:bg-neutral-900 border border-blue-200 dark:border-neutral-800">{g.category}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800">{g.category}</span>
                 <span className="text-[10px] font-black flex items-center gap-1"><Clock size={12} /> {g.time}</span>
               </div>
               <h3 className="text-base font-black mb-1 leading-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{g.title}</h3>
               <p className="text-xs font-bold opacity-70 leading-relaxed">{g.excerpt}</p>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-blue-100 dark:border-neutral-900 mt-4">
+            <div className="flex items-center justify-between pt-4 border-t border-[#EAEAEA] dark:border-neutral-900 mt-4">
               <span className="text-[11px] font-bold opacity-80">Poziom: {g.level}</span>
               <span className="text-xs font-black flex items-center gap-1 text-emerald-500">Czytaj poradnik <ArrowRight size={14} /></span>
             </div>
@@ -130,16 +130,16 @@ export const TutorialsView = () => {
               exit={{ scale: 0.96, y: 12, opacity: 0, filter: 'blur(10px)' }}
               transition={{ type: 'spring' as const, stiffness: 280, damping: 24 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl max-h-[86vh] overflow-hidden rounded-3xl bg-white dark:bg-neutral-950 border border-blue-100 dark:border-neutral-800 shadow-2xl flex flex-col"
+              className="relative w-full max-w-2xl max-h-[86vh] overflow-hidden rounded-3xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl flex flex-col"
               style={{ perspective: 1200 }}
             >
               <div className="pointer-events-none absolute -top-24 -right-24 w-[340px] h-[340px] bg-gradient-to-tr from-lime-200 via-emerald-200 to-lime-100 opacity-25 blur-2xl legal-blob" />
-              <div className="relative flex items-center justify-between p-6 border-b border-blue-100 dark:border-neutral-900 bg-white/85 dark:bg-neutral-950/85 backdrop-blur sticky top-0">
+              <div className="relative flex items-center justify-between p-6 border-b border-[#EAEAEA] dark:border-neutral-900 bg-white/85 dark:bg-neutral-950/85 backdrop-blur sticky top-0">
                 <div className="pr-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} Â· {ACADEMY_GUIDES[activeGuide].time}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} Â· {ACADEMY_GUIDES[activeGuide].time}</div>
                   <h3 className="text-lg font-black tracking-tight mt-1.5 leading-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{ACADEMY_GUIDES[activeGuide].title}</h3>
                 </div>
-                <motion.button whileHover={{ scale: 1.08, rotate: 90 }} whileTap={{ scale: 0.92 }} onClick={() => setActiveGuide(null)} className="w-8 h-8 rounded-full grid place-items-center bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800 cursor-pointer shrink-0">
+                <motion.button whileHover={{ scale: 1.08, rotate: 90 }} whileTap={{ scale: 0.92 }} onClick={() => setActiveGuide(null)} className="w-8 h-8 rounded-full grid place-items-center bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 cursor-pointer shrink-0">
                   <X size={14} />
                 </motion.button>
               </div>
@@ -150,7 +150,7 @@ export const TutorialsView = () => {
                     <p className="text-xs font-medium leading-relaxed opacity-85 whitespace-pre-wrap">{s.p}</p>
                   </div>
                 ))}
-                <div className="pt-4 flex justify-end border-t border-blue-100 dark:border-neutral-900">
+                <div className="pt-4 flex justify-end border-t border-[#EAEAEA] dark:border-neutral-900">
                   <Button variant="primary" size="sm" onClick={() => setActiveGuide(null)}>Zamknij</Button>
                 </div>
               </div>

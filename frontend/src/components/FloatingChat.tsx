@@ -21,9 +21,9 @@ export const FloatingChat = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.85, y: 20 }}
           transition={springTransition}
-          className="rounded-3xl shadow-2xl border w-80 p-4 mb-3 bg-white dark:bg-black border-blue-200 dark:border-neutral-900 text-blue-600 dark:text-white"
+          className="rounded-3xl shadow-2xl border w-80 p-4 mb-3 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#111111] dark:text-white"
         >
-          <div className="flex justify-between items-center border-b border-blue-100 dark:border-neutral-900 pb-3 mb-3">
+          <div className="flex justify-between items-center border-b border-[#EAEAEA] dark:border-neutral-900 pb-3 mb-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="font-black text-xs">Wsparcie SiteMorph</span>
@@ -36,19 +36,19 @@ export const FloatingChat = ({
               <X size={14} />
             </motion.button>
           </div>
-          <div className="text-xs p-3 rounded-xl mb-3 border font-bold bg-blue-50/50 dark:bg-neutral-950 border-blue-100 dark:border-neutral-900">
+          <div className="text-xs p-3 rounded-xl mb-3 border font-bold bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
             Cześć! W czym możemy Ci dzisiaj pomóc?
           </div>
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="Wpisz wiadomość..."
-              className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold outline-none border text-blue-600 dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-blue-50/40 dark:bg-neutral-950 border-blue-200 dark:border-neutral-800"
+              className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800"
             />
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="bg-blue-600 text-white dark:bg-white dark:text-black p-1.5 rounded-lg cursor-pointer border-none shadow-sm font-black"
+              className="bg-[#111111] text-white dark:bg-white dark:text-black p-1.5 rounded-lg cursor-pointer border-none shadow-sm font-black"
             >
               <Send size={14} />
             </motion.button>
@@ -61,7 +61,7 @@ export const FloatingChat = ({
       whileTap={{ scale: 0.9 }}
       transition={springTransition}
       onClick={() => setChatOpen(!chatOpen)}
-      className="w-12 h-12 rounded-full flex items-center justify-center font-black shadow-2xl cursor-pointer border-none bg-blue-600 text-white dark:bg-white dark:text-black"
+      className="w-12 h-12 rounded-full flex items-center justify-center font-black shadow-2xl cursor-pointer border-none bg-[#111111] text-white dark:bg-white dark:text-black"
     >
       <MessageSquare size={20} />
     </motion.button>

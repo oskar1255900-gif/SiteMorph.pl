@@ -398,7 +398,7 @@ export const LeadFinderView = ({
                         value={cityQuery}
                         onChange={(e) => setCityQuery(e.target.value)}
                         placeholder="Filtruj lub wybierz z listy..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-blue-50/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
                     <p className="text-[10px] font-bold opacity-50 mt-1.5 px-1">{country ? (citiesLoading ? 'Pobieram pełną listę miejscowości...' : `${allCities.length} miejscowości — przewiń lub wpisz nazwę, aby zawęzić`) : 'Pełna lista miast — najpierw wybierz kraj'}</p>
@@ -414,7 +414,7 @@ export const LeadFinderView = ({
                       <button
                         key={`${r.osm_type}_${r.osm_id}_${foldPl(r.name)}`}
                         onClick={() => { setCitySelected(r.name); setCityDetails(r); setCityQuery(r.name); setCityOpen(false) }}
-                        className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-900 last:border-0 transition ${citySelected === r.name ? 'bg-blue-50 dark:bg-neutral-900' : ''}`}
+                        className={`w-full text-left px-4 py-2.5 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-900 last:border-0 transition ${citySelected === r.name ? 'bg-[#F7F6F3] dark:bg-neutral-900' : ''}`}
                       >
                         <div className="text-[13px] font-black leading-tight">{r.name}</div>
                         <div className="text-[11px] font-semibold opacity-60 leading-tight truncate">{r.display_name}</div>
@@ -462,7 +462,7 @@ export const LeadFinderView = ({
                         value={industryQuery}
                         onChange={(e) => setIndustryQuery(e.target.value)}
                         placeholder="Filtruj branżę, np. Stomatolog, Hydraulik..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-blue-50/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
                   </div>
@@ -472,7 +472,7 @@ export const LeadFinderView = ({
                       <button
                         key={ind}
                         onClick={() => { setIndustry(ind); setIndustryQuery(''); setIndustryOpen(false) }}
-                        className={`w-full text-left px-4 py-2.5 text-[13px] font-semibold hover:bg-blue-50 dark:hover:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-900 last:border-0 transition ${industry===ind ? 'bg-blue-600 text-white dark:bg-white dark:text-black hover:bg-blue-600 dark:hover:bg-white' : ''}`}
+                        className={`w-full text-left px-4 py-2.5 text-[13px] font-semibold hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-900 last:border-0 transition ${industry===ind ? 'bg-[#111111] text-white dark:bg-white dark:text-black hover:bg-[#111111] dark:hover:bg-white' : ''}`}
                       >
                         {ind}
                       </button>
@@ -483,7 +483,7 @@ export const LeadFinderView = ({
             </AnimatePresence>
           </div>
         </div>
-        <label className="flex items-center gap-3 p-3.5 rounded-lg border bg-blue-50/50 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 cursor-pointer hover:bg-blue-50 dark:hover:bg-neutral-900/80 transition">
+        <label className="flex items-center gap-3 p-3.5 rounded-lg border bg-[#F7F6F3]/50 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer hover:bg-[#F7F6F3] dark:hover:bg-neutral-900/80 transition">
           <input type="checkbox" checked={onlyWithoutWebsite} onChange={(e) => setOnlyWithoutWebsite(e.target.checked)} className="sm-check" />
           <span className="text-[13px] font-bold">Tylko firmy bez strony</span>
           <span className="ml-auto text-[11px] font-bold opacity-50">domyślnie zaznaczone</span>
@@ -500,7 +500,7 @@ export const LeadFinderView = ({
       </motion.div>
       {!hasSearched ? (
         <motion.div variants={cineSoft} className="p-10 rounded-lg border text-center space-y-3 shadow-sm bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] max-w-2xl mx-auto">
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto shadow-sm bg-blue-50 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto shadow-sm bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
             <Search size={20} className="opacity-60" />
           </div>
           <h3 className="text-[15px] font-black">Wybierz filtry i kliknij Szukaj leadów</h3>
@@ -513,9 +513,9 @@ export const LeadFinderView = ({
           {isSearching && <div className="p-8 rounded-lg border bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] flex flex-col items-center gap-3"><span className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /><span className="text-[13px] font-bold">Szukam firm w OSM — to może potrwać 3–8s...</span></div>}
           {!isSearching && (
             <>
-              <div className="flex flex-wrap items-center gap-2 text-[13px] font-black p-3 rounded-lg bg-blue-50/60 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
+              <div className="flex flex-wrap items-center gap-2 text-[13px] font-black p-3 rounded-lg bg-[#F7F6F3]/60 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
                 <span>Znalezione firmy: {leads.length}</span><span className="opacity-30">•</span><span className="text-amber-600 dark:text-amber-400">Bez strony: {noWebsiteCount}</span><span className="opacity-30">•</span><span className="text-emerald-600 dark:text-emerald-400">Ze stroną: {withWebsiteCount}</span>
-                <button onClick={exportCsv} disabled={displayLeads.length===0} className="ml-auto text-[11px] font-black px-3 py-1.5 rounded-lg border bg-white dark:bg-neutral-950 border-blue-200 dark:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-800 disabled:opacity-40">Eksport CSV</button>
+                <button onClick={exportCsv} disabled={displayLeads.length===0} className="ml-auto text-[11px] font-black px-3 py-1.5 rounded-lg border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800 disabled:opacity-40">Eksport CSV</button>
               </div>
               {leads.length > 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-[12px] font-semibold text-amber-800 dark:text-amber-300">
@@ -526,7 +526,7 @@ export const LeadFinderView = ({
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex rounded-lg border overflow-hidden bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] p-1 gap-1">
                   {(['all','no-website','has-website'] as const).map(f => (
-                    <button key={f} onClick={() => setWebsiteFilter(f)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black transition ${websiteFilter===f ? 'bg-blue-600 text-white dark:bg-white dark:text-black shadow-sm' : 'hover:bg-blue-50 dark:hover:bg-neutral-900'}`}>
+                    <button key={f} onClick={() => setWebsiteFilter(f)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black transition ${websiteFilter===f ? 'bg-[#111111] text-white dark:bg-white dark:text-black shadow-sm' : 'hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'}`}>
                       {f==='all' ? 'Wszystkie' : f==='no-website' ? 'Bez strony' : 'Ze stroną'}
                     </button>
                   ))}
@@ -578,11 +578,11 @@ export const LeadFinderView = ({
                           </div>
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-50 dark:border-neutral-900">
                             <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>
-                            <button onClick={() => copyLeadInfo(l)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition inline-flex items-center gap-1.5 ${copiedId===String(l.id) ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-white dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-800'}`}>
+                            <button onClick={() => copyLeadInfo(l)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition inline-flex items-center gap-1.5 ${copiedId===String(l.id) ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800'}`}>
                               <CopyIcon size={12} className="shrink-0" />
                               {copiedId===String(l.id) ? '✓ Skopiowano' : 'Kopiuj dane'}
                             </button>
-                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-[12px] font-black border bg-white dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-800">Otwórz w mapach</a>
+                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-[12px] font-black border bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800">Otwórz w mapach</a>
                             <button onClick={() => onGenerateSiteForLead(l)} className="px-3 py-1.5 rounded-lg text-[12px] font-black border bg-lime-300 text-black border-lime-400 hover:bg-lime-400">Stwórz stronę</button>
                           </div>
                           <p className="text-[10px] font-semibold opacity-50 leading-snug -mt-1">
@@ -595,8 +595,8 @@ export const LeadFinderView = ({
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-[12px] font-bold opacity-60">Strona {currentPage} z {totalPages} • {displayLeads.length} wyników • 20/stronę</span>
                     <div className="flex gap-2">
-                      <button disabled={currentPage<=1} onClick={() => setCurrentPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] disabled:opacity-40 hover:bg-blue-50 dark:hover:bg-neutral-900">Poprzednia</button>
-                      <button disabled={currentPage>=totalPages} onClick={() => setCurrentPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] disabled:opacity-40 hover:bg-blue-50 dark:hover:bg-neutral-900">Następna</button>
+                      <button disabled={currentPage<=1} onClick={() => setCurrentPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] disabled:opacity-40 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900">Poprzednia</button>
+                      <button disabled={currentPage>=totalPages} onClick={() => setCurrentPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] disabled:opacity-40 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900">Następna</button>
                     </div>
                   </div>
                 </>

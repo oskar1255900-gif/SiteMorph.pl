@@ -21,7 +21,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
 
-  const inputClasses = "w-full rounded-xl px-3 py-2 text-xs font-bold outline-none border text-blue-600 dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-blue-50/40 dark:bg-neutral-950 border-blue-200 dark:border-neutral-800";
+  const inputClasses = "w-full rounded-xl px-3 py-2 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
 
   const handleAdminLogin = async () => {
     if (!adminPass.trim()) { setAdminErr('Wpisz hasło'); return; }
@@ -56,11 +56,11 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 pb-16 text-blue-600 dark:text-white"
+      className="max-w-5xl mx-auto py-8 px-6 pb-16 text-[#111111] dark:text-white"
       style={{ perspective: 1200 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-blue-600 dark:text-white border border-blue-200 dark:border-neutral-800">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
           <HelpCircle size={22} />
         </div>
         <div>
@@ -71,7 +71,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         <motion.div variants={cineParent} initial="hidden" animate="visible" className="md:col-span-4 space-y-4">
-          <motion.div variants={cineChild} className="rounded-2xl p-5 border shadow-xl bg-white dark:bg-black border-blue-100 dark:border-neutral-900">
+          <motion.div variants={cineChild} className="rounded-2xl p-5 border shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
             <h3 className="text-sm font-black mb-1">Kontakt bezpośredni</h3>
             <p className="text-xs font-bold mb-3 opacity-80">Napisz bezpośrednio na nasz email:</p>
             <a href="mailto:support@sitemorph.ai" className="text-xs font-black text-emerald-400 hover:underline">support@sitemorph.ai</a>
@@ -83,7 +83,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="md:col-span-8 rounded-3xl p-8 border shadow-xl bg-white dark:bg-black border-blue-100 dark:border-neutral-900">
+        <motion.div variants={itemVariants} className="md:col-span-8 rounded-3xl p-8 border shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
           {sent ? (
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -103,7 +103,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
                 <label className="text-[10px] font-black block mb-2 uppercase opacity-75">Czego dotyczy zgłoszenie?</label>
                 <div className="grid grid-cols-2 gap-3">
                   {['Sugerowana funkcja', 'Błąd na stronie', 'Pytanie ogólne', 'Inne'].map((item, idx) => (
-                    <label key={idx} className="flex items-center gap-2 text-xs font-black p-3 rounded-xl border cursor-pointer border-blue-200 dark:border-neutral-900 bg-blue-50/40 dark:bg-neutral-950">
+                    <label key={idx} className="flex items-center gap-2 text-xs font-black p-3 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-900 bg-[#F7F6F3]/40 dark:bg-neutral-950">
                       <input type="radio" name="category" defaultChecked={idx === 0} className="accent-blue-600 dark:accent-white" />
                       {item}
                     </label>
@@ -146,11 +146,11 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
               exit={{ scale: 0.98, y: 6, opacity: 0 }}
               transition={{ type: 'spring' as const, stiffness: 340, damping: 22 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-950 border border-blue-100 dark:border-neutral-800 shadow-2xl p-6 space-y-4"
+              className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl p-6 space-y-4"
             >
               <div className="relative flex items-center justify-between">
                 <h3 className="text-base font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Panel administratora</h3>
-                <button onClick={() => { setShowAdminLogin(false); setAdminErr(''); }} className="w-7 h-7 rounded-full grid place-items-center bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800 cursor-pointer">
+                <button onClick={() => { setShowAdminLogin(false); setAdminErr(''); }} className="w-7 h-7 rounded-full grid place-items-center bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
                   <X size={12} />
                 </button>
               </div>
@@ -161,7 +161,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
                 onChange={(e) => setAdminPass(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAdminLogin(); }}
                 placeholder="Hasło administratora"
-                className="relative w-full rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none border bg-blue-50/60 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800"
+                className="relative w-full rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none border bg-[#F7F6F3]/60 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800"
                 autoFocus
               />
               {adminErr && <p className="text-xs font-black text-rose-600 dark:text-rose-400">{adminErr}</p>}

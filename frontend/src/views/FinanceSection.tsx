@@ -158,7 +158,7 @@ export const FinanceSection = () => {
 
   const totalRevenue = invoices.reduce((s, i) => s + (i.total || 0), 0);
 
-  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-blue-600 dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-blue-50/40 dark:bg-neutral-950 border-blue-200 dark:border-neutral-800";
+  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
 
   const enabledMethods = [
     usePrzelew && 'przelew',
@@ -171,9 +171,9 @@ export const FinanceSection = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-blue-600 dark:text-white"
+      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[#111111] dark:text-white"
     >
-      <div className="flex items-center justify-between border-b border-blue-100 dark:border-neutral-900 pb-3">
+      <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
         <div>
           <h2 className="text-xl font-black">Finanse i Księgowość</h2>
           <p className="text-xs font-bold opacity-80">
@@ -204,7 +204,7 @@ export const FinanceSection = () => {
                 {idx > 0 && <span className="w-8 h-px bg-blue-200 dark:bg-neutral-800" />}
                 <span className={`flex items-center gap-2 ${setupStep >= step.n ? 'text-emerald-500 font-black' : 'opacity-70'}`}>
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] ${
-                    setupStep >= step.n ? 'bg-lime-400 text-neutral-900 shadow-sm' : 'bg-blue-100 dark:bg-neutral-900 text-blue-600 dark:text-white'
+                    setupStep >= step.n ? 'bg-lime-400 text-neutral-900 shadow-sm' : 'bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white'
                   }`}>{step.n}</span>
                   {step.label}
                 </span>
@@ -214,7 +214,7 @@ export const FinanceSection = () => {
 
           <motion.div
             layout
-            className="p-6 rounded-3xl border text-left space-y-4 shadow-xl bg-white dark:bg-black border-blue-100 dark:border-neutral-900"
+            className="p-6 rounded-3xl border text-left space-y-4 shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
           >
             {setupStep === 1 && (
               <div className="space-y-3">
@@ -250,7 +250,7 @@ export const FinanceSection = () => {
                 <h4 className="font-black text-sm">Krok 2: Metody rozliczeń</h4>
                 <p className="text-xs font-bold opacity-80">Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-blue-100 dark:border-neutral-800 bg-blue-50/40 dark:bg-neutral-950">
+                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
                   <span className="text-xs font-black">Przelew bankowy (IBAN)</span>
                   <input type="checkbox" className="sm-check" checked={usePrzelew} onChange={(e) => setUsePrzelew(e.target.checked)} />
                 </label>
@@ -261,7 +261,7 @@ export const FinanceSection = () => {
                   </div>
                 )}
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-blue-100 dark:border-neutral-800 bg-blue-50/40 dark:bg-neutral-950">
+                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
                   <span className="text-xs font-black">BLIK na telefon</span>
                   <input type="checkbox" className="sm-check" checked={useBlik} onChange={(e) => setUseBlik(e.target.checked)} />
                 </label>
@@ -269,7 +269,7 @@ export const FinanceSection = () => {
                   <input type="tel" value={blikPhone} onChange={(e) => setBlikPhone(e.target.value)} placeholder="+48 500 000 000" className={inputClasses} />
                 )}
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-blue-100 dark:border-neutral-800 bg-blue-50/40 dark:bg-neutral-950">
+                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
                   <span className="text-xs font-black">PayPal</span>
                   <input type="checkbox" className="sm-check" checked={usePaypal} onChange={(e) => setUsePaypal(e.target.checked)} />
                 </label>
@@ -290,7 +290,7 @@ export const FinanceSection = () => {
                   ['BLIK', useBlik ? (blikPhone || '—') : 'wyłączony'],
                   ['PayPal', usePaypal ? (paypalLink || '—') : 'wyłączony'],
                 ].map(([label, value], i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-blue-100 dark:border-neutral-900 last:border-none">
+                  <div key={i} className="flex justify-between py-2 border-b border-[#EAEAEA] dark:border-neutral-900 last:border-none">
                     <span className="font-bold opacity-75">{label}:</span>
                     <span className="font-black truncate max-w-[60%]">{value}</span>
                   </div>
@@ -337,13 +337,13 @@ export const FinanceSection = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               { title: 'Łączna wartość faktur', value: `${totalRevenue.toFixed(2)} zł`, color: 'text-emerald-500' },
-              { title: 'Wystawione faktury', value: invoices.length, color: 'text-blue-600 dark:text-white' },
-              { title: 'Wysłane e-mailem', value: invoices.filter((i) => i.sent_to).length, color: 'text-blue-600 dark:text-white' }
+              { title: 'Wystawione faktury', value: invoices.length, color: 'text-[#111111] dark:text-white' },
+              { title: 'Wysłane e-mailem', value: invoices.filter((i) => i.sent_to).length, color: 'text-[#111111] dark:text-white' }
             ].map((stat, i) => (
               <motion.div
                 whileHover={{ y: -3 }}
                 key={i}
-                className="p-4 rounded-2xl border shadow-lg bg-white dark:bg-black border-blue-100 dark:border-neutral-900"
+                className="p-4 rounded-2xl border shadow-lg bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
               >
                 <span className="text-[10px] font-black uppercase tracking-wider block mb-1 opacity-70">{stat.title}</span>
                 <span className={`text-xl font-black ${stat.color}`}>{stat.value}</span>
@@ -351,7 +351,7 @@ export const FinanceSection = () => {
             ))}
           </div>
 
-          <div className="p-6 rounded-3xl border shadow-xl space-y-4 bg-white dark:bg-black border-blue-100 dark:border-neutral-900">
+          <div className="p-6 rounded-3xl border shadow-xl space-y-4 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
             <div className="flex items-center justify-between">
               <span className="text-sm font-black">Rejestr faktur</span>
               <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-xs font-black">
@@ -361,7 +361,7 @@ export const FinanceSection = () => {
 
             {invoices.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2 border shadow-sm bg-blue-50 dark:bg-neutral-900 border-blue-200 dark:border-neutral-800">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2 border shadow-sm bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
                   <Receipt size={24} />
                 </div>
                 <h4 className="text-xs font-black">Brak wystawionych faktur</h4>
@@ -371,7 +371,7 @@ export const FinanceSection = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-blue-100 dark:border-neutral-900 font-black">
+                    <tr className="border-b border-[#EAEAEA] dark:border-neutral-900 font-black">
                       <th className="py-2.5">Numer</th>
                       <th className="py-2.5">Klient</th>
                       <th className="py-2.5">Kwota</th>
@@ -382,7 +382,7 @@ export const FinanceSection = () => {
                   </thead>
                   <tbody className="divide-y divide-blue-50 dark:divide-neutral-900 font-bold">
                     {invoices.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-blue-50/50 dark:hover:bg-neutral-900/40">
+                      <tr key={inv.id} className="hover:bg-[#F7F6F3]/50 dark:hover:bg-neutral-900/40">
                         <td className="py-3 font-black font-mono">{inv.number}</td>
                         <td className="py-3">{inv.buyer}</td>
                         <td className="py-3 font-black text-emerald-500">{(inv.total || 0).toFixed(2)} zł</td>
@@ -428,7 +428,7 @@ export const FinanceSection = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={springTransition}
-              className="w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-4 relative text-left bg-white dark:bg-black border-blue-200 dark:border-neutral-800 text-blue-600 dark:text-white max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-4 relative text-left bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 text-[#111111] dark:text-white max-h-[90vh] overflow-y-auto no-scrollbar"
             >
               <motion.button
                 whileHover={{ scale: 1.15 }}
@@ -485,7 +485,7 @@ export const FinanceSection = () => {
                 {formErr && <p className="text-xs font-black text-rose-500">{formErr}</p>}
                 {formMsg && <p className="text-xs font-black text-emerald-500">{formMsg}</p>}
 
-                <div className="flex items-center justify-between pt-4 border-t border-blue-100 dark:border-neutral-900">
+                <div className="flex items-center justify-between pt-4 border-t border-[#EAEAEA] dark:border-neutral-900">
                   <span className="font-black text-sm">Suma: {newAmount || '0'} zł</span>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
