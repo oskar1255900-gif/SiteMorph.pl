@@ -36,10 +36,10 @@ export const ADMIN_SERVICES = [
 
 export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => void; credits: number; setCredits: React.Dispatch<React.SetStateAction<number>> }) => {
   const [liveStats, setLiveStats] = useState([
-    { label: 'Użytkownicy', value: '0', delta: '—', icon: LayoutDashboard },
-    { label: 'Strony wygenerowane', value: '0', delta: '—', icon: Globe },
-    { label: 'MRR', value: '0 zł', delta: '—', icon: Wallet },
-    { label: 'Leady znalezione', value: '0', delta: '—', icon: Search },
+    { label: 'Użytkownicy', value: '0', delta: '-', icon: LayoutDashboard },
+    { label: 'Strony wygenerowane', value: '0', delta: '-', icon: Globe },
+    { label: 'MRR', value: '0 zł', delta: '-', icon: Wallet },
+    { label: 'Leady znalezione', value: '0', delta: '-', icon: Search },
   ]);
   const [liveUsers, setLiveUsers] = useState<any[]>([]);
   const [creditUser, setCreditUser] = useState('');
@@ -63,19 +63,19 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
       .then((d) => {
         if (!d) return;
         setLiveStats([
-          { label: 'Użytkownicy', value: String(d.users ?? 0), delta: '—', icon: LayoutDashboard },
-          { label: 'Strony wygenerowane', value: String(d.pages ?? 0), delta: '—', icon: Globe },
-          { label: 'MRR', value: String(d.mrr ?? '0 zł'), delta: '—', icon: Wallet },
-          { label: 'Leady znalezione', value: String(d.leads ?? 0), delta: '—', icon: Search },
+          { label: 'Użytkownicy', value: String(d.users ?? 0), delta: '-', icon: LayoutDashboard },
+          { label: 'Strony wygenerowane', value: String(d.pages ?? 0), delta: '-', icon: Globe },
+          { label: 'MRR', value: String(d.mrr ?? '0 zł'), delta: '-', icon: Wallet },
+          { label: 'Leady znalezione', value: String(d.leads ?? 0), delta: '-', icon: Search },
         ]);
       })
       .catch((e) => {
         console.error('[AdminPanel] Stats error:', e);
         setLiveStats([
           { label: 'Użytkownicy', value: 'Błąd', delta: e.message, icon: LayoutDashboard },
-          { label: 'Strony wygenerowane', value: 'Błąd', delta: '—', icon: Globe },
-          { label: 'MRR', value: 'Błąd', delta: '—', icon: Wallet },
-          { label: 'Leady znalezione', value: 'Błąd', delta: '—', icon: Search },
+          { label: 'Strony wygenerowane', value: 'Błąd', delta: '-', icon: Globe },
+          { label: 'MRR', value: 'Błąd', delta: '-', icon: Wallet },
+          { label: 'Leady znalezione', value: 'Błąd', delta: '-', icon: Search },
         ]);
       });
     // Load users
@@ -190,7 +190,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
             <span className="opacity-70">Twoje kredyty: {credits}</span>
             {creditMsg && <span className="text-emerald-600 dark:text-emerald-400">· {creditMsg}</span>}
           </div>
-          <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora — dodaj kredyty dowolnemu użytkownikowi (demo).</p>
+          <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora - dodaj kredyty dowolnemu użytkownikowi (demo).</p>
         </div>
 
         {/* Plan Management */}
@@ -237,7 +237,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
                 </thead>
                 <tbody className="divide-y divide-blue-50 dark:divide-neutral-900">
                   {liveUsers.length === 0 ? (
-                    <tr><td colSpan={5} className="px-4 py-10 text-center font-bold opacity-60">Brak danych — na razie 0 użytkowników</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-10 text-center font-bold opacity-60">Brak danych - na razie 0 użytkowników</td></tr>
                   ) : liveUsers.map((u) => (
                     <tr key={u.user_id || u.name} className="font-bold hover:bg-[#F7F6F3]/40 dark:hover:bg-neutral-900/40">
                       <td className="px-4 py-3 font-black truncate max-w-[180px]">{u.user_id || u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.credits ?? u.pages ?? 0}</td><td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>

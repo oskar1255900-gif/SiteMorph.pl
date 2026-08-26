@@ -177,5 +177,5 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
   );
 };
 // ============================================================================
-// Auth Modal — Supabase Google + Email
+// Auth Modal - Supabase Google + Email
 // ============================================================================

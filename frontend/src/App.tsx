@@ -119,7 +119,7 @@ export default function App() {
       setShowAuth(true);
       return;
     }
-    // Wejście do panelu zawsze dozwolone gdy zalogowany — blokada tylko przy generowaniu/wyszukiwaniu
+    // Wejście do panelu zawsze dozwolone gdy zalogowany - blokada tylko przy generowaniu/wyszukiwaniu
     setActiveTab(tab);
     setCurrentView('app');
   };
@@ -250,13 +250,13 @@ export default function App() {
                         const ind = (lead as any).industry || (lead as any).category || 'usługi';
                         const cityName = (lead as any).city || (lead as any).location || '';
                         const countryName = (lead as any).country || '';
-                        if (anyLead.address && anyLead.address !== '—') extra.push(`Adres: ${anyLead.address}.`);
-                        if (lead.phone && lead.phone !== '—' && (lead.phone as string).trim() !== '') extra.push(`Telefon: ${lead.phone}.`);
+                        if (anyLead.address && anyLead.address !== '-') extra.push(`Adres: ${anyLead.address}.`);
+                        if (lead.phone && lead.phone !== '-' && (lead.phone as string).trim() !== '') extra.push(`Telefon: ${lead.phone}.`);
                         if (anyLead.openingHours) extra.push(`Godziny otwarcia: ${anyLead.openingHours}.`);
                         if (anyLead.rating) extra.push(`Ocena Google: ${anyLead.rating} (${anyLead.userRatingsTotal} opinii).`);
                         if (anyLead.website) extra.push(`Strona: ${anyLead.website}.`);
                         const loc = [cityName, countryName].filter(Boolean).join(', ');
-                        const base = `Stwórz premium stronę Vite+React+Tailwind dla firmy "${lead.name}" (${ind}) w ${loc || 'Polska'}. ${extra.join(' ')} Zadbaj o sekcje dobrane do branży (nie sztywno Hero/Oferta/Cennik — AI ma dobrać sekcje pod branżę na podstawie danych). Branża: ${ind}.`;
+                        const base = `Stwórz premium stronę Vite+React+Tailwind dla firmy "${lead.name}" (${ind}) w ${loc || 'Polska'}. ${extra.join(' ')} Zadbaj o sekcje dobrane do branży (nie sztywno Hero/Oferta/Cennik - AI ma dobrać sekcje pod branżę na podstawie danych). Branża: ${ind}.`;
                         const withImages = opts?.withImages ? ' Użyj zdjęć AI wygenerowanych oraz znajdź podobne w przeglądarce i wstaw je do galerii.' : '';
                         handleLaunchBuilderWithPrompt(base + withImages);
                       }}

@@ -29,7 +29,7 @@ import { springTransition } from '../lib/shared';
 import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
 
-export const PREVIEW_FALLBACK_HTML = `<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>SiteMorph Preview</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-white text-neutral-900"><div class="max-w-6xl mx-auto px-6 py-16 text-center"><h1 class="text-4xl font-black">Podglad dziala</h1><p class="mt-3 text-neutral-600">Vite + React + Tailwind — wygenerowane przez SiteMorph + Laguna S 2.1</p></div></body></html>`;
+export const PREVIEW_FALLBACK_HTML = `<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>SiteMorph Preview</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-white text-neutral-900"><div class="max-w-6xl mx-auto px-6 py-16 text-center"><h1 class="text-4xl font-black">Podglad dziala</h1><p class="mt-3 text-neutral-600">Vite + React + Tailwind - wygenerowane przez SiteMorph + Laguna S 2.1</p></div></body></html>`;
 
 // ============================================================================
 // 3. STYLE GLOBALNE (INSTRUMENT SERIF ITALIC + SF PRO)
@@ -59,7 +59,7 @@ export const BuilderFullView = ({
     return () => clearInterval(id);
   }, [isGenerating]);
 
-  // NIE generuj automatycznie — użytkownik musi kliknąć Generuj (naprawia "odrazu generuje bez komendy")
+  // NIE generuj automatycznie - użytkownik musi kliknąć Generuj (naprawia "odrazu generuje bez komendy")
   useEffect(() => {
     if (initialPrompt) {
       setBuilderPrompt(initialPrompt);
@@ -91,7 +91,7 @@ export const BuilderFullView = ({
     try {
       const res = await apiFetch('/api/projects/');
       if (res.ok) setSavedProjects((await res.json()) || []);
-    } catch { /* brak sesji — pomijamy */ }
+    } catch { /* brak sesji - pomijamy */ }
   };
   useEffect(() => { loadProjects(); }, []);
 
@@ -211,16 +211,16 @@ export const BuilderFullView = ({
   }, [isDraggingSplit]);
 
   const WIZARD_DATA: Array<{ title: string; options: string[]; multi?: boolean }> = [
-    { title: 'Jaki klimat ma mieć strona?', options: ['Ciepła, rustykalna piekarnia (beże, brązy, drewno)', 'Elegancka bistro / bistro-żydowska tradycja (ciemna, szlachetna)', 'Nowoczesna, minimalistyczna', 'Inne — wpiszę w prompt'] },
+    { title: 'Jaki klimat ma mieć strona?', options: ['Ciepła, rustykalna piekarnia (beże, brązy, drewno)', 'Elegancka bistro / bistro-żydowska tradycja (ciemna, szlachetna)', 'Nowoczesna, minimalistyczna', 'Inne - wpiszę w prompt'] },
     { title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'] },
-    { title: 'Jakie kolory lubisz?', options: ['Limonkowy + czarny', 'Niebieski + biały', 'Beż + brąz', 'Czarny + złoty', 'Fiolet + róż', 'Dowolne — AI dobierze'] },
+    { title: 'Jakie kolory lubisz?', options: ['Limonkowy + czarny', 'Niebieski + biały', 'Beż + brąz', 'Czarny + złoty', 'Fiolet + róż', 'Dowolne - AI dobierze'] },
     { title: 'Które sekcje dodać?', options: ['Hero', 'Oferta', 'Cennik', 'Galeria', 'Opinie', 'Kontakt', 'Rezerwacja', 'FAQ'], multi: true },
   ];
 
   const buildPrompt = (override?: string) => {
     const extra = override || builderPrompt;
     const sections = q4.join(', ');
-    return `Branża: ${q1}. Styl: ${q2}. Kolory: ${q3}. Sekcje: ${sections}. ${extra ? `Dodatkowy opis: ${extra}.` : ''} Tryb: ${isProMode ? 'PRO premium z animacjami' : 'standard'} — Zbuduj premium stronę Vite+React+Tailwind.`;
+    return `Branża: ${q1}. Styl: ${q2}. Kolory: ${q3}. Sekcje: ${sections}. ${extra ? `Dodatkowy opis: ${extra}.` : ''} Tryb: ${isProMode ? 'PRO premium z animacjami' : 'standard'} - Zbuduj premium stronę Vite+React+Tailwind.`;
   };
 
   const starterIdeas = [
@@ -236,7 +236,7 @@ export const BuilderFullView = ({
     let bizName = q1;
     const m = (promptText || builderPrompt || p).match(/dla firmy\s*["„]([^"”]+)["”]/i);
     if (m && m[1]) bizName = m[1].trim();
-    // Nie wysyłaj całego buildPrompt drugi raz w extraPrompt — unikaj duplikacji
+    // Nie wysyłaj całego buildPrompt drugi raz w extraPrompt - unikaj duplikacji
     const extra = promptText && promptText !== p ? promptText : builderPrompt;
     if (!p.trim()) return;
     if (credits < cost) {
@@ -288,7 +288,7 @@ export const BuilderFullView = ({
       }
     } catch (e: any) {
       console.error('[Builder] Generation error:', e);
-      const msg = e.message || 'Błąd generowania — sprawdź konsolę';
+      const msg = e.message || 'Błąd generowania - sprawdź konsolę';
       setGeneratedSite({
         title: p.slice(0, 25),
         category: q1,
@@ -427,7 +427,7 @@ export const BuilderFullView = ({
 
             <div className="rounded-lg border p-3 bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/20">
               <p className="text-[11px] font-bold leading-relaxed opacity-80">
-                Wklej dane firmy prosto z Google Maps (nazwa, adres, telefon, opinie) albo opisz własnymi słowami —
+                Wklej dane firmy prosto z Google Maps (nazwa, adres, telefon, opinie) albo opisz własnymi słowami -
                 <span className="font-black"> Gemini Flash </span>
                 zbuduje kompletną stronę i nigdy nie będzie pytać o szczegóły.
               </p>
@@ -464,7 +464,7 @@ export const BuilderFullView = ({
                     else { setWizardStep(0); setShowWizard(true); }
                   }}
                   className="w-7 h-7 bg-[#111111] dark:bg-white text-white dark:text-black rounded-lg flex items-center justify-center cursor-pointer border-none font-black shadow-md"
-                  title={builderPrompt.trim() ? `Generuj — ${cost} kredytów` : 'Otwórz kreator pytań'}
+                  title={builderPrompt.trim() ? `Generuj - ${cost} kredytów` : 'Otwórz kreator pytań'}
                 >
                   <Send size={12} />
                 </motion.button>
@@ -559,7 +559,7 @@ export const BuilderFullView = ({
               >
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                   <div className="h-9 border-b border-[#EAEAEA] dark:border-white/[0.06] flex items-center justify-between px-3 bg-[#F7F6F3]/40 dark:bg-neutral-950 text-[11px] font-bold shrink-0 gap-2">
-                    <span className="flex items-center gap-2 truncate"><Globe size={12} className="shrink-0" /> {generatedSite.domain} — Podgląd</span>
+                    <span className="flex items-center gap-2 truncate"><Globe size={12} className="shrink-0" /> {generatedSite.domain} - Podgląd</span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button onClick={() => { const on = !isEditMode; setIsEditMode(on); try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = on ? 'true' : 'false'; } catch {} }} className={`px-2.5 py-1 rounded-full text-[10px] font-black border flex items-center gap-1 ${isEditMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-[#F7F6F3]'}`}>
                         <MousePointer2 size={11} /> {isEditMode ? 'Edycja: ON' : 'Kliknij by edytować'}
@@ -655,7 +655,7 @@ export const BuilderFullView = ({
                 className="flex-1 flex font-mono text-xs overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
                 <div className="w-56 bg-[#F7F6F3] dark:bg-neutral-950 border-r border-[#EAEAEA] dark:border-neutral-900 p-3 space-y-1 overflow-y-auto no-scrollbar">
-                  <span className="text-[9px] font-black block mb-2 opacity-70 uppercase tracking-wider">Drzewo plikow — Vite</span>
+                  <span className="text-[9px] font-black block mb-2 opacity-70 uppercase tracking-wider">Drzewo plikow - Vite</span>
                   {Object.keys(generatedSite.files).map((fname) => (
                     <button
                       key={fname}
@@ -679,7 +679,7 @@ export const BuilderFullView = ({
         </div>
       </div>
 
-      {/* Panel boczny publikacji — wysuwa się z prawej */}
+      {/* Panel boczny publikacji - wysuwa się z prawej */}
       <AnimatePresence>
         {publishedUrl && (
           <>
@@ -694,7 +694,7 @@ export const BuilderFullView = ({
                 <button onClick={() => setPublishedUrl(null)} className="w-8 h-8 rounded-lg grid place-items-center hover:bg-neutral-100 dark:hover:bg-neutral-900"><X size={16} /></button>
               </div>
               <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                <p className="text-xs font-semibold opacity-70 text-center">Wyślij klientowi — otworzy na telefonie i zobaczy stronę.</p>
+                <p className="text-xs font-semibold opacity-70 text-center">Wyślij klientowi - otworzy na telefonie i zobaczy stronę.</p>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F7F6F3] dark:bg-zinc-900 border border-[#EAEAEA] dark:border-white/[0.08]">
                   <input readOnly value={publishedUrl} onFocus={(e)=>e.currentTarget.select()} className="flex-1 bg-transparent text-[12px] font-bold outline-none min-w-0" />
                   <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className="px-3 py-1.5 rounded-lg bg-[#111111] dark:bg-white text-white dark:text-black text-[11px] font-black shrink-0">Kopiuj</button>
@@ -703,7 +703,7 @@ export const BuilderFullView = ({
                 <a href={publishedUrl} target="_blank" rel="noreferrer" className="block"><Button variant="primary" size="md" className="w-full">Otwórz stronę</Button></a>
                 <div className="pt-4 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-3">
                   <div className="flex items-center justify-between text-xs"><span className="opacity-60">Status</span><span className="font-black text-emerald-600 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/> Live</span></div>
-                  <div className="flex items-center justify-between text-xs"><span className="opacity-60">Aktualnie na stronie</span><span className="font-black">—</span></div>
+                  <div className="flex items-center justify-between text-xs"><span className="opacity-60">Aktualnie na stronie</span><span className="font-black">-</span></div>
                   <button onClick={handleSaveProject} className="w-full py-2 rounded-xl border text-xs font-bold hover:bg-neutral-50 dark:hover:bg-neutral-900">{currentProjectId ? 'Zapisz zmiany w projekcie' : 'Zapisz projekt na koncie'}</button>
                 </div>
               </div>
@@ -712,7 +712,7 @@ export const BuilderFullView = ({
         )}
       </AnimatePresence>
 
-      {/* Wizard 4 pytań — tylko gdy prompt jest pusty */}
+      {/* Wizard 4 pytań - tylko gdy prompt jest pusty */}
       <AnimatePresence>
         {showWizard && (
           <motion.div

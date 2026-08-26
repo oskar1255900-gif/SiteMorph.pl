@@ -23,7 +23,7 @@ export const AuthModal = ({ onClose, onSuccess }: { onClose: () => void; onSucce
       options: { redirectTo: window.location.origin },
     })
     if (error) { setErr(error.message); setLoading(false) }
-    // redirect nastąpi — nie trzeba zamykać
+    // redirect nastąpi - nie trzeba zamykać
   }
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -33,7 +33,7 @@ export const AuthModal = ({ onClose, onSuccess }: { onClose: () => void; onSucce
       if (mode === 'register') {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        setMsg('Sprawdź email — wysłaliśmy link potwierdzający. Potem zaloguj się.')
+        setMsg('Sprawdź email - wysłaliśmy link potwierdzający. Potem zaloguj się.')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
@@ -90,4 +90,4 @@ export const AuthModal = ({ onClose, onSuccess }: { onClose: () => void; onSucce
   )
 }
 
-// Globalny sticky navbar — zawsze widoczny (landing + app)
+// Globalny sticky navbar - zawsze widoczny (landing + app)

@@ -50,7 +50,7 @@ export const FinanceSection = () => {
   const [invoices, setInvoices] = useState<InvRow[]>([]);
   const [newClientName, setNewClientName] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
-  const [newItemName, setNewItemName] = useState('Strona internetowa — projekt i wdrożenie');
+  const [newItemName, setNewItemName] = useState('Strona internetowa - projekt i wdrożenie');
   const [newAmount, setNewAmount] = useState('');
   const [newMethod, setNewMethod] = useState('przelew');
   const [sending, setSending] = useState(false);
@@ -75,7 +75,7 @@ export const FinanceSection = () => {
         setUsePaypal(Boolean(settings.paypal_link));
         setIsProfileSet(true);
       }
-    } catch { /* offline — zostajemy w trybie lokalnym */ }
+    } catch { /* offline - zostajemy w trybie lokalnym */ }
   }, []);
 
   const loadInvoices = useCallback(async () => {
@@ -230,7 +230,7 @@ export const FinanceSection = () => {
                 <div>
                   <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Email firmowy do faktur *</label>
                   <input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} placeholder="jan@studio.pl" className={inputClasses} />
-                  <p className="text-[10px] font-bold opacity-60 mt-1">Ten adres pojawi się na fakturach jako wystawca — odpowiedzi klientów trafią prosto do Ciebie.</p>
+                  <p className="text-[10px] font-bold opacity-60 mt-1">Ten adres pojawi się na fakturach jako wystawca - odpowiedzi klientów trafią prosto do Ciebie.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -257,7 +257,7 @@ export const FinanceSection = () => {
                 {usePrzelew && (
                   <div>
                     <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} placeholder="PL00 0000 0000 0000 0000 0000 0000" className={inputClasses} />
-                    <p className="text-[10px] font-bold opacity-60 mt-1">Numer IBAN jest bezpieczny — służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
+                    <p className="text-[10px] font-bold opacity-60 mt-1">Numer IBAN jest bezpieczny - służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
                   </div>
                 )}
 
@@ -283,12 +283,12 @@ export const FinanceSection = () => {
               <div className="space-y-3 text-xs">
                 <h4 className="font-black text-sm">Krok 3: Podsumowanie danych</h4>
                 {[
-                  ['Nazwa firmy', businessName || '—'],
-                  ['Właściciel', userName || '—'],
-                  ['Email wystawcy', businessEmail || '—'],
-                  ['IBAN', usePrzelew ? (iban || '—') : 'wyłączony'],
-                  ['BLIK', useBlik ? (blikPhone || '—') : 'wyłączony'],
-                  ['PayPal', usePaypal ? (paypalLink || '—') : 'wyłączony'],
+                  ['Nazwa firmy', businessName || '-'],
+                  ['Właściciel', userName || '-'],
+                  ['Email wystawcy', businessEmail || '-'],
+                  ['IBAN', usePrzelew ? (iban || '-') : 'wyłączony'],
+                  ['BLIK', useBlik ? (blikPhone || '-') : 'wyłączony'],
+                  ['PayPal', usePaypal ? (paypalLink || '-') : 'wyłączony'],
                 ].map(([label, value], i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-[#EAEAEA] dark:border-neutral-900 last:border-none">
                     <span className="font-bold opacity-75">{label}:</span>
@@ -473,13 +473,13 @@ export const FinanceSection = () => {
                 </div>
 
                 {newMethod === 'przelew' && (
-                  <p className="text-[10px] font-bold opacity-60">Na fakturze pojawi się Twój numer IBAN: <span className="font-black">{iban || '—'}</span>. Numer IBAN jest bezpieczny — służy wyłącznie do przelewu.</p>
+                  <p className="text-[10px] font-bold opacity-60">Na fakturze pojawi się Twój numer IBAN: <span className="font-black">{iban || '-'}</span>. Numer IBAN jest bezpieczny - służy wyłącznie do przelewu.</p>
                 )}
                 {newMethod === 'blik' && (
-                  <p className="text-[10px] font-bold opacity-60">BLIK na telefon: <span className="font-black">{blikPhone || '—'}</span></p>
+                  <p className="text-[10px] font-bold opacity-60">BLIK na telefon: <span className="font-black">{blikPhone || '-'}</span></p>
                 )}
                 {newMethod === 'paypal' && (
-                  <p className="text-[10px] font-bold opacity-60">Link PayPal: <span className="font-black">{paypalLink || '—'}</span></p>
+                  <p className="text-[10px] font-bold opacity-60">Link PayPal: <span className="font-black">{paypalLink || '-'}</span></p>
                 )}
 
                 {formErr && <p className="text-xs font-black text-rose-500">{formErr}</p>}

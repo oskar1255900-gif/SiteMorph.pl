@@ -8,10 +8,10 @@ import { apiFetch } from '../lib/api';
 const FIELDS: Array<{ key: string; label: string; placeholder: string; hint?: string; type?: string }> = [
   { key: 'display_name', label: 'Wyświetlana nazwa', placeholder: 'np. Oskar' },
   { key: 'seller_name', label: 'Nazwa firmy (na fakturach)', placeholder: 'np. Studio Projektowe' },
-  { key: 'seller_email', label: 'Email wystawcy faktur', placeholder: 'jan@studio.pl', hint: 'Pojawi się na fakturach jako nadawca — odpowiedzi klientów trafią do Ciebie.' },
+  { key: 'seller_email', label: 'Email wystawcy faktur', placeholder: 'jan@studio.pl', hint: 'Pojawi się na fakturach jako nadawca - odpowiedzi klientów trafią do Ciebie.' },
   { key: 'seller_address', label: 'Adres firmy', placeholder: 'ul. Prosta 1, 00-001 Warszawa' },
   { key: 'seller_nip', label: 'NIP', placeholder: '0000000000' },
-  { key: 'iban', label: 'Numer IBAN (przelewy)', placeholder: 'PL00 0000 0000 0000 0000 0000 0000', hint: 'Numer IBAN jest bezpieczny — służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do konta.' },
+  { key: 'iban', label: 'Numer IBAN (przelewy)', placeholder: 'PL00 0000 0000 0000 0000 0000 0000', hint: 'Numer IBAN jest bezpieczny - służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do konta.' },
   { key: 'blik_phone', label: 'Telefon BLIK', placeholder: '+48 500 000 000' },
   { key: 'paypal_link', label: 'Link PayPal', placeholder: 'https://paypal.me/twojafirma' },
 ];

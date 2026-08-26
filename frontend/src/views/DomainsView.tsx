@@ -170,7 +170,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
                 <p className="opacity-70">Twój obecny plan: <span className="font-black uppercase">{plan}</span>. Ulepsz plan w zakładce „Cennik & Plany”, aby podpiąć domenę swojej firmy.</p>
               </div>
             ) : pages.length === 0 ? (
-              <p className="text-xs font-bold opacity-70">Najpierw opublikuj stronę w Kreatorze AI — potem wróć tutaj i podepnij pod nią swoją domenę.</p>
+              <p className="text-xs font-bold opacity-70">Najpierw opublikuj stronę w Kreatorze AI - potem wróć tutaj i podepnij pod nią swoją domenę.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3">
                 <select
@@ -206,7 +206,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
                 exit={{ opacity: 0 }}
                 className="rounded-2xl border p-5 mb-6 bg-emerald-50/60 dark:bg-neutral-950 border-emerald-200 dark:border-neutral-800"
               >
-                <h3 className="text-sm font-black mb-1">Krok 2 — ustaw rekordy DNS u rejestratora</h3>
+                <h3 className="text-sm font-black mb-1">Krok 2 - ustaw rekordy DNS u rejestratora</h3>
                 <p className="text-xs font-bold opacity-70 mb-4">
                   Wejdź w panel zarządzania DNS tam, gdzie kupiłeś domenę <span className="font-black">{attachedDomain}</span> i dodaj wpisy:
                 </p>
@@ -286,7 +286,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
           )}
 
           <div className="mt-8 rounded-2xl border p-4 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-xs font-bold leading-relaxed opacity-80">
-            <span className="font-black">Jak to działa?</span> Kupujesz domenę gdziekolwiek (np. OVH, home.pl, Namecheap), wpisujesz u nich dwa rekordy DNS z tabelki powyżej, klikasz „Sprawdź teraz” — i gotowe. Strona działa na Twojej domenie, hosting pozostaje po naszej stronie.
+            <span className="font-black">Jak to działa?</span> Kupujesz domenę gdziekolwiek (np. OVH, home.pl, Namecheap), wpisujesz u nich dwa rekordy DNS z tabelki powyżej, klikasz „Sprawdź teraz” - i gotowe. Strona działa na Twojej domenie, hosting pozostaje po naszej stronie.
           </div>
         </>
       )}

@@ -27,7 +27,7 @@ export const StandalonePricingView = () => {
           Odblokuj pełne możliwości AI. Twórz strony, szukaj klientów i zarabiaj bez limitów.
         </p>
 
-        <p className="text-xs font-bold opacity-60">Płatność miesięczna — bez zobowiązań, anulujesz w każdej chwili</p>
+        <p className="text-xs font-bold opacity-60">Płatność miesięczna - bez zobowiązań, anulujesz w każdej chwili</p>
       </motion.div>
 
       <motion.div
@@ -106,12 +106,12 @@ export const StandalonePricingView = () => {
         })}
       </motion.div>
 
-      {/* Sklep kredytów — zakup pojedynczy bez pakietu */}
+      {/* Sklep kredytów - zakup pojedynczy bez pakietu */}
       <motion.div variants={cineSoft} className="rounded-3xl border p-6 lg:p-8 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 space-y-4">
         <div className="flex items-center gap-2">
           <Coins size={18} className="text-emerald-500" />
           <h3 className="text-lg font-black">Dokup kredyty jednorazowo</h3>
-          <span className="ml-auto text-[11px] font-bold opacity-60">bez pakietu — ważne 12 mies.</span>
+          <span className="ml-auto text-[11px] font-bold opacity-60">bez pakietu - ważne 12 mies.</span>
         </div>
         <p className="text-xs font-bold opacity-70">Masz kredyty ≥5 = dostęp do Kreatora/Leadów/domen nawet bez pakietu. Poniżej 5 kredytów panel się blokuje.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -125,7 +125,7 @@ export const StandalonePricingView = () => {
               <div className="text-2xl font-black">{p.c} <span className="text-xs opacity-60">kredytów</span></div>
               <div className="text-sm font-black">{p.price} zł <span className="text-[10px] opacity-60">jednorazowo</span></div>
               <Button size="sm" onClick={async () => {
-                const ok = confirm(`Kupić ${p.c} kredytów za ${p.price} zł? (demo — doda kredyty lokalnie)`);
+                const ok = confirm(`Kupić ${p.c} kredytów za ${p.price} zł? (demo - doda kredyty lokalnie)`);
                 if (!ok) return;
                 try { localStorage.setItem('sitemorph-credits-bought', String(p.c)); } catch {}
                 try {

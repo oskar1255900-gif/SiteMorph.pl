@@ -18,7 +18,7 @@ export const GlobalNavbar = ({
   currentView: 'landing' | 'app'; setCurrentView: (v: 'landing' | 'app') => void;
 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  // W panelu/app (dashboard, builder, leadfinder) — UKRYJ NAVBAR całkowicie (jest Sidebar/MobileNav)
+  // W panelu/app (dashboard, builder, leadfinder) - UKRYJ NAVBAR całkowicie (jest Sidebar/MobileNav)
   if (currentView === 'app') {
     return null;
   }

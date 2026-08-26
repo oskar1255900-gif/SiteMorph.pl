@@ -90,7 +90,7 @@ export const DashboardMainView = ({
         </motion.div>
       </motion.div>
 
-      {/* Szybkie akcje — Bento 1+3 per skill (nie 4 równe), warm monochrome */}
+      {/* Szybkie akcje - Bento 1+3 per skill (nie 4 równe), warm monochrome */}
       <motion.div variants={cineParent} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {quickActions.map((a, i) => (
           <motion.button

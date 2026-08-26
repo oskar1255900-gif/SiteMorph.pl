@@ -94,7 +94,7 @@ export const GlobalStyles = () => (
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    /* Ukryty scrollbar po prawej — czyściej, nie jak AI */
+    /* Ukryty scrollbar po prawej - czyściej, nie jak AI */
     *::-webkit-scrollbar { width: 0; height: 0; }
     * { scrollbar-width: none; -ms-overflow-style: none; }
   `}</style>

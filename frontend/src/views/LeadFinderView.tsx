@@ -20,7 +20,7 @@ export const LEAD_INDUSTRIES = ['Restauracje','Kawiarnie','Bary i puby','Fast fo
 
 type CityOption = { display_name: string; name: string; lat: string; lon: string; osm_id: number; osm_type: string; place_type: string; country_code?: string; importance?: number }
 
-// Normalizacja nazwy do porownan — ignoruje polskie znaki (Wrocław == wroclaw)
+// Normalizacja nazwy do porownan - ignoruje polskie znaki (Wrocław == wroclaw)
 const foldPl = (s: string) => (s || '').toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
 export const LeadFinderView = ({
@@ -226,7 +226,7 @@ export const LeadFinderView = ({
       if (Array.isArray(data.leads)) setLeads(data.leads)
       else setLeads([])
     } catch (e: any) {
-      setSearchError('Błąd połączenia z serwerem — spróbuj ponownie')
+      setSearchError('Błąd połączenia z serwerem - spróbuj ponownie')
     } finally {
       setIsSearching(false)
     }
@@ -259,7 +259,7 @@ export const LeadFinderView = ({
         setSearchError(data?.detail || 'Błąd zapisu')
       }
     } catch {
-      setSearchError('Błąd zapisu — brak połączenia')
+      setSearchError('Błąd zapisu - brak połączenia')
     } finally {
       setSavingId(null)
     }
@@ -340,11 +340,11 @@ export const LeadFinderView = ({
     >
       <div className="text-center space-y-3">
         <h2 className="text-[32px] sm:text-[36px] font-black tracking-tighter text-center" style={{ fontFamily: "'SF Pro Display', sans-serif", letterSpacing: '-0.03em' }}>LEAD FINDER</h2>
-        <p className="text-[13px] font-semibold opacity-60 max-w-md mx-auto">Wybierz kraj, miasto i branżę — wyszukamy prawdziwe firmy z OSM. Bez mocków.</p>
+        <p className="text-[13px] font-semibold opacity-60 max-w-md mx-auto">Wybierz kraj, miasto i branżę - wyszukamy prawdziwe firmy z OSM. Bez mocków.</p>
         <div className="flex justify-center px-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-[10px] font-bold text-amber-800 dark:text-amber-300 text-left">
             <Info size={12} className="shrink-0" />
-            Wersja 1.0 — może mieć błędy i czasem pokazywać dziwne informacje, ale ok. 90% wyników jest poprawnych
+            Wersja 1.0 - może mieć błędy i czasem pokazywać dziwne informacje, ale ok. 90% wyników jest poprawnych
           </span>
         </div>
       </div>
@@ -401,14 +401,14 @@ export const LeadFinderView = ({
                         className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
-                    <p className="text-[10px] font-bold opacity-50 mt-1.5 px-1">{country ? (citiesLoading ? 'Pobieram pełną listę miejscowości...' : `${allCities.length} miejscowości — przewiń lub wpisz nazwę, aby zawęzić`) : 'Pełna lista miast — najpierw wybierz kraj'}</p>
+                    <p className="text-[10px] font-bold opacity-50 mt-1.5 px-1">{country ? (citiesLoading ? 'Pobieram pełną listę miejscowości...' : `${allCities.length} miejscowości - przewiń lub wpisz nazwę, aby zawęzić`) : 'Pełna lista miast - najpierw wybierz kraj'}</p>
                   </div>
                   <div className="max-h-[260px] overflow-y-auto no-scrollbar">
                     {!country && <div className="p-4 text-center text-xs font-bold opacity-50">Najpierw wybierz kraj</div>}
                     {country && citiesLoading && <div className="p-4 text-center text-xs font-bold opacity-60 flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Pobieram pełną listę miejscowości...</div>}
                     {country && !citiesLoading && cityError && cityDisplayList.length === 0 && <div className="p-3 text-xs font-bold text-rose-600">{cityError}</div>}
                     {country && !citiesLoading && cityDisplayList.length === 0 && (
-                      <div className="p-4 text-center text-xs font-bold opacity-50">Brak wyników{cityQuery.trim() ? ` dla „${cityQuery.trim()}"` : ''} — spróbuj innej pisowni</div>
+                      <div className="p-4 text-center text-xs font-bold opacity-50">Brak wyników{cityQuery.trim() ? ` dla „${cityQuery.trim()}"` : ''} - spróbuj innej pisowni</div>
                     )}
                     {country && !citiesLoading && cityDisplayList.slice(0, MAX_CITY_ROWS).map((r) => (
                       <button
@@ -422,7 +422,7 @@ export const LeadFinderView = ({
                       </button>
                     ))}
                     {country && !citiesLoading && hiddenCityCount > 0 && (
-                      <div className="p-3 text-center text-[11px] font-bold opacity-50">+{hiddenCityCount} więcej — wpisz nazwę, aby zawęzić</div>
+                      <div className="p-3 text-center text-[11px] font-bold opacity-50">+{hiddenCityCount} więcej - wpisz nazwę, aby zawęzić</div>
                     )}
                   </div>
                 </motion.div>
@@ -504,13 +504,13 @@ export const LeadFinderView = ({
             <Search size={20} className="opacity-60" />
           </div>
           <h3 className="text-[15px] font-black">Wybierz filtry i kliknij Szukaj leadów</h3>
-          <p className="text-[12px] font-semibold opacity-60">Pokazujemy tylko zweryfikowane firmy — żadnych mocków. Jeśli brak wyników, zobaczysz pusty stan.</p>
+          <p className="text-[12px] font-semibold opacity-60">Pokazujemy tylko zweryfikowane firmy - żadnych mocków. Jeśli brak wyników, zobaczysz pusty stan.</p>
         </motion.div>
       ) : (
         <motion.div variants={cineSoft} className="space-y-4">
           {searchError && <div className="p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-[13px] font-bold text-rose-700 dark:text-rose-300">{searchError}</div>}
           {searchWarning && !searchError && <div className="p-3.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-[13px] font-bold text-amber-800 dark:text-amber-300">{searchWarning}</div>}
-          {isSearching && <div className="p-8 rounded-lg border bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] flex flex-col items-center gap-3"><span className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /><span className="text-[13px] font-bold">Szukam firm w OSM — to może potrwać 3–8s...</span></div>}
+          {isSearching && <div className="p-8 rounded-lg border bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] flex flex-col items-center gap-3"><span className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /><span className="text-[13px] font-bold">Szukam firm w OSM - to może potrwać 3–8s...</span></div>}
           {!isSearching && (
             <>
               <div className="flex flex-wrap items-center gap-2 text-[13px] font-black p-3 rounded-lg bg-[#F7F6F3]/60 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
@@ -520,7 +520,7 @@ export const LeadFinderView = ({
               {leads.length > 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-[12px] font-semibold text-amber-800 dark:text-amber-300">
                   <Info size={14} className="mt-0.5 shrink-0" />
-                  <span>Część firm może mieć stronę mimo braku jej w danych OSM — przed kontaktem zweryfikuj firmę w Google Maps (przycisk „Otwórz w mapach”).</span>
+                  <span>Część firm może mieć stronę mimo braku jej w danych OSM - przed kontaktem zweryfikuj firmę w Google Maps (przycisk „Otwórz w mapach”).</span>
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-2">
@@ -544,7 +544,7 @@ export const LeadFinderView = ({
               {displayLeads.length===0 ? (
                 <div className="p-12 rounded-lg border bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] text-center space-y-2">
                   <div className="text-[14px] font-black">Brak wyników</div>
-                  <div className="text-[13px] font-semibold opacity-60">{leads.length===0 ? 'Nie znaleziono firm spełniających kryteria w tej okolicy. Spróbuj inne miasto lub branżę. Pokazujemy tylko prawdziwe dane OSM — niczego nie generujemy.' : `Brak wyników dla filtra "${leadSearch}" lub "${websiteFilter}".`}</div>
+                  <div className="text-[13px] font-semibold opacity-60">{leads.length===0 ? 'Nie znaleziono firm spełniających kryteria w tej okolicy. Spróbuj inne miasto lub branżę. Pokazujemy tylko prawdziwe dane OSM - niczego nie generujemy.' : `Brak wyników dla filtra "${leadSearch}" lub "${websiteFilter}".`}</div>
                 </div>
               ) : (
                 <>
@@ -556,7 +556,7 @@ export const LeadFinderView = ({
                       const phone = l.phone || null
                       const website = l.website || null
                       const cityCountry = [l.city || l.location, l.country || country].filter(Boolean).join(', ')
-                      // Szukamy po nazwie + adresie, nie po kordynatach — wtedy Google Maps
+                      // Szukamy po nazwie + adresie, nie po kordynatach - wtedy Google Maps
                       // otwiera profil firmy (oceny, zdjecia, godziny), a nie pusty punkt na mapie
                       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([l.name, addr || '', cityCountry].filter(Boolean).join(' '))}`
                       return (
@@ -586,7 +586,7 @@ export const LeadFinderView = ({
                             <button onClick={() => onGenerateSiteForLead(l)} className="px-3 py-1.5 rounded-lg text-[12px] font-black border bg-lime-300 text-black border-lime-400 hover:bg-lime-400">Stwórz stronę</button>
                           </div>
                           <p className="text-[10px] font-semibold opacity-50 leading-snug -mt-1">
-                            Wskazówka: przed budowaniem strony otwórz firmę w Google Maps i skopiuj dodatkowe dane (pełny adres, godziny otwarcia, ceny, zdjęcia do galerii) — przycisk „Kopiuj dane" zapisuje wszystko, co już mamy.
+                            Wskazówka: przed budowaniem strony otwórz firmę w Google Maps i skopiuj dodatkowe dane (pełny adres, godziny otwarcia, ceny, zdjęcia do galerii) - przycisk „Kopiuj dane" zapisuje wszystko, co już mamy.
                           </p>
                         </motion.div>
                       )

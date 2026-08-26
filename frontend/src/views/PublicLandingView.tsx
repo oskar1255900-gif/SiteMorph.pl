@@ -26,7 +26,7 @@ export const LANDING_HOW_STEPS = [
   {
     num: '01',
     title: 'Opisz pomysł jednym zdaniem',
-    desc: 'Napisz, dla kogo jest strona. Jedno zdanie wystarczy — resztę dopracuje SiteMorph.',
+    desc: 'Napisz, dla kogo jest strona. Jedno zdanie wystarczy - resztę dopracuje SiteMorph.',
     mockup: (
       <div className="w-full max-w-[250px] rounded-2xl border p-4 shadow-lg text-left bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
         <p className="text-xs font-bold mb-3">Stwórz stronę dla barbera z rezerwacją</p>
@@ -58,12 +58,12 @@ export const LANDING_HOW_STEPS = [
   {
     num: '03',
     title: 'Wyślij ofertę, która sprzedaje',
-    desc: 'Gotowa wiadomość z linkiem do projektu. Skopiuj do maila lub na IG — klient ogląda stronę.',
+    desc: 'Gotowa wiadomość z linkiem do projektu. Skopiuj do maila lub na IG - klient ogląda stronę.',
     mockup: (
       <div className="w-full max-w-[260px] rounded-2xl border p-4 shadow-lg text-left space-y-2.5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
         <div className="text-[10px] font-black uppercase tracking-wider opacity-70">Wiadomość do klienta</div>
         <div className="rounded-xl p-3 text-[10px] font-semibold leading-relaxed bg-[#F7F6F3]/70 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800">
-          „Cześć Anna! Przygotowałem darmowy projekt strony dla Studio Anna — zobacz: studio-anna.sitemorph.pl”
+          „Cześć Anna! Przygotowałem darmowy projekt strony dla Studio Anna - zobacz: studio-anna.sitemorph.pl”
         </div>
         <div className="flex gap-1.5">
           <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#111111] dark:bg-white text-white dark:text-black">E-mail</span>
@@ -75,10 +75,10 @@ export const LANDING_HOW_STEPS = [
 ];
 
 export const LANDING_FEATURE_TABS: Array<{ label: string; icon: any; title: string; desc: string; statBig: string; statSmall: string }> = [
-  { label: 'Podgląd na żywo', icon: Globe, title: 'Pokaż postęp bez wysyłania plików', desc: 'Generujesz prywatny link. Klient ogląda każdą poprawkę na żywo — bez konta i bez załączników w mailu.', statBig: 'Na żywo', statSmall: 'podgląd dla klienta' },
+  { label: 'Podgląd na żywo', icon: Globe, title: 'Pokaż postęp bez wysyłania plików', desc: 'Generujesz prywatny link. Klient ogląda każdą poprawkę na żywo - bez konta i bez załączników w mailu.', statBig: 'Na żywo', statSmall: 'podgląd dla klienta' },
   { label: 'Poprawki bez limitu', icon: RefreshCw, title: 'Dopracuj projekt do perfekcji', desc: 'Zmieniasz teksty, kolory i sekcje tak długo, jak trzeba. Historia wersji bez limitu i bez dopłat.', statBig: '∞ wersji', statSmall: 'bez dopłat' },
   { label: 'Projekt z AI', icon: Zap, title: 'Cała strona z jednego pomysłu', desc: 'AI dobiera układ, paletę i treści pod branżę klienta. Ty tylko zatwierdzasz efekt.', statBig: '2 min', statSmall: 'od pomysłu do projektu' },
-  { label: 'Bez prowizji', icon: Wallet, title: 'Ty ustalasz stawkę', desc: 'Wyceniaj od 1 500 do 12 000 zł. Pieniądze trafiają bezpośrednio do Ciebie — 0% prowizji.', statBig: '0%', statSmall: 'prowizji od zleceń' }
+  { label: 'Bez prowizji', icon: Wallet, title: 'Ty ustalasz stawkę', desc: 'Wyceniaj od 1 500 do 12 000 zł. Pieniądze trafiają bezpośrednio do Ciebie - 0% prowizji.', statBig: '0%', statSmall: 'prowizji od zleceń' }
 ];
 
 // ----------------------------------------------------------------------------
@@ -90,26 +90,26 @@ export const LEGAL_DOCS: Record<'regulamin' | 'prywatnosc' | 'cookies', { title:
     title: 'Regulamin serwisu SiteMorph',
     updated: 'Aktualizacja: 12 sierpnia 2026',
     sections: [
-      { h: '§1. Postanowienia ogólne', p: 'Niniejszy regulamin określa zasady korzystania z platformy SiteMorph (sitemorph.pl) prowadzonej przez SiteMorph sp. z o.o. Korzystając z serwisu, akceptujesz regulamin w całości. Usługi świadczone są drogą elektroniczną zgodnie z ustawą z dnia 18 lipca 2002 r. Jeżeli nie akceptujesz warunków — nie korzystaj z serwisu.' },
-      { h: '§2. Definicje', p: 'Użytkownik — osoba fizyczna, prawna lub j.d.g. posiadająca konto. Konto — zbiór danych Użytkownika umożliwiający dostęp do kreatora, Lead Finder i fakturowania. Kredyty AI — jednostki rozliczeniowe zużywane na generowanie i edycję stron. Treści — teksty, grafiki, układy wygenerowane przez AI na zlecenie Użytkownika.' },
+      { h: '§1. Postanowienia ogólne', p: 'Niniejszy regulamin określa zasady korzystania z platformy SiteMorph (sitemorph.pl) prowadzonej przez SiteMorph sp. z o.o. Korzystając z serwisu, akceptujesz regulamin w całości. Usługi świadczone są drogą elektroniczną zgodnie z ustawą z dnia 18 lipca 2002 r. Jeżeli nie akceptujesz warunków - nie korzystaj z serwisu.' },
+      { h: '§2. Definicje', p: 'Użytkownik - osoba fizyczna, prawna lub j.d.g. posiadająca konto. Konto - zbiór danych Użytkownika umożliwiający dostęp do kreatora, Lead Finder i fakturowania. Kredyty AI - jednostki rozliczeniowe zużywane na generowanie i edycję stron. Treści - teksty, grafiki, układy wygenerowane przez AI na zlecenie Użytkownika.' },
       { h: '§3. Rejestracja i konto', p: 'Rejestracja wymaga podania adresu e-mail i hasła. Użytkownik odpowiada za bezpieczeństwo hasła. Jedno konto = jeden podmiot. Zabrania się udostępniania konta osobom trzecim oraz automatycznego scrapowania API bez zgody.' },
       { h: '§4. Usługi', p: 'SiteMorph udostępnia: (a) kreator stron AI, (b) wyszukiwarkę Lead Finder opartą o dane publiczne, (c) moduł podglądu na żywo, (d) fakturowanie bez prowizji. Generowane projekty możesz publikować na subdomenie *.sitemorph.pl lub własnej domenie po wykupieniu planu Business/Agencja.' },
-      { h: '§5. Kredyty AI i płatności', p: 'Plany: Starter 49 zł/mies. (100 kredytów), Pro 99 zł (200), Business 199 zł (500). Kredyty odnawiają się co 30 dni, niewykorzystane przepadają. Dokupienie 100 kredytów — 46 zł. Płatności obsługuje Stripe/Przelewy24. Możesz anulować subskrypcję w dowolnym momencie — dostęp pozostaje do końca okresu. Zwrot w 14 dni dla konsumenta, jeśli nie wykorzystano >10% kredytów.' },
+      { h: '§5. Kredyty AI i płatności', p: 'Plany: Starter 49 zł/mies. (100 kredytów), Pro 99 zł (200), Business 199 zł (500). Kredyty odnawiają się co 30 dni, niewykorzystane przepadają. Dokupienie 100 kredytów - 46 zł. Płatności obsługuje Stripe/Przelewy24. Możesz anulować subskrypcję w dowolnym momencie - dostęp pozostaje do końca okresu. Zwrot w 14 dni dla konsumenta, jeśli nie wykorzystano >10% kredytów.' },
       { h: '§6. Prawa własności intelektualnej', p: 'Treści wygenerowane na Twoje zlecenie należą do Ciebie po opłaceniu planu. SiteMorph udziela niewyłącznej licencji na kod i hosting wygenerowanej strony. Zabrania się kopiowania i odsprzedaży samej platformy jako white-label poza planem Agencja.' },
-      { h: '§7. Odpowiedzialność', p: 'SiteMorph dokłada staranności, ale nie gwarantuje, że wygenerowana treść będzie wolna od błędów. Użytkownik odpowiada za zgodność publikowanych treści z prawem (RODO, prawo autorskie, reklama). Dostępność serwisu celujemy na 99.5% SLA — przerwy techniczne ogłaszamy z 24h wyprzedzeniem.' },
+      { h: '§7. Odpowiedzialność', p: 'SiteMorph dokłada staranności, ale nie gwarantuje, że wygenerowana treść będzie wolna od błędów. Użytkownik odpowiada za zgodność publikowanych treści z prawem (RODO, prawo autorskie, reklama). Dostępność serwisu celujemy na 99.5% SLA - przerwy techniczne ogłaszamy z 24h wyprzedzeniem.' },
       { h: '§8. Reklamacje', p: 'Reklamacje zgłaszasz na support@sitemorph.pl w 14 dni od zdarzenia. Odpowiadamy w 5 dni roboczych. Przy zasadnej reklamacji przyznajemy kredyty lub przedłużamy okres subskrypcji.' },
-      { h: '§9. Postanowienia końcowe', p: 'Regulamin może ulec zmianie — poinformujemy e-mailem 14 dni przed wejściem zmian. W sprawach nieuregulowanych stosuje się prawo polskie. Sądem właściwym jest sąd w Warszawie. Kontakt: kontakt@sitemorph.pl, SiteMorph sp. z o.o., ul. Marszałkowska 1, 00-001 Warszawa.' }
+      { h: '§9. Postanowienia końcowe', p: 'Regulamin może ulec zmianie - poinformujemy e-mailem 14 dni przed wejściem zmian. W sprawach nieuregulowanych stosuje się prawo polskie. Sądem właściwym jest sąd w Warszawie. Kontakt: kontakt@sitemorph.pl, SiteMorph sp. z o.o., ul. Marszałkowska 1, 00-001 Warszawa.' }
     ]
   },
   prywatnosc: {
     title: 'Polityka prywatności',
-    updated: 'Aktualizacja: 12 sierpnia 2026 — zgodna z RODO',
+    updated: 'Aktualizacja: 12 sierpnia 2026 - zgodna z RODO',
     sections: [
       { h: '1. Administrator', p: 'Administratorem danych jest SiteMorph sp. z o.o. (KRS 0000000000), kontakt: iod@sitemorph.pl. Inspektorem Ochrony Danych jest iod@sitemorph.pl.' },
-      { h: '2. Jakie dane zbieramy', p: 'Konto: e-mail, nazwa firmy, NIP (jeśli podasz do faktur). Płatności: dane obsługuje Stripe — nie przechowujemy numerów kart. Logi: adres IP, data logowania, rodzaj przeglądarki. Lead Finder przetwarza wyłącznie dane publiczne z Google Business Profile.' },
-      { h: '3. Cele i podstawy prawne', p: 'Art. 6 ust. 1 lit. b RODO — wykonanie umowy (utworzenie strony, hosting). Lit. c — obowiązki księgowe (faktury 5 lat). Lit. f — prawnie uzasadniony interes (bezpieczeństwo, analityka). Lit. a — zgoda na newsletter (możesz wycofać w każdej chwili).' },
+      { h: '2. Jakie dane zbieramy', p: 'Konto: e-mail, nazwa firmy, NIP (jeśli podasz do faktur). Płatności: dane obsługuje Stripe - nie przechowujemy numerów kart. Logi: adres IP, data logowania, rodzaj przeglądarki. Lead Finder przetwarza wyłącznie dane publiczne z Google Business Profile.' },
+      { h: '3. Cele i podstawy prawne', p: 'Art. 6 ust. 1 lit. b RODO - wykonanie umowy (utworzenie strony, hosting). Lit. c - obowiązki księgowe (faktury 5 lat). Lit. f - prawnie uzasadniony interes (bezpieczeństwo, analityka). Lit. a - zgoda na newsletter (możesz wycofać w każdej chwili).' },
       { h: '4. Odbiorcy danych', p: 'Podmioty przetwarzające: hosting OVH/Hetzner (UE), Stripe (płatności), Resend (maile), Google Analytics 4 (anonimizowane statystyki, tylko po zgodzie). Nie sprzedajemy danych. Transfer poza EOG wyłącznie na podstawie decyzji adekwatności lub SCC.' },
-      { h: '5. Okres przechowywania', p: 'Konto — do usunięcia konta. Faktury — 5 lat od końca roku obrotowego. Logi — 12 miesięcy. Dane marketingowe — do wycofania zgody.' },
+      { h: '5. Okres przechowywania', p: 'Konto - do usunięcia konta. Faktury - 5 lat od końca roku obrotowego. Logi - 12 miesięcy. Dane marketingowe - do wycofania zgody.' },
       { h: '6. Twoje prawa', p: 'Prawo dostępu, sprostowania, usunięcia, ograniczenia, przenoszenia, sprzeciwu oraz skarga do PUODO (ul. Stawki 2, Warszawa). Wniosek realizujemy w 30 dni na iod@sitemorph.pl. Usunięcie konta = usunięcie stron i projektów (nieodwracalne).' },
       { h: '7. Bezpieczeństwo', p: 'Szyfrowanie TLS, hasła hashowane bcrypt, kopie zapasowe codziennie, dostęp pracowników na zasadzie least-privilege i 2FA.' },
       { h: '8. Kontakt i zmiany', p: 'Pytania: iod@sitemorph.pl. O zmianach informujemy banerem i e-mailem 14 dni wcześniej.' }
@@ -119,11 +119,11 @@ export const LEGAL_DOCS: Record<'regulamin' | 'prywatnosc' | 'cookies', { title:
     title: 'Polityka cookies',
     updated: 'Aktualizacja: 12 sierpnia 2026',
     sections: [
-      { h: '1. Co to są cookies', p: 'Małe pliki tekstowe zapisywane na Twoim urządzeniu. Używamy ich, by serwis działał, zapamiętywał motyw (jasny/ciemny) i — po zgodzie — mierzył ruch.' },
-      { h: '2. Rodzaje', p: 'Niezbędne — sesja, CSRF, wybór motywu (bez zgody, art. 173 Prawa telekomunikacyjnego). Funkcjonalne — zapamiętywanie języka, podglądu. Analityczne — GA4 (_ga, _ga_*, 13 mies.) tylko po kliknięciu „Akceptuję”. Marketingowe — nie używamy.' },
+      { h: '1. Co to są cookies', p: 'Małe pliki tekstowe zapisywane na Twoim urządzeniu. Używamy ich, by serwis działał, zapamiętywał motyw (jasny/ciemny) i - po zgodzie - mierzył ruch.' },
+      { h: '2. Rodzaje', p: 'Niezbędne - sesja, CSRF, wybór motywu (bez zgody, art. 173 Prawa telekomunikacyjnego). Funkcjonalne - zapamiętywanie języka, podglądu. Analityczne - GA4 (_ga, _ga_*, 13 mies.) tylko po kliknięciu „Akceptuję”. Marketingowe - nie używamy.' },
       { h: '3. Zarządzanie zgodą', p: 'Przy pierwszej wizycie pokazujemy baner. Zgodę zmienisz w stopce „Ustawienia cookies” lub w przeglądarce (Chrome: Ustawienia → Prywatność → Pliki cookie). Wycofanie zgody nie wpływa na pliki już zapisane.' },
-      { h: '4. Jak długo', p: 'Sesyjne — do zamknięcia przeglądarki. Stałe: motyw — 12 mies., zgoda — 6 mies., GA — 13 mies. Po tym czasie prosimy ponownie o wybór.' },
-      { h: '5. Narzędzia zewnętrzne', p: 'Google Analytics (Google Ireland Ltd.) — IP anonimizowane. Stripe — wykrywanie oszustw przy płatności. Szczegóły w polityce prywatności.' },
+      { h: '4. Jak długo', p: 'Sesyjne - do zamknięcia przeglądarki. Stałe: motyw - 12 mies., zgoda - 6 mies., GA - 13 mies. Po tym czasie prosimy ponownie o wybór.' },
+      { h: '5. Narzędzia zewnętrzne', p: 'Google Analytics (Google Ireland Ltd.) - IP anonimizowane. Stripe - wykrywanie oszustw przy płatności. Szczegóły w polityce prywatności.' },
       { h: '6. Kontakt', p: 'Pytania o cookies: kontakt@sitemorph.pl. Więcej o cookies: wszystkoociasteczkach.pl (strona zewnętrzna).' }
     ]
   }
@@ -153,8 +153,8 @@ export const PublicLandingView = ({
   return (
     <div className="min-h-screen bg-white dark:bg-black text-[#111111] dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
-      {/* Hero Section — NOWY UKŁAD: centralny nagłówek + mockup poniżej, nie 1:1 */}
-      <section className="max-w-6xl mx-auto px-6 pt-10 lg:pt-16 pb-12 lg:pb-16 space-y-10">
+      {/* Hero Section - NOWY UKŁAD: centralny nagłówek + mockup poniżej, nie 1:1 */}
+      <section className="max-w-6xl mx-auto px-6 pt-10 lg:pt-16 pb-12 lg:pb-16 space-y-10 min-h-[100dvh] flex flex-col justify-center">
         <motion.div 
           initial={{ opacity: 0, y: 30, filter: 'blur(16px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
@@ -163,7 +163,7 @@ export const PublicLandingView = ({
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold text-[#111111] dark:text-white bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 shadow-sm">
             <Zap size={13} className="fill-current text-[#111111] dark:text-white" /> 
-            <span>Zamień AI w stały zysk — bez kodowania</span>
+            <span>Zamień AI w stały zysk - bez kodowania</span>
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-[#111111] dark:text-white">
             Buduj strony.<br />
@@ -204,7 +204,7 @@ export const PublicLandingView = ({
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               </div>
               <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold">
-                <span className="px-3 py-1 rounded-full bg-[#F7F6F3] dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">fryzjer-studio.pl — podgląd LIVE</span>
+                <span className="px-3 py-1 rounded-full bg-[#F7F6F3] dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">fryzjer-studio.pl - podgląd LIVE</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               </div>
               <div className="text-[10px] font-bold opacity-60 hidden sm:block">2 online</div>
@@ -215,7 +215,7 @@ export const PublicLandingView = ({
                 <h3 className="text-3xl font-black leading-tight">
                   Zmień styl.<br />Poczuj się pewnie.
                 </h3>
-                <p className="text-sm font-semibold opacity-70 leading-relaxed">Studio Anna — strzyżenie, broda, modelowanie. Rezerwacja online, kawa na miejscu.</p>
+                <p className="text-sm font-semibold opacity-70 leading-relaxed">Studio Anna - strzyżenie, broda, modelowanie. Rezerwacja online, kawa na miejscu.</p>
                 <div className="flex gap-2">
                   <span className="bg-[#111111] text-white dark:bg-white dark:text-black text-xs font-bold px-4 py-2 rounded-full shadow-md">Umów termin</span>
                   <span className="border border-neutral-200 dark:border-neutral-800 text-xs font-bold px-4 py-2 rounded-full">Zobacz cennik</span>
@@ -288,7 +288,7 @@ export const PublicLandingView = ({
             Od jednego zdania<br />do działającej strony<span className="text-gradient-lime-soft">.</span>
           </h2>
           <p className="relative text-sm sm:text-[15px] font-bold opacity-80 max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Napisz, czego potrzebujesz. Oglądaj, jak powstaje projekt. Poprawiaj, prosząc po prostu o zmianę — kolory, zdjęcia, treści.
+            Napisz, czego potrzebujesz. Oglądaj, jak powstaje projekt. Poprawiaj, prosząc po prostu o zmianę - kolory, zdjęcia, treści.
           </p>
         </motion.div>
 
@@ -426,7 +426,7 @@ export const PublicLandingView = ({
                     <span className="font-bold">Zmień kolor przycisku na limonkowy</span>
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                   </div>
-                  <div className="text-[10px] font-black opacity-60 text-center">✓ Gotowe — 9 s</div>
+                  <div className="text-[10px] font-black opacity-60 text-center">✓ Gotowe - 9 s</div>
                   <div className="rounded-2xl border p-3 flex items-center justify-between bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
                     <span className="font-bold">Przyciemnij tło galerii</span>
                     <RefreshCw size={14} className="animate-spin opacity-60" />
@@ -452,7 +452,7 @@ export const PublicLandingView = ({
               {activeFeature === 3 && (
                 <div className="w-full space-y-3">
                   {[
-                    { name: 'Studio Lily — kwiaciarnia', amount: '2 400 zł', status: 'Opłacona' },
+                    { name: 'Studio Lily - kwiaciarnia', amount: '2 400 zł', status: 'Opłacona' },
                     { name: 'Barber Kings', amount: '1 800 zł', status: 'Oczekuje' }
                   ].map((r) => (
                     <div key={r.name} className="flex items-center justify-between rounded-xl border p-3 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
@@ -487,7 +487,7 @@ export const PublicLandingView = ({
             Twoi klienci już gdzieś są.<br />Znajdziesz ich w minutę<span className="text-gradient-lime-soft">.</span>
           </h2>
           <p className="text-sm font-bold leading-relaxed opacity-80" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            W każdym planie dostajesz dostęp do lokalnych firm z Google. Telefon, adres, e-mail — a filtr „brak strony” podświetla najlepsze okazje.
+            W każdym planie dostajesz dostęp do lokalnych firm z Google. Telefon, adres, e-mail - a filtr „brak strony” podświetla najlepsze okazje.
           </p>
           <ul className="space-y-3 text-sm font-bold">
             {[
@@ -497,7 +497,7 @@ export const PublicLandingView = ({
             ].map(([b, r]) => (
               <li key={b} className="flex gap-2.5 leading-relaxed">
                 <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                <span><span className="font-black">{b}</span> — <span className="opacity-70">{r}</span></span>
+                <span><span className="font-black">{b}</span> - <span className="opacity-70">{r}</span></span>
               </li>
             ))}
           </ul>
@@ -608,7 +608,7 @@ export const PublicLandingView = ({
             Strona gotowa.<br />Czas na przelew<span className="text-gradient-lime-soft">.</span>
           </h2>
           <p className="text-sm font-bold leading-relaxed opacity-80 max-w-md" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Wbudowane faktury bez prowizji. Wystawiasz dokument, wysyłasz PDF i pilnujesz płatności — wszystko w jednym miejscu.
+            Wbudowane faktury bez prowizji. Wystawiasz dokument, wysyłasz PDF i pilnujesz płatności - wszystko w jednym miejscu.
           </p>
           <div className="grid grid-cols-3 gap-6 pt-2 border-t border-[#EAEAEA] dark:border-neutral-900">
             {[
