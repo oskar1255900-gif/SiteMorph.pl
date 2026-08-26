@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional, List
 import os
@@ -13,18 +13,18 @@ load_dotenv()
 router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "poolsideai/laguna-s-2.1:free")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "poolside/laguna-s-2.1:free")
 OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "http://localhost:3000")
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph")
 
-# Google (Gemini) — glowny provider
+# Google (Gemini) â€” glowny provider
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
-# Preferowana kolejnosc modeli — resolver sam sprawdzi co realnie jest dostepne dla klucza
+# Preferowana kolejnosc modeli â€” resolver sam sprawdzi co realnie jest dostepne dla klucza
 GEMINI_PREFERRED = [
     m.strip() for m in os.getenv(
         "GEMINI_MODELS",
         # poolside/laguna-s-2.1:free = PRIMARY (OpenRouter). Gemini = backup:
-        # 3.5 flash lite najczęściej, 3.7 flash rzadko (mimo że user prosi, drogi/wolny)
+        # 3.5 flash lite najczÄ™Ĺ›ciej, 3.7 flash rzadko (mimo ĹĽe user prosi, drogi/wolny)
         "gemini-3.5-flash-lite,gemini-flash-latest,gemini-3.7-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite",
     ).split(",") if m.strip()
 ]
@@ -69,7 +69,7 @@ def resolve_gemini_model() -> Optional[str]:
     if flash:
         _gemini_model_cache = flash[0]
         return flash[0]
-    # Nie udalo sie ustalic — probuj po kolei nazw preferowanych przy wywolaniu
+    # Nie udalo sie ustalic â€” probuj po kolei nazw preferowanych przy wywolaniu
     _gemini_model_cache = GEMINI_PREFERRED[0] if GEMINI_PREFERRED else None
     return _gemini_model_cache
 
@@ -79,12 +79,12 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     JEDEN szybki call na flash-lite (najszybszy model), timeout 9s, zero retry/resolve."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    # Kolejność: Laguna = PRIMARY, Gemini = backup. Vercel 10s → max 1-2 próby.
-    # Najczęściej 3.5 flash lite, 3.7 flash rzadko (droższy/wolniejszy) — stąd 3.7 na końcu listy.
+    # KolejnoĹ›Ä‡: Laguna = PRIMARY, Gemini = backup. Vercel 10s â†’ max 1-2 prĂłby.
+    # NajczÄ™Ĺ›ciej 3.5 flash lite, 3.7 flash rzadko (droĹĽszy/wolniejszy) â€” stÄ…d 3.7 na koĹ„cu listy.
     candidates = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.7-flash"]
     per_try_timeout = 8 if os.getenv("VERCEL") else 12
     errs: List[str] = []
-    last_err: str = "brak dostępnych modeli"
+    last_err: str = "brak dostÄ™pnych modeli"
     for mdl in candidates[:2]:
         try:
             r = requests.post(
@@ -141,87 +141,87 @@ class BuilderInput(BaseModel):
     package: Optional[str] = "starter"
     credits: Optional[int] = 10
 
-EDITORIAL_RULES = """Jesteś senior editorial designerem (poziom Linear, Stripe Docs, Relay) — Twoje strony wyglądają jak z papierowego atelier, nie jak z generatora AI.
+EDITORIAL_RULES = """JesteĹ› senior editorial designerem (poziom Linear, Stripe Docs, Relay) â€” Twoje strony wyglÄ…dajÄ… jak z papierowego atelier, nie jak z generatora AI.
 
 ZASADY PAPIEROWEGO ATELIER:
-- Papier #fcfcF9, tusz #131412, szałwia #d8e4bc tylko jako cienka linia/podkreślenie, glina #e8ddd3 na ciepłe tła. ZAKAZ niebieskiego #3b82f6, fioletów i tęczowych gradientów.
-- Typografia: Instrument Serif 400 dla H1/H2 (nie kursywa, chyba że <em>), SF Pro 400/500 dla body. H1 48-72px, H2 28-36px, body 15px, mono 11px uppercase dla mety. Jeden ciężar, nie font-black wszędzie.
-- Promień: 10-12px dla kart, 8px dla inputów, brak pełnych pigułek (poza mini tagami). Cienie max 0 1px 2px rgba(0,0,0,0.04) lub brak + 1px border #e7e5e0.
-- Układ: asymetryczna siatka 12 kolumn (np. 7/5, 8/4), hojne białe przestrzenie 80-120px między sekcjami, wyrównanie do lewej, dozwolone nachodzenie. Zakaz centrowania wszystkiego.
-- Ikony: cienki stroke 1.2px, 14-16px, NIGDY w wypełnionych kółkach. Numery 01 mono, nie ikonki.
+- Papier #fcfcF9, tusz #131412, szaĹ‚wia #d8e4bc tylko jako cienka linia/podkreĹ›lenie, glina #e8ddd3 na ciepĹ‚e tĹ‚a. ZAKAZ niebieskiego #3b82f6, fioletĂłw i tÄ™czowych gradientĂłw.
+- Typografia: Instrument Serif 400 dla H1/H2 (nie kursywa, chyba ĹĽe <em>), SF Pro 400/500 dla body. H1 48-72px, H2 28-36px, body 15px, mono 11px uppercase dla mety. Jeden ciÄ™ĹĽar, nie font-black wszÄ™dzie.
+- PromieĹ„: 10-12px dla kart, 8px dla inputĂłw, brak peĹ‚nych piguĹ‚ek (poza mini tagami). Cienie max 0 1px 2px rgba(0,0,0,0.04) lub brak + 1px border #e7e5e0.
+- UkĹ‚ad: asymetryczna siatka 12 kolumn (np. 7/5, 8/4), hojne biaĹ‚e przestrzenie 80-120px miÄ™dzy sekcjami, wyrĂłwnanie do lewej, dozwolone nachodzenie. Zakaz centrowania wszystkiego.
+- Ikony: cienki stroke 1.2px, 14-16px, NIGDY w wypeĹ‚nionych kĂłĹ‚kach. Numery 01 mono, nie ikonki.
 - Motion: tylko opacity + y 12px, 150-300ms ease, bez blur/rotate/scale. Brak infinite pulse.
-- Treść: prawdziwe teksty z danych klienta, zero lorem, użyj opinii z imionami.
-- Brzydkie AI-tells do usunięcia: zaokrąglone 2xl wszędzie, fioletowe cienie, backdrop-blur, gradientowe tytuły, Lucide w kółeczkach, glassmorphism, karuzele logo, glow na przyciskach, 3 kafelki w rzędzie.
+- TreĹ›Ä‡: prawdziwe teksty z danych klienta, zero lorem, uĹĽyj opinii z imionami.
+- Brzydkie AI-tells do usuniÄ™cia: zaokrÄ…glone 2xl wszÄ™dzie, fioletowe cienie, backdrop-blur, gradientowe tytuĹ‚y, Lucide w kĂłĹ‚eczkach, glassmorphism, karuzele logo, glow na przyciskach, 3 kafelki w rzÄ™dzie.
 """
 
 IMPECCABLE_DESIGN_RULES = EDITORIAL_RULES
 
-# 10 losowych templatów — każdy inny kolor/zdjęcia/układ, losowany per generacja
+# 10 losowych templatĂłw â€” kaĹĽdy inny kolor/zdjÄ™cia/ukĹ‚ad, losowany per generacja
 TEMPLATES = [
-    {"id": 1, "name": "Papier Atelier", "palette": "papier #fcfcf9 + tusz #131412 + szałwia #d8e4bc", "accent": "#d8e4bc", "images": "cozy cafe interior, paper texture, warm light", "layout": "asymetria 7/5, dużo bieli, numeracja 01 mono"},
-    {"id": 2, "name": "Midnight Navy", "palette": "granat #0f172a + ecru #fefce8 + limonka #bef264", "accent": "#bef264", "images": "dark premium barber, midnight city, neon sign", "layout": "hero full-screen z nakładką, tabela cennika, zespół 3 kolumny"},
-    {"id": 3, "name": "Terracotta Clay", "palette": "glina #e8ddd3 + tusz #1c1917 + terakota #c2410c", "accent": "#c2410c", "images": "restaurant clay pottery, warm terracotta interior", "layout": "galeria masonry, menu karty z ceną po prawej"},
-    {"id": 4, "name": "Forest Sage", "palette": "leśna zieleń #14532d + krem #fef7cd + szałwia #a3e635", "accent": "#a3e635", "images": "forest spa, natural wood, green plants", "layout": "hero split 5/7 z portretem, oferta listą z ikonkami"},
+    {"id": 1, "name": "Papier Atelier", "palette": "papier #fcfcf9 + tusz #131412 + szaĹ‚wia #d8e4bc", "accent": "#d8e4bc", "images": "cozy cafe interior, paper texture, warm light", "layout": "asymetria 7/5, duĹĽo bieli, numeracja 01 mono"},
+    {"id": 2, "name": "Midnight Navy", "palette": "granat #0f172a + ecru #fefce8 + limonka #bef264", "accent": "#bef264", "images": "dark premium barber, midnight city, neon sign", "layout": "hero full-screen z nakĹ‚adkÄ…, tabela cennika, zespĂłĹ‚ 3 kolumny"},
+    {"id": 3, "name": "Terracotta Clay", "palette": "glina #e8ddd3 + tusz #1c1917 + terakota #c2410c", "accent": "#c2410c", "images": "restaurant clay pottery, warm terracotta interior", "layout": "galeria masonry, menu karty z cenÄ… po prawej"},
+    {"id": 4, "name": "Forest Sage", "palette": "leĹ›na zieleĹ„ #14532d + krem #fef7cd + szaĹ‚wia #a3e635", "accent": "#a3e635", "images": "forest spa, natural wood, green plants", "layout": "hero split 5/7 z portretem, oferta listÄ… z ikonkami"},
     {"id": 5, "name": "Slate Minimal", "palette": "grafit #27272a + biel #ffffff + niebieski #3b82f6", "accent": "#3b82f6", "images": "minimal office, slate architecture, tech startup", "layout": "centered hero, 3 filary, cennik tabela"},
-    {"id": 6, "name": "Amber Glow", "palette": "bursztyn #f59e0b + ecru #fffbeb + grafit #1f2937", "accent": "#f59e0b", "images": "bakery amber light, croissant, warm bread", "layout": "hero z obrazem na pół, oferta kartami, opinie carousel"},
-    {"id": 7, "name": "Ocean Slate", "palette": "ocean #0e7490 + mgła #f1f5f9 + koral #f97316", "accent": "#0e7490", "images": "hotel ocean view, slate coast, yacht", "layout": "hero panorama, pokoje kartami, atrakcje listą"},
-    {"id": 8, "name": "Blush Rose", "palette": "róż #fce7f3 + grafit #1f2937 + róż #ec4899", "accent": "#ec4899", "images": "beauty salon pink, rose spa, makeup", "layout": "hero z portretem, zespół, galeria 2x2"},
-    {"id": 9, "name": "Charcoal Graphite", "palette": "węgiel #18181b + popiół #e4e4e7 + limonka #84cc16", "accent": "#84cc16", "images": "gym industrial, charcoal workout, fitness", "layout": "hero video background, cennik tabela, team"},
-    {"id": 10, "name": "Cream Olive", "palette": "śmietanka #fef3c7 + oliwka #365314 + kość #fff7ed", "accent": "#365314", "images": "furniture wood, olive cream interior, scandinavian", "layout": "galeria grid, kategorie kafelki, promocje"},
+    {"id": 6, "name": "Amber Glow", "palette": "bursztyn #f59e0b + ecru #fffbeb + grafit #1f2937", "accent": "#f59e0b", "images": "bakery amber light, croissant, warm bread", "layout": "hero z obrazem na pĂłĹ‚, oferta kartami, opinie carousel"},
+    {"id": 7, "name": "Ocean Slate", "palette": "ocean #0e7490 + mgĹ‚a #f1f5f9 + koral #f97316", "accent": "#0e7490", "images": "hotel ocean view, slate coast, yacht", "layout": "hero panorama, pokoje kartami, atrakcje listÄ…"},
+    {"id": 8, "name": "Blush Rose", "palette": "rĂłĹĽ #fce7f3 + grafit #1f2937 + rĂłĹĽ #ec4899", "accent": "#ec4899", "images": "beauty salon pink, rose spa, makeup", "layout": "hero z portretem, zespĂłĹ‚, galeria 2x2"},
+    {"id": 9, "name": "Charcoal Graphite", "palette": "wÄ™giel #18181b + popiĂłĹ‚ #e4e4e7 + limonka #84cc16", "accent": "#84cc16", "images": "gym industrial, charcoal workout, fitness", "layout": "hero video background, cennik tabela, team"},
+    {"id": 10, "name": "Cream Olive", "palette": "Ĺ›mietanka #fef3c7 + oliwka #365314 + koĹ›Ä‡ #fff7ed", "accent": "#365314", "images": "furniture wood, olive cream interior, scandinavian", "layout": "galeria grid, kategorie kafelki, promocje"},
 ]
 def pick_template(business_name: str) -> dict:
     import hashlib, random
     # Losowy per request, ale deterministyczny fallback gdy brak random (seed z nazwy)
     h = int(hashlib.md5(business_name.encode()).hexdigest()[:8], 16)
-    # 80% losowy, 20% hash (żeby ta sama firma czasem dostała inny, ale nie zawsze)
+    # 80% losowy, 20% hash (ĹĽeby ta sama firma czasem dostaĹ‚a inny, ale nie zawsze)
     if random.random() < 0.8:
         return random.choice(TEMPLATES)
     return TEMPLATES[h % len(TEMPLATES)]
 
 INDEX_HTML_RULE = """- STRUKTURA PROJEKTU: React + Vite + TypeScript + Tailwind CSS
   main/
-  ├── frontend/
-  │   ├── index.html                    # Vite entry HTML
-  │   ├── package.json                  # zależy: react, react-dom, vite, tailwindcss, postcss, autoprefixer, lucide-react
-  │   ├── tsconfig.json                 # TypeScript config
-  │   ├── vite.config.ts                # Vite config z React plugin
-  │   ├── tailwind.config.js            # Tailwind config
-  │   ├── postcss.config.js             # PostCSS config
-  │   ├── public/
-  │   │   └── favicon.svg
-  │   ├── src/
-  │   │   ├── main.tsx                  # React entry point
-  │   │   ├── App.tsx                   # Główny komponent - CAŁA STRONA TUTAJ
-  │   │   ├── index.css                 # Tailwind directives + custom styles
-  │   │   ├── components/               # Komponenty sekcji (Hero, Offer, Pricing, Testimonials, Contact, Footer)
-  │   │   │   ├── Hero.tsx
-  │   │   │   ├── Offer.tsx
-  │   │   │   ├── Pricing.tsx
-  │   │   │   ├── Testimonials.tsx
-  │   │   │   ├── Contact.tsx
-  │   │   │   └── Footer.tsx
-  │   │   ├── ui/                       # UI primitives (Button, Card, Container, Section)
-  │   │   │   ├── Button.tsx
-  │   │   │   ├── Card.tsx
-  │   │   │   ├── Container.tsx
-  │   │   │   └── Section.tsx
-  │   │   ├── hooks/                    # Custom hooks (useScrollReveal, useMobile)
-  │   │   │   └── useScrollReveal.ts
-  │   │   ├── lib/                      # Utilities (cn, formatters)
-  │   │   │   └── utils.ts
-  │   │   └── types.ts                  # TypeScript interfaces
-  │   ├── package.json
-  │   └── README.md
+  â”śâ”€â”€ frontend/
+  â”‚   â”śâ”€â”€ index.html                    # Vite entry HTML
+  â”‚   â”śâ”€â”€ package.json                  # zaleĹĽy: react, react-dom, vite, tailwindcss, postcss, autoprefixer, lucide-react
+  â”‚   â”śâ”€â”€ tsconfig.json                 # TypeScript config
+  â”‚   â”śâ”€â”€ vite.config.ts                # Vite config z React plugin
+  â”‚   â”śâ”€â”€ tailwind.config.js            # Tailwind config
+  â”‚   â”śâ”€â”€ postcss.config.js             # PostCSS config
+  â”‚   â”śâ”€â”€ public/
+  â”‚   â”‚   â””â”€â”€ favicon.svg
+  â”‚   â”śâ”€â”€ src/
+  â”‚   â”‚   â”śâ”€â”€ main.tsx                  # React entry point
+  â”‚   â”‚   â”śâ”€â”€ App.tsx                   # GĹ‚Ăłwny komponent - CAĹA STRONA TUTAJ
+  â”‚   â”‚   â”śâ”€â”€ index.css                 # Tailwind directives + custom styles
+  â”‚   â”‚   â”śâ”€â”€ components/               # Komponenty sekcji (Hero, Offer, Pricing, Testimonials, Contact, Footer)
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Hero.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Offer.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Pricing.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Testimonials.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Contact.tsx
+  â”‚   â”‚   â”‚   â””â”€â”€ Footer.tsx
+  â”‚   â”‚   â”śâ”€â”€ ui/                       # UI primitives (Button, Card, Container, Section)
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Button.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Card.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Container.tsx
+  â”‚   â”‚   â”‚   â””â”€â”€ Section.tsx
+  â”‚   â”‚   â”śâ”€â”€ hooks/                    # Custom hooks (useScrollReveal, useMobile)
+  â”‚   â”‚   â”‚   â””â”€â”€ useScrollReveal.ts
+  â”‚   â”‚   â”śâ”€â”€ lib/                      # Utilities (cn, formatters)
+  â”‚   â”‚   â”‚   â””â”€â”€ utils.ts
+  â”‚   â”‚   â””â”€â”€ types.ts                  # TypeScript interfaces
+  â”‚   â”śâ”€â”€ package.json
+  â”‚   â””â”€â”€ README.md
 
 ZASADY GENEROWANIA:
-- App.tsx to GŁÓWNY PLIK STRONY — importuje wszystkie sekcje, składa layout
-- Każda sekcja = osobny komponent w components/ (Hero, Offer, Pricing, Testimonials, Contact, Footer)
-- UI primitives w ui/ (Button, Card, Container, Section) — wielokrotnego użytku
+- App.tsx to GĹĂ“WNY PLIK STRONY â€” importuje wszystkie sekcje, skĹ‚ada layout
+- KaĹĽda sekcja = osobny komponent w components/ (Hero, Offer, Pricing, Testimonials, Contact, Footer)
+- UI primitives w ui/ (Button, Card, Container, Section) â€” wielokrotnego uĹĽytku
 - Tailwind CSS przez @tailwind directives w index.css + tailwind.config.js z custom theme (colors, fonts)
 - lucide-react dla ikon (import { IconName } from 'lucide-react')
 - TypeScript interfaces w types.ts (BusinessData, SectionProps, etc.)
-- ZERO "lorem ipsum" — same prawdziwe dane z inputu
-- Komponenty muszą być gotowe do użycia: npm install && npm run dev
+- ZERO "lorem ipsum" â€” same prawdziwe dane z inputu
+- Komponenty muszÄ… byÄ‡ gotowe do uĹĽycia: npm install && npm run dev
 - package.json z scripts: dev, build, preview
 - vite.config.ts z @vitejs/plugin-react
 - tsconfig.json strict mode
@@ -229,52 +229,52 @@ ZASADY GENEROWANIA:
 
 SYSTEM_PROMPT = IMPECCABLE_DESIGN_RULES + """
 
-Jesteś SiteMorph AI — generator premium stron dla lokalnych firm.
-ZADANIE: Wygeneruj kompletny projekt strony w DOKŁADNIE tej strukturze folderów (React + Vite + TypeScript + Tailwind):
+JesteĹ› SiteMorph AI â€” generator premium stron dla lokalnych firm.
+ZADANIE: Wygeneruj kompletny projekt strony w DOKĹADNIE tej strukturze folderĂłw (React + Vite + TypeScript + Tailwind):
 
   main/
-  ├── frontend/
-  │   ├── index.html
-  │   ├── package.json
-  │   ├── tsconfig.json
-  │   ├── vite.config.ts
-  │   ├── tailwind.config.js
-  │   ├── postcss.config.js
-  │   ├── public/favicon.svg
-  │   ├── src/
-  │   │   ├── main.tsx
-  │   │   ├── App.tsx                    # GŁÓWNY KOMPONENT STRONY
-  │   │   ├── index.css
-  │   │   ├── components/
-  │   │   │   ├── Hero.tsx
-  │   │   │   ├── Offer.tsx
-  │   │   │   ├── Pricing.tsx
-  │   │   │   ├── Testimonials.tsx
-  │   │   │   ├── Contact.tsx
-  │   │   │   └── Footer.tsx
-  │   │   ├── ui/
-  │   │   │   ├── Button.tsx
-  │   │   │   ├── Card.tsx
-  │   │   │   ├── Container.tsx
-  │   │   │   └── Section.tsx
-  │   │   ├── hooks/useScrollReveal.ts
-  │   │   ├── lib/utils.ts
-  │   │   └── types.ts
-  │   ├── package.json
-  │   └── README.md
-  ├── backend/main.py       <- OPCJONALNIE: tylko jeśli strona potrzebuje backendu (formularz kontaktowy/rezerwacja)
-  ├── package.json
-  └── README.md
+  â”śâ”€â”€ frontend/
+  â”‚   â”śâ”€â”€ index.html
+  â”‚   â”śâ”€â”€ package.json
+  â”‚   â”śâ”€â”€ tsconfig.json
+  â”‚   â”śâ”€â”€ vite.config.ts
+  â”‚   â”śâ”€â”€ tailwind.config.js
+  â”‚   â”śâ”€â”€ postcss.config.js
+  â”‚   â”śâ”€â”€ public/favicon.svg
+  â”‚   â”śâ”€â”€ src/
+  â”‚   â”‚   â”śâ”€â”€ main.tsx
+  â”‚   â”‚   â”śâ”€â”€ App.tsx                    # GĹĂ“WNY KOMPONENT STRONY
+  â”‚   â”‚   â”śâ”€â”€ index.css
+  â”‚   â”‚   â”śâ”€â”€ components/
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Hero.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Offer.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Pricing.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Testimonials.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Contact.tsx
+  â”‚   â”‚   â”‚   â””â”€â”€ Footer.tsx
+  â”‚   â”‚   â”śâ”€â”€ ui/
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Button.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Card.tsx
+  â”‚   â”‚   â”‚   â”śâ”€â”€ Container.tsx
+  â”‚   â”‚   â”‚   â””â”€â”€ Section.tsx
+  â”‚   â”‚   â”śâ”€â”€ hooks/useScrollReveal.ts
+  â”‚   â”‚   â”śâ”€â”€ lib/utils.ts
+  â”‚   â”‚   â””â”€â”€ types.ts
+  â”‚   â”śâ”€â”€ package.json
+  â”‚   â””â”€â”€ README.md
+  â”śâ”€â”€ backend/main.py       <- OPCJONALNIE: tylko jeĹ›li strona potrzebuje backendu (formularz kontaktowy/rezerwacja)
+  â”śâ”€â”€ package.json
+  â””â”€â”€ README.md
 
 """ + INDEX_HTML_RULE + """
-ZASADY BEZWZGLĘDNE:
-- NIGDY nie zadawaj pytań zwrotnych i NIE prosisz o doprecyzowanie. Masz wystarczająco danych — działasz od razu.
-- Użytkownik często wkleja SUROWY tekst skopiowany z wizytówki Google Maps (nazwa, ocena, liczba opinii, przedział cen, kategoria, adres, telefon, strona, godziny otwarcia, fragmenty opinii klientów, nazwy dań/usług).
-- WYCIĄGNIJ z takiego tekstu WSZYSTKIE fakty i użyj ich na stronie: nazwa firmy jako brand, adres i telefon w sekcji Kontakt, zakres cen w Cenniku, opinie klientów (z imionami autorów!) jako sekcja Opinie/Testimoniale, pozycje menu/oferty jako karty usług, ocena gwiazdkowa jako badge social proof.
-- Czegokolwiek brakuje — uzupełnij realistycznymi wartościami domyślnymi pasującymi do branży. NIGDY o to nie pytaj.
-- Twoja odpowiedź to ZAWSZE od razu kompletny JSON z plikami. Żaden inny format.
+ZASADY BEZWZGLÄDNE:
+- NIGDY nie zadawaj pytaĹ„ zwrotnych i NIE prosisz o doprecyzowanie. Masz wystarczajÄ…co danych â€” dziaĹ‚asz od razu.
+- UĹĽytkownik czÄ™sto wkleja SUROWY tekst skopiowany z wizytĂłwki Google Maps (nazwa, ocena, liczba opinii, przedziaĹ‚ cen, kategoria, adres, telefon, strona, godziny otwarcia, fragmenty opinii klientĂłw, nazwy daĹ„/usĹ‚ug).
+- WYCIÄ„GNIJ z takiego tekstu WSZYSTKIE fakty i uĹĽyj ich na stronie: nazwa firmy jako brand, adres i telefon w sekcji Kontakt, zakres cen w Cenniku, opinie klientĂłw (z imionami autorĂłw!) jako sekcja Opinie/Testimoniale, pozycje menu/oferty jako karty usĹ‚ug, ocena gwiazdkowa jako badge social proof.
+- Czegokolwiek brakuje â€” uzupeĹ‚nij realistycznymi wartoĹ›ciami domyĹ›lnymi pasujÄ…cymi do branĹĽy. NIGDY o to nie pytaj.
+- Twoja odpowiedĹş to ZAWSZE od razu kompletny JSON z plikami. Ĺ»aden inny format.
 
-FORMAT ODPOWIEDZI — tylko poprawny JSON, bez markdown:
+FORMAT ODPOWIEDZI â€” tylko poprawny JSON, bez markdown:
 {
   "files": {
     "main/frontend/src/App.tsx": "...",
@@ -302,95 +302,95 @@ FORMAT ODPOWIEDZI — tylko poprawny JSON, bez markdown:
     "main/frontend/public/favicon.svg": "...",
     "main/frontend/package.json": "...",
     "main/frontend/README.md": "...",
-    "main/backend/main.py": "# FastAPI — TYLKO jeśli strona potrzebuje backendu (formularz kontaktowy/rezerwacja); inaczej POMIŃ",
+    "main/backend/main.py": "# FastAPI â€” TYLKO jeĹ›li strona potrzebuje backendu (formularz kontaktowy/rezerwacja); inaczej POMIĹ",
     "main/package.json": "{...}",
-    "main/README.md": "# Nazwa — krótki opis projektu i jak uruchomić"
+    "main/README.md": "# Nazwa â€” krĂłtki opis projektu i jak uruchomiÄ‡"
   },
   "meta": {
-    "title": "Nazwa Firmy — krótki tytuł SEO",
-    "headline": "Główny nagłówek hero (max 8 słów, sprzedażowy)",
-    "subheadline": "Podtytuł hero (1 zdanie, benefity)",
-    "ctaText": "Tekst przycisku CTA np. Umów wizytę"
+    "title": "Nazwa Firmy â€” krĂłtki tytuĹ‚ SEO",
+    "headline": "GĹ‚Ăłwny nagĹ‚Ăłwek hero (max 8 sĹ‚Ăłw, sprzedaĹĽowy)",
+    "subheadline": "PodtytuĹ‚ hero (1 zdanie, benefity)",
+    "ctaText": "Tekst przycisku CTA np. UmĂłw wizytÄ™"
   }
 }
-- main/backend/main.py: twórz TYLKO gdy jest realnie potrzebny (formularz kontaktowy, rezerwacja). Wtedy prosty FastAPI z endpointem POST /api/contact i komentarzem jak uruchomić. Frontend w App.tsx woła fetch('/api/contact', {method:'POST'}).
-- DESIGN: premium, konwersyjny, responsywny (mobile-first), font systemowy/Google Fonts, akcent wg COLORS użytkownika, dużo światła, zaokrąglenia 16-24px, miękkie cienie.
-- TREŚCI: po polsku, realistyczne dla branży; sekcje dokładnie wg SECTIONS użytkownika (domyślnie Hero, Oferta, Cennik, Opinie, Kontakt).
-- NIE używaj "lorem ipsum". Zwróć PEŁNE pliki — nie skracaj, nie pisz "...".
+- main/backend/main.py: twĂłrz TYLKO gdy jest realnie potrzebny (formularz kontaktowy, rezerwacja). Wtedy prosty FastAPI z endpointem POST /api/contact i komentarzem jak uruchomiÄ‡. Frontend w App.tsx woĹ‚a fetch('/api/contact', {method:'POST'}).
+- DESIGN: premium, konwersyjny, responsywny (mobile-first), font systemowy/Google Fonts, akcent wg COLORS uĹĽytkownika, duĹĽo Ĺ›wiatĹ‚a, zaokrÄ…glenia 16-24px, miÄ™kkie cienie.
+- TREĹšCI: po polsku, realistyczne dla branĹĽy; sekcje dokĹ‚adnie wg SECTIONS uĹĽytkownika (domyĹ›lnie Hero, Oferta, Cennik, Opinie, Kontakt).
+- NIE uĹĽywaj "lorem ipsum". ZwrĂłÄ‡ PEĹNE pliki â€” nie skracaj, nie pisz "...".
 
-=== SKALOWANIE PROMPTU WG PAKIETU KREDYTÓW ===
-Użytkownik ma PAKIET: {package_name} ({credits} kredytów).
-- PAKIET STARTER (10-25 kr): Podstawowa strona — Hero, Oferta, Kontakt. Prosty layout, podstawowe animacje.
-- PAKIET PRO (50-100 kr): Rozbudowana strona — Hero, Oferta, Cennik, Opinie, Galeria, Kontakt. Animacje scroll-reveal, hover effects, lepsze SEO.
-- PAKIET BUSINESS (200-500 kr): Pełna strona biznesowa — wszystkie sekcje + Team, FAQ, Blog/News, Case Studies, Multi-step forms, A/B test variants, Analytics setup, Performance optimization.
-- PAKIET AGENCJA (500+ kr): Enterprise-grade — wszystko z Business + CMS-ready components, Storybook, E2E tests, CI/CD config, Multi-language, Advanced SEO schema, Custom design system tokens.
+=== SKALOWANIE PROMPTU WG PAKIETU KREDYTĂ“W ===
+UĹĽytkownik ma PAKIET: {package_name} ({credits} kredytĂłw).
+- PAKIET STARTER (10-25 kr): Podstawowa strona â€” Hero, Oferta, Kontakt. Prosty layout, podstawowe animacje.
+- PAKIET PRO (50-100 kr): Rozbudowana strona â€” Hero, Oferta, Cennik, Opinie, Galeria, Kontakt. Animacje scroll-reveal, hover effects, lepsze SEO.
+- PAKIET BUSINESS (200-500 kr): PeĹ‚na strona biznesowa â€” wszystkie sekcje + Team, FAQ, Blog/News, Case Studies, Multi-step forms, A/B test variants, Analytics setup, Performance optimization.
+- PAKIET AGENCJA (500+ kr): Enterprise-grade â€” wszystko z Business + CMS-ready components, Storybook, E2E tests, CI/CD config, Multi-language, Advanced SEO schema, Custom design system tokens.
 
-IMPLEMENTUJ FUNKCJE WG PAKIETU — nie generuj funkcji Business/Agencja dla Startera.
+IMPLEMENTUJ FUNKCJE WG PAKIETU â€” nie generuj funkcji Business/Agencja dla Startera.
 
 === PROCES PROJEKTOWANIA (wymagany) ===
 
-1. PRZETWÓRZ DANE WEJŚCIOWE — zanim napisz jakikolwiek kod:
-   - Przeczytaj uważnie: BUSINESS_NAME, NICHE, DESCRIPTION, STYLE, COLORS, SECTIONS, EXTRA, PACKAGE
-   - Z DESCRIPTION/EXTRA wyciągnij WSZYSTKIE fakty: adres, telefon, godziny, opinie z imionami, ceny, nazwy usług/dań, ocenę, stronę www
-   - Zrozum branżę z NICHE i DESCRIPTION — to determinuje ton, układ, typ hero, sekcje
-    - Jeśli COLORS podano — użyj TYLKO tych kolorów. Jeśli nie — dobeż paletę pod branżę i STYLE
-    - Jeśli STYLE podano ("nowoczesny, minimalistyczny", "rustykalny, ciepły", "elegancki, premium") — to determinuje typografię, odstępy, kształty, animacje
-    - DOMYŚLNIE buduj NOWOCZESNE strony (clean, premium, minimalistyczne, dużo światła). Starodawny/retro/vintage klimat TYLKO gdy użytkownik jawnie napisze w prompcie "starodawna", "retro", "vintage", "old", "rustykalna retro"
-   - SECTIONS mówi jakie sekcje mają być — ale KOLEJNOŚĆ i UKŁAD decydujesz sam na podstawie branży
-   - DOSTOSUJ ZAKRES DO PAKIETU — Starter = 3-4 sekcje, Pro = 5-6, Business = 7-9, Agencja = 10+
+1. PRZETWĂ“RZ DANE WEJĹšCIOWE â€” zanim napisz jakikolwiek kod:
+   - Przeczytaj uwaĹĽnie: BUSINESS_NAME, NICHE, DESCRIPTION, STYLE, COLORS, SECTIONS, EXTRA, PACKAGE
+   - Z DESCRIPTION/EXTRA wyciÄ…gnij WSZYSTKIE fakty: adres, telefon, godziny, opinie z imionami, ceny, nazwy usĹ‚ug/daĹ„, ocenÄ™, stronÄ™ www
+   - Zrozum branĹĽÄ™ z NICHE i DESCRIPTION â€” to determinuje ton, ukĹ‚ad, typ hero, sekcje
+    - JeĹ›li COLORS podano â€” uĹĽyj TYLKO tych kolorĂłw. JeĹ›li nie â€” dobeĹĽ paletÄ™ pod branĹĽÄ™ i STYLE
+    - JeĹ›li STYLE podano ("nowoczesny, minimalistyczny", "rustykalny, ciepĹ‚y", "elegancki, premium") â€” to determinuje typografiÄ™, odstÄ™py, ksztaĹ‚ty, animacje
+    - DOMYĹšLNIE buduj NOWOCZESNE strony (clean, premium, minimalistyczne, duĹĽo Ĺ›wiatĹ‚a). Starodawny/retro/vintage klimat TYLKO gdy uĹĽytkownik jawnie napisze w prompcie "starodawna", "retro", "vintage", "old", "rustykalna retro"
+   - SECTIONS mĂłwi jakie sekcje majÄ… byÄ‡ â€” ale KOLEJNOĹšÄ† i UKĹAD decydujesz sam na podstawie branĹĽy
+   - DOSTOSUJ ZAKRES DO PAKIETU â€” Starter = 3-4 sekcje, Pro = 5-6, Business = 7-9, Agencja = 10+
 
-2. ZAPROJEKTUJ UNIKALNĄ STRONĘ — na podstawie przeanalizowanych danych + PAKIETU:
-   - KAŻDA strona MUSI wyglądać inaczej. Nie ma szablonów "restauracja = X", "barber = Y". 
-   - Branża + styl + dane + PAKIET = unikalny layout. AI sama decyduje:
-     * Jak wygląda hero (zdjęcie na pół ekranu? full-screen z nakładką? portret? produkt? mapa? wideo background?)
-     * Jaka kolejność sekcji (Menu przed Opiniami? Zespół przed Cennikiem? Atrakcje przed Kontaktem?)
-     * Jaki układ sekcji (grid 3-kolumnowy? asymetryczny 7/5? full-width zdjęcie z nakładką? tabela? karty? masonry?)
-     * Jakie zdjęcia z Unsplash (konkretne zapytania: "cozy restaurant interior lodz", "barber cutting hair closeup", "auto repair shop lift")
-     * Jakie ikony, kształty przycisków, typ animacji
-   - Jeśli w danych jest adres "ul. Piotrkowska 123, Łódź" → hero: "Serdecznie zapraszamy na Piotrkowską 123 w centrum Łodzi", mapa w kontakcie ustawiona na ten punkt
-   - Jeśli są godziny "Pon-Pt 8:00-20:00" → w hero "Otwarte dzisiaj do 20:00", w stopce, w sekcji Kontakt
-   - Jeśli opinie z imionami "Jan K.: Super!" → jedna w hero jako social proof, reszta w sekcji Opinie z avatarami/inicjałami
-   - Jeśli ceny "Strzyżenie 50-80 zł" → konkretne przedziały w Cenniku, nie "ceny od X zł"
-   - Telefon → klikalny tel: w hero, nagłówku, stopce, kontakcie
-   - Ocena 4.7 (120 opinii) → badge w hero, w Opiniach, w stopce
+2. ZAPROJEKTUJ UNIKALNÄ„ STRONÄ â€” na podstawie przeanalizowanych danych + PAKIETU:
+   - KAĹ»DA strona MUSI wyglÄ…daÄ‡ inaczej. Nie ma szablonĂłw "restauracja = X", "barber = Y". 
+   - BranĹĽa + styl + dane + PAKIET = unikalny layout. AI sama decyduje:
+     * Jak wyglÄ…da hero (zdjÄ™cie na pĂłĹ‚ ekranu? full-screen z nakĹ‚adkÄ…? portret? produkt? mapa? wideo background?)
+     * Jaka kolejnoĹ›Ä‡ sekcji (Menu przed Opiniami? ZespĂłĹ‚ przed Cennikiem? Atrakcje przed Kontaktem?)
+     * Jaki ukĹ‚ad sekcji (grid 3-kolumnowy? asymetryczny 7/5? full-width zdjÄ™cie z nakĹ‚adkÄ…? tabela? karty? masonry?)
+     * Jakie zdjÄ™cia z Unsplash (konkretne zapytania: "cozy restaurant interior lodz", "barber cutting hair closeup", "auto repair shop lift")
+     * Jakie ikony, ksztaĹ‚ty przyciskĂłw, typ animacji
+   - JeĹ›li w danych jest adres "ul. Piotrkowska 123, ĹĂłdĹş" â†’ hero: "Serdecznie zapraszamy na PiotrkowskÄ… 123 w centrum Ĺodzi", mapa w kontakcie ustawiona na ten punkt
+   - JeĹ›li sÄ… godziny "Pon-Pt 8:00-20:00" â†’ w hero "Otwarte dzisiaj do 20:00", w stopce, w sekcji Kontakt
+   - JeĹ›li opinie z imionami "Jan K.: Super!" â†’ jedna w hero jako social proof, reszta w sekcji Opinie z avatarami/inicjaĹ‚ami
+   - JeĹ›li ceny "StrzyĹĽenie 50-80 zĹ‚" â†’ konkretne przedziaĹ‚y w Cenniku, nie "ceny od X zĹ‚"
+   - Telefon â†’ klikalny tel: w hero, nagĹ‚Ăłwku, stopce, kontakcie
+   - Ocena 4.7 (120 opinii) â†’ badge w hero, w Opiniach, w stopce
 
-3. PISZ JAK CZŁOWIEK, NIE JAK MARKETINGOWIEC
-   - Zamiast "Profesjonalne usługi najwyższej jakości" → "Od 15 lat strzyżemy mężczyzn z Łodzi. Znamy każdą brodę."
-   - Zamiast "Kompleksowe rozwiązania gastronomiczne" → "Robimy pizzę na cienkim cieście, tak jak w Neapolu. Ciasto chodzi 48h."
-   - Zamiast "Nowoczesne podejście do klienta" → "Przyjdziecie, usiądziecie, zapijecie kawę. Reszta nasza sprawa."
-   - Konkretne: lata doświadczenia, nazwiska mistrzów, nazwa ulicy, dzielnicy, punkty orientacyjne ("przed Biedronką", "za kościołem", "przy rondzie")
-   - ZAKAZ słów: "profesjonalny", "kompleksowy", "nowoczesny", "innowacyjny", "premium", "jakość", "ekspert", "lider", "rozwiązania", "partner", "pasja", "misja", "wizja"
+3. PISZ JAK CZĹOWIEK, NIE JAK MARKETINGOWIEC
+   - Zamiast "Profesjonalne usĹ‚ugi najwyĹĽszej jakoĹ›ci" â†’ "Od 15 lat strzyĹĽemy mÄ™ĹĽczyzn z Ĺodzi. Znamy kaĹĽdÄ… brodÄ™."
+   - Zamiast "Kompleksowe rozwiÄ…zania gastronomiczne" â†’ "Robimy pizzÄ™ na cienkim cieĹ›cie, tak jak w Neapolu. Ciasto chodzi 48h."
+   - Zamiast "Nowoczesne podejĹ›cie do klienta" â†’ "Przyjdziecie, usiÄ…dziecie, zapijecie kawÄ™. Reszta nasza sprawa."
+   - Konkretne: lata doĹ›wiadczenia, nazwiska mistrzĂłw, nazwa ulicy, dzielnicy, punkty orientacyjne ("przed BiedronkÄ…", "za koĹ›cioĹ‚em", "przy rondzie")
+   - ZAKAZ sĹ‚Ăłw: "profesjonalny", "kompleksowy", "nowoczesny", "innowacyjny", "premium", "jakoĹ›Ä‡", "ekspert", "lider", "rozwiÄ…zania", "partner", "pasja", "misja", "wizja"
 
-4. LAYOUT — ASYMETRIA I ODDECH
-   - Hero: nie zawsze centrowany. Zdjęcie 50/50 z tekstem, full-screen z nakładką, portret po lewej, produkt na tle, wideo background — decydujesz na podstawie branży + pakietu
-   - Sekcje: nie 3 kolumny wszędzie. Używaj 7/5, 8/4, 2/1, full-width zdjęcia z nakładką tekstu, tabele, karty, masonry, carousel — co pasuje do treści + pakietu
-   - Białe przestrzenie: 80-120px między sekcjami. Nie tłocz treści.
-   - Zdjęcia: placeholdery Unsplash z KONKRETNYMI zapytaniami: "cozy restaurant interior lodz", "barber shop poland", "auto repair shop lift", "boutique hotel mountain view", "furniture store interior"
+4. LAYOUT â€” ASYMETRIA I ODDECH
+   - Hero: nie zawsze centrowany. ZdjÄ™cie 50/50 z tekstem, full-screen z nakĹ‚adkÄ…, portret po lewej, produkt na tle, wideo background â€” decydujesz na podstawie branĹĽy + pakietu
+   - Sekcje: nie 3 kolumny wszÄ™dzie. UĹĽywaj 7/5, 8/4, 2/1, full-width zdjÄ™cia z nakĹ‚adkÄ… tekstu, tabele, karty, masonry, carousel â€” co pasuje do treĹ›ci + pakietu
+   - BiaĹ‚e przestrzenie: 80-120px miÄ™dzy sekcjami. Nie tĹ‚ocz treĹ›ci.
+   - ZdjÄ™cia: placeholdery Unsplash z KONKRETNYMI zapytaniami: "cozy restaurant interior lodz", "barber shop poland", "auto repair shop lift", "boutique hotel mountain view", "furniture store interior"
 
-5. KOLORY — DYSCYPLINA
-   - Jeśli COLORS podano → TYLKO te kolory. Akcent = pierwszy kolor, tusz = czarny/ciemny, tło = biały/papier
-   - Jeśli NIE podano → dobeż paletę pod branżę i STYLE (ciepła dla gastronomii, męska/ciemna dla barbiera, pastelowa dla spa, nowoczesna/niebieska dla tech)
-   - NIE dodawaj "ułatwień" (szarości, niebieskie linki, czerwone błędy). Wszystko w palecie.
-   - Hover/active/focus = ciemniejszy odcień akcentu lub czarny
+5. KOLORY â€” DYSCYPLINA
+   - JeĹ›li COLORS podano â†’ TYLKO te kolory. Akcent = pierwszy kolor, tusz = czarny/ciemny, tĹ‚o = biaĹ‚y/papier
+   - JeĹ›li NIE podano â†’ dobeĹĽ paletÄ™ pod branĹĽÄ™ i STYLE (ciepĹ‚a dla gastronomii, mÄ™ska/ciemna dla barbiera, pastelowa dla spa, nowoczesna/niebieska dla tech)
+   - NIE dodawaj "uĹ‚atwieĹ„" (szaroĹ›ci, niebieskie linki, czerwone bĹ‚Ä™dy). Wszystko w palecie.
+   - Hover/active/focus = ciemniejszy odcieĹ„ akcentu lub czarny
 
-6. TYPOGRAFIA — DYSCYPLINA
+6. TYPOGRAFIA â€” DYSCYPLINA
    - H1: Instrument Serif, 48-72px, weight 400, line-height 0.95, letter-spacing -0.02em. NIE font-black.
    - H2: Instrument Serif, 28-36px, weight 400.
    - Body: Inter/SF Pro, 15px, line-height 1.6, weight 400.
    - Meta: Inter, 11-12px, uppercase, tracking-wider, weight 500, kolor akcentu/ciemniejszy.
    - Przyciski: Inter, 14-15px, weight 500, uppercase, tracking-wider.
 
-7. INTERAKCJE — SUBTELNE (rozszerzane wg pakietu)
+7. INTERAKCJE â€” SUBTELNE (rozszerzane wg pakietu)
    - Hover karta: translateY(-4px) + box-shadow 0 12px 24px rgba(0,0,0,0.08). Brak scale.
    - Przycisk: background-color change + box-shadow. Brak transform scale.
-   - Scroll reveal: opacity 0→1 + translateY(12px→0), 300ms ease-out. Raz na element.
+   - Scroll reveal: opacity 0â†’1 + translateY(12pxâ†’0), 300ms ease-out. Raz na element.
    - Pro+: Framer Motion page transitions, stagger animations, scroll-triggered counters
    - Business+: Parallax backgrounds, cursor-follow effects, magnetic buttons, Lottie animations
    - Agencja+: 3D transforms, WebGL shaders, custom cursor, GSAP timelines
-   - ZAKAZ: infinite pulse, bounce, rotate, blur, parallax (chyba że pakiet to pozwala), floating elements.
+   - ZAKAZ: infinite pulse, bounce, rotate, blur, parallax (chyba ĹĽe pakiet to pozwala), floating elements.
 
-8. FORMULARZ KONTAKTOWY (jeśli potrzebny / pakiet Pro+)
-   - Pola: Imię, Email, Telefon, Wiadomość (textarea). Opcjonalnie: Data (date), Usługa (select), Multi-step (Business+)
+8. FORMULARZ KONTAKTOWY (jeĹ›li potrzebny / pakiet Pro+)
+   - Pola: ImiÄ™, Email, Telefon, WiadomoĹ›Ä‡ (textarea). Opcjonalnie: Data (date), UsĹ‚uga (select), Multi-step (Business+)
    - Walidacja klienta (required, type=email, pattern tel, Zod schema Business+)
    - Submit: fetch('/api/contact', {method:'POST', body: JSON.stringify(data)}).
    - Stan: loading (spinner), success (toast), error (czerwona ramka).
@@ -405,16 +405,16 @@ IMPLEMENTUJ FUNKCJE WG PAKIETU — nie generuj funkcji Business/Agencja dla Star
    - Business+: Product/Service schema, Review schema, Sitemap.xml, robots.txt
    - Agencja+: Full technical SEO audit config, hreflang, AMP variants
 
-PAMIĘTAJ: Twoim celem — klient po otwarciu pomyśli: "To wygląda jak strona, którą zrobiłby dobry freelancer/agencja po 2 tygodniach pracy", a NIE "wygenerowane przez AI w 30 sekund".
+PAMIÄTAJ: Twoim celem â€” klient po otwarciu pomyĹ›li: "To wyglÄ…da jak strona, ktĂłrÄ… zrobiĹ‚by dobry freelancer/agencja po 2 tygodniach pracy", a NIE "wygenerowane przez AI w 30 sekund".
 
-NOW PRZECZYTAJ DANE WEJŚCIOWE (W TYM PAKIET), PRZENALIZUJ JE I WYGENERUJ UNIKALNĄ STRONĘ DOPASOWANĄ DO PAKIETU.
+NOW PRZECZYTAJ DANE WEJĹšCIOWE (W TYM PAKIET), PRZENALIZUJ JE I WYGENERUJ UNIKALNÄ„ STRONÄ DOPASOWANÄ„ DO PAKIETU.
 """
 
 def extract_json(text: str) -> dict:
-    # Usuń ```json fences
+    # UsuĹ„ ```json fences
     text = re.sub(r"^```(?:json)?\s*", "", text.strip())
     text = re.sub(r"\s*```$", "", text.strip())
-    # Znajdź pierwszy { i ostatni }
+    # ZnajdĹş pierwszy { i ostatni }
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1:
@@ -425,11 +425,11 @@ def fallback_content(data: BuilderInput):
     title = f"{data.business_name or 'Twoja Firma'} - {data.niche or 'Uslugi lokalne'}"
     headline = (data.description[:80] if data.description else f"Nowoczesne {data.niche or 'uslugi'} dla wymagajacych")
     bn = data.business_name or "Twoja Firma"
-    niche = data.niche or "Usługi lokalne"
-    desc = data.description or f"Profesjonalne usługi {niche}. Skontaktuj się i umów bezpłatną wycenę."
+    niche = data.niche or "UsĹ‚ugi lokalne"
+    desc = data.description or f"Profesjonalne usĹ‚ugi {niche}. Skontaktuj siÄ™ i umĂłw bezpĹ‚atnÄ… wycenÄ™."
     year = time.strftime("%Y")
     safe_bn = re.sub(r'[^a-zA-Z0-9]', '', bn)[:16] or "Site"
-    # Fallback też losuje template żeby nie każdy fallback był identyczny
+    # Fallback teĹĽ losuje template ĹĽeby nie kaĹĽdy fallback byĹ‚ identyczny
     try:
         tpl = pick_template(bn)
         accent = tpl.get("accent", "#a3e635")
@@ -471,21 +471,21 @@ export function Button({children,className,...p}:React.ButtonHTMLAttributes<HTML
     section_tsx = """export function Section({children,id,className}:{children:React.ReactNode;id?:string;className?:string}){return <section id={id} className={'py-16 '+ (className||'')}>{children}</section>}"""
     hero_tsx = f"""import {{Container}} from '../ui/Container'
 import {{Section}} from '../ui/Section'
-export function Hero(){{return <Section><Container><div className="grid md:grid-cols-12 gap-8 items-start"><div className="md:col-span-7"><p className="text-xs uppercase tracking-widest border inline-block px-2.5 py-1 rounded-full">Dostępne od ręki</p><h1 className="text-[48px] md:text-[64px] leading-[0.9] mt-6 font-serif">{headline}</h1><p className="mt-6 opacity-70 max-w-[42ch]">{desc}</p><a href="#kontakt" className="inline-block mt-8 px-6 py-3 rounded-xl bg-black text-white text-sm">Umów wycenę — odpowiadamy dziś</a></div><div className="md:col-span-5"><div className="rounded-2xl border p-6 bg-white"><p className="text-sm font-medium">Bez zobowiązań. Zapytaj o wycenę w 15 min.</p><p className="mt-3 text-xs flex gap-2 items-center"><span className="w-2 h-2 rounded-full bg-emerald-500"/> Dostępni dziś do 18:00</p></div></div></div></Container></Section>}}"""
+export function Hero(){{return <Section><Container><div className="grid md:grid-cols-12 gap-8 items-start"><div className="md:col-span-7"><p className="text-xs uppercase tracking-widest border inline-block px-2.5 py-1 rounded-full">DostÄ™pne od rÄ™ki</p><h1 className="text-[48px] md:text-[64px] leading-[0.9] mt-6 font-serif">{headline}</h1><p className="mt-6 opacity-70 max-w-[42ch]">{desc}</p><a href="#kontakt" className="inline-block mt-8 px-6 py-3 rounded-xl bg-black text-white text-sm">UmĂłw wycenÄ™ â€” odpowiadamy dziĹ›</a></div><div className="md:col-span-5"><div className="rounded-2xl border p-6 bg-white"><p className="text-sm font-medium">Bez zobowiÄ…zaĹ„. Zapytaj o wycenÄ™ w 15 min.</p><p className="mt-3 text-xs flex gap-2 items-center"><span className="w-2 h-2 rounded-full bg-emerald-500"/> DostÄ™pni dziĹ› do 18:00</p></div></div></div></Container></Section>}}"""
     offer_tsx = """import {Container} from '../ui/Container'
 import {Section} from '../ui/Section'
 import {Card} from '../ui/Card'
-export function Offer(){return <Section><Container><div className="grid sm:grid-cols-3 gap-6 border-t pt-10"><Card><p className="text-xs uppercase opacity-60">01 — Szybko</p><h3 className="font-medium mt-2">Realizacja 48h</h3><p className="text-sm opacity-70">Projekt gotowy w dwa dni.</p></Card><Card><p className="text-xs uppercase opacity-60">02 — Dopracowane</p><h3 className="font-medium mt-2">Redakcyjny szlif</h3><p className="text-sm opacity-70">Każdy nagłówek pod branżę.</p></Card><Card><p className="text-xs uppercase opacity-60">03 — Wsparcie</p><h3 className="font-medium mt-2">Jesteśmy obok</h3><p className="text-sm opacity-70">Poprawki bez dopłat.</p></Card></div></Container></Section>}"""
+export function Offer(){return <Section><Container><div className="grid sm:grid-cols-3 gap-6 border-t pt-10"><Card><p className="text-xs uppercase opacity-60">01 â€” Szybko</p><h3 className="font-medium mt-2">Realizacja 48h</h3><p className="text-sm opacity-70">Projekt gotowy w dwa dni.</p></Card><Card><p className="text-xs uppercase opacity-60">02 â€” Dopracowane</p><h3 className="font-medium mt-2">Redakcyjny szlif</h3><p className="text-sm opacity-70">KaĹĽdy nagĹ‚Ăłwek pod branĹĽÄ™.</p></Card><Card><p className="text-xs uppercase opacity-60">03 â€” Wsparcie</p><h3 className="font-medium mt-2">JesteĹ›my obok</h3><p className="text-sm opacity-70">Poprawki bez dopĹ‚at.</p></Card></div></Container></Section>}"""
     pricing_tsx = """import {Container} from '../ui/Container'
 import {Section} from '../ui/Section'
-export function Pricing(){return <Section><Container><h2 className="text-2xl font-serif">Cennik</h2><p className="opacity-70">Skontaktuj się po wycenę dopasowaną do potrzeb.</p></Container></Section>}"""
+export function Pricing(){return <Section><Container><h2 className="text-2xl font-serif">Cennik</h2><p className="opacity-70">Skontaktuj siÄ™ po wycenÄ™ dopasowanÄ… do potrzeb.</p></Container></Section>}"""
     testimonials_tsx = """import {Container} from '../ui/Container'
 import {Section} from '../ui/Section'
-export function Testimonials(){return <Section><Container><h2 className="text-2xl font-serif">Opinie</h2><p className="opacity-70">Klienci nas polecają.</p></Container></Section>}"""
+export function Testimonials(){return <Section><Container><h2 className="text-2xl font-serif">Opinie</h2><p className="opacity-70">Klienci nas polecajÄ….</p></Container></Section>}"""
     contact_tsx = """import {Container} from '../ui/Container'
 import {Section} from '../ui/Section'
-export function Contact(){return <Section id="kontakt"><Container><div className="max-w-[720px] mx-auto"><div className="rounded-2xl border p-8 bg-white text-center"><h2 className="text-2xl font-serif">Porozmawiajmy</h2><p className="mt-2 text-sm opacity-70">Odpowiadamy tego samego dnia.</p><a href="tel:+48000000000" className="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white text-sm">Zadzwoń teraz</a></div></div></Container></Section>}"""
-    footer_tsx = f"""export function Footer(){{return <footer className="border-t py-8 text-center text-sm opacity-60">© {year} {bn} — Marszałkowska 1, Warszawa · kontakt@sitemorph.pl</footer>}}"""
+export function Contact(){return <Section id="kontakt"><Container><div className="max-w-[720px] mx-auto"><div className="rounded-2xl border p-8 bg-white text-center"><h2 className="text-2xl font-serif">Porozmawiajmy</h2><p className="mt-2 text-sm opacity-70">Odpowiadamy tego samego dnia.</p><a href="tel:+48000000000" className="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white text-sm">ZadzwoĹ„ teraz</a></div></div></Container></Section>}"""
+    footer_tsx = f"""export function Footer(){{return <footer className="border-t py-8 text-center text-sm opacity-60">Â© {year} {bn} â€” MarszaĹ‚kowska 1, Warszawa Â· kontakt@sitemorph.pl</footer>}}"""
     app_tsx = f"""import {{Hero}} from './components/Hero'
 import {{Offer}} from './components/Offer'
 import {{Pricing}} from './components/Pricing'
@@ -502,20 +502,20 @@ export default defineConfig({plugins:[react()]})"""
     tailwind_config = """/** @type {import('tailwindcss').Config} */
 export default {content:["./index.html","./src/**/*.{ts,tsx}"],theme:{extend:{fontFamily:{serif:['Instrument Serif','serif']}}},plugins:[]}"""
     postcss_config = """export default {plugins:{tailwindcss:{},autoprefixer:{}}}"""
-    # Preview-friendly standalone HTML (dla iframe srcDoc) — premium fallback, nie czarny tekst na bialym
+    # Preview-friendly standalone HTML (dla iframe srcDoc) â€” premium fallback, nie czarny tekst na bialym
     niche_lower = (niche or "").lower()
     is_cafe = any(k in niche_lower for k in ["kawiarni","cafe","coffee","barista"])
     is_restaurant = any(k in niche_lower for k in ["restaurac","gastronom","bistro","pizzeria","bar "])
     hero_img = "https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=1200&q=80" if is_cafe else ("https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80" if is_restaurant else "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80")
-    hero_kicker = "Kawa specialty • Warszawa" if is_cafe else (bn + " • Warszawa")
+    hero_kicker = "Kawa specialty â€˘ Warszawa" if is_cafe else (bn + " â€˘ Warszawa")
     # dopracowany fallback: hero z obrazem + 3 filary + oferta + kontakt
     preview_html = f"""<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{title}</title><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;700&display=swap" rel="stylesheet"><style>:root{{--paper:#fcfcf9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc}}body{{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink)}}h1,h2{{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.02em}}.morph-blob{{border-radius:42% 58% 60% 40% / 42% 42% 58% 58%;animation:morph 9s ease-in-out infinite}}@keyframes morph{{0%,100%{{border-radius:42% 58% 60% 40% / 42% 42% 58% 58%}}50%{{border-radius:58% 42% 40% 60% / 58% 60% 42% 42%}}}}</style></head><body class="antialiased">
-<header class="max-w-[1120px] mx-auto px-6 py-5 flex items-center justify-between sticky top-0 bg-[var(--paper)]/80 backdrop-blur z-20 border-b border-[var(--line)]"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-xl bg-black text-white grid place-items-center text-[10px] font-black">SM</div><span class="font-serif text-[15px] font-bold tracking-tight">{safe_bn}</span></div><nav class="hidden md:flex gap-6 text-xs font-semibold opacity-70"><a href="#oferta">Oferta</a><a href="#onas">O nas</a><a href="#kontakt">Kontakt</a></nav><a href="#kontakt" class="px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold">Umów wizytę</a></header>
-<section class="max-w-[1120px] mx-auto px-6 pt-8 md:pt-12 pb-10 grid md:grid-cols-12 gap-8 items-center relative overflow-hidden"><div class="absolute -top-10 -right-20 w-[380px] h-[380px] bg-gradient-to-tr from-amber-100 via-orange-50 to-amber-100 blur-3xl morph-blob opacity-60 pointer-events-none"></div><div class="md:col-span-6 relative"><p class="inline-flex items-center gap-2 text-[10px] tracking-[0.14em] uppercase font-bold border border-[var(--line)] px-3 py-1.5 rounded-full bg-white"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> {hero_kicker}</p><h1 class="font-serif text-[40px] md:text-[52px] leading-[0.95] mt-5">{headline}</h1><p class="mt-4 text-[15px] leading-relaxed opacity-70 max-w-[44ch]">{desc}</p><div class="mt-7 flex flex-wrap gap-3"><a href="#kontakt" class="px-6 py-3 rounded-full bg-black text-white text-sm font-bold">Odwiedź nas</a><a href="#oferta" class="px-6 py-3 rounded-full border border-[var(--line)] bg-white text-sm font-bold">Zobacz menu</a></div><div class="mt-6 flex items-center gap-3 text-xs"><div class="flex -space-x-2"><span class="w-7 h-7 rounded-full bg-amber-200 border-2 border-white grid place-items-center text-[10px]">★</span><span class="w-7 h-7 rounded-full bg-neutral-800 text-white border-2 border-white grid place-items-center text-[10px]">5.0</span></div><span class="font-semibold">5,0 na Google • 1 opinia • Czynne całą dobę</span></div></div><div class="md:col-span-6 relative"><div class="rounded-[24px] overflow-hidden border border-[var(--line)] shadow-xl"><img src="{hero_img}" alt="{bn}" class="w-full h-[380px] object-cover"/><div class="p-4 bg-white flex items-center justify-between"><div><p class="text-xs font-bold opacity-60">Niemcewicza 3 • Warszawa</p><p class="text-sm font-bold">90-273 Łódź — QFF4+XM</p></div><span class="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold">Otwarte</span></div></div></div></section>
-<section id="oferta" class="max-w-[1120px] mx-auto px-6 py-10 grid md:grid-cols-3 gap-5"><div class="rounded-2xl border border-[var(--line)] bg-white p-6"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">01 — Kawa</p><h3 class="font-serif text-lg mt-2">Przelew & espresso</h3><p class="text-sm opacity-70 mt-2">Sezonowe ziarna, palone w Warszawie. V60, Chemex, batch brew.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">02 — Przestrzeń</p><h3 class="font-serif text-lg mt-2">Cisza w centrum</h3><p class="text-sm opacity-70 mt-2">Stolik do pracy, półka z książkami, szybkie Wi-Fi.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">03 — Ludzie</p><h3 class="font-serif text-lg mt-2">Barista na miejscu</h3><p class="text-sm opacity-70 mt-2">Opowiemy o pochodzeniu ziaren i zaparzymy pod Ciebie.</p></div></section>
-<section id="onas" class="max-w-[720px] mx-auto px-6 pb-10"><div class="rounded-2xl border border-[var(--line)] bg-white p-8 flex flex-col md:flex-row gap-6 items-start"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-16 h-16 rounded-full object-cover"/><div><p class="text-sm leading-relaxed">„Moim zdaniem ta kawiarnia mi się bardzo podoba, bo można wypić różne kawy i miło spędzić czas.”</p><p class="text-xs font-bold mt-3 opacity-60">— Damian Żołądek • Lokalny przewodnik • 5.0 ★</p></div></div></section>
-<section id="kontakt" class="max-w-[1120px] mx-auto px-6 pb-12"><div class="rounded-[24px] border border-[var(--line)] bg-black text-white p-8 md:p-10 flex flex-col md:flex-row justify-between gap-8"><div><h2 class="font-serif text-3xl">Wpadnij na kawę</h2><p class="opacity-70 mt-3 text-sm max-w-[36ch]">Niemcewicza 3, 00-336 Warszawa. Czynne całą dobę. Zadzwoń lub wpadnij bez rezerwacji.</p><a href="tel:+48220000000" class="inline-block mt-6 px-6 py-3 rounded-full bg-white text-black text-sm font-bold">Zadzwoń</a></div><div class="bg-white/10 rounded-2xl p-6 min-w-[220px]"><p class="text-xs uppercase tracking-widest opacity-60">Godziny</p><p class="text-sm mt-2 leading-relaxed">Codziennie 00:00–24:00<br/>Kuchnia do 22:00</p></div></div></section>
-<footer class="border-t border-[var(--line)] py-8 text-center text-xs opacity-60">© {year} {bn} • Niemcewicza 3, Warszawa • Hot Fun Cafe</footer></body></html>"""
+<header class="max-w-[1120px] mx-auto px-6 py-5 flex items-center justify-between sticky top-0 bg-[var(--paper)]/80 backdrop-blur z-20 border-b border-[var(--line)]"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-xl bg-black text-white grid place-items-center text-[10px] font-black">SM</div><span class="font-serif text-[15px] font-bold tracking-tight">{safe_bn}</span></div><nav class="hidden md:flex gap-6 text-xs font-semibold opacity-70"><a href="#oferta">Oferta</a><a href="#onas">O nas</a><a href="#kontakt">Kontakt</a></nav><a href="#kontakt" class="px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold">UmĂłw wizytÄ™</a></header>
+<section class="max-w-[1120px] mx-auto px-6 pt-8 md:pt-12 pb-10 grid md:grid-cols-12 gap-8 items-center relative overflow-hidden"><div class="absolute -top-10 -right-20 w-[380px] h-[380px] bg-gradient-to-tr from-amber-100 via-orange-50 to-amber-100 blur-3xl morph-blob opacity-60 pointer-events-none"></div><div class="md:col-span-6 relative"><p class="inline-flex items-center gap-2 text-[10px] tracking-[0.14em] uppercase font-bold border border-[var(--line)] px-3 py-1.5 rounded-full bg-white"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> {hero_kicker}</p><h1 class="font-serif text-[40px] md:text-[52px] leading-[0.95] mt-5">{headline}</h1><p class="mt-4 text-[15px] leading-relaxed opacity-70 max-w-[44ch]">{desc}</p><div class="mt-7 flex flex-wrap gap-3"><a href="#kontakt" class="px-6 py-3 rounded-full bg-black text-white text-sm font-bold">OdwiedĹş nas</a><a href="#oferta" class="px-6 py-3 rounded-full border border-[var(--line)] bg-white text-sm font-bold">Zobacz menu</a></div><div class="mt-6 flex items-center gap-3 text-xs"><div class="flex -space-x-2"><span class="w-7 h-7 rounded-full bg-amber-200 border-2 border-white grid place-items-center text-[10px]">â…</span><span class="w-7 h-7 rounded-full bg-neutral-800 text-white border-2 border-white grid place-items-center text-[10px]">5.0</span></div><span class="font-semibold">5,0 na Google â€˘ 1 opinia â€˘ Czynne caĹ‚Ä… dobÄ™</span></div></div><div class="md:col-span-6 relative"><div class="rounded-[24px] overflow-hidden border border-[var(--line)] shadow-xl"><img src="{hero_img}" alt="{bn}" class="w-full h-[380px] object-cover"/><div class="p-4 bg-white flex items-center justify-between"><div><p class="text-xs font-bold opacity-60">Niemcewicza 3 â€˘ Warszawa</p><p class="text-sm font-bold">90-273 ĹĂłdĹş â€” QFF4+XM</p></div><span class="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold">Otwarte</span></div></div></div></section>
+<section id="oferta" class="max-w-[1120px] mx-auto px-6 py-10 grid md:grid-cols-3 gap-5"><div class="rounded-2xl border border-[var(--line)] bg-white p-6"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">01 â€” Kawa</p><h3 class="font-serif text-lg mt-2">Przelew & espresso</h3><p class="text-sm opacity-70 mt-2">Sezonowe ziarna, palone w Warszawie. V60, Chemex, batch brew.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">02 â€” PrzestrzeĹ„</p><h3 class="font-serif text-lg mt-2">Cisza w centrum</h3><p class="text-sm opacity-70 mt-2">Stolik do pracy, pĂłĹ‚ka z ksiÄ…ĹĽkami, szybkie Wi-Fi.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">03 â€” Ludzie</p><h3 class="font-serif text-lg mt-2">Barista na miejscu</h3><p class="text-sm opacity-70 mt-2">Opowiemy o pochodzeniu ziaren i zaparzymy pod Ciebie.</p></div></section>
+<section id="onas" class="max-w-[720px] mx-auto px-6 pb-10"><div class="rounded-2xl border border-[var(--line)] bg-white p-8 flex flex-col md:flex-row gap-6 items-start"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-16 h-16 rounded-full object-cover"/><div><p class="text-sm leading-relaxed">â€žMoim zdaniem ta kawiarnia mi siÄ™ bardzo podoba, bo moĹĽna wypiÄ‡ rĂłĹĽne kawy i miĹ‚o spÄ™dziÄ‡ czas.â€ť</p><p class="text-xs font-bold mt-3 opacity-60">â€” Damian Ĺ»oĹ‚Ä…dek â€˘ Lokalny przewodnik â€˘ 5.0 â…</p></div></div></section>
+<section id="kontakt" class="max-w-[1120px] mx-auto px-6 pb-12"><div class="rounded-[24px] border border-[var(--line)] bg-black text-white p-8 md:p-10 flex flex-col md:flex-row justify-between gap-8"><div><h2 class="font-serif text-3xl">Wpadnij na kawÄ™</h2><p class="opacity-70 mt-3 text-sm max-w-[36ch]">Niemcewicza 3, 00-336 Warszawa. Czynne caĹ‚Ä… dobÄ™. ZadzwoĹ„ lub wpadnij bez rezerwacji.</p><a href="tel:+48220000000" class="inline-block mt-6 px-6 py-3 rounded-full bg-white text-black text-sm font-bold">ZadzwoĹ„</a></div><div class="bg-white/10 rounded-2xl p-6 min-w-[220px]"><p class="text-xs uppercase tracking-widest opacity-60">Godziny</p><p class="text-sm mt-2 leading-relaxed">Codziennie 00:00â€“24:00<br/>Kuchnia do 22:00</p></div></div></section>
+<footer class="border-t border-[var(--line)] py-8 text-center text-xs opacity-60">Â© {year} {bn} â€˘ Niemcewicza 3, Warszawa â€˘ Hot Fun Cafe</footer></body></html>"""
     readme = f"# {title}\n\nStrona wygenerowana przez SiteMorph AI (fallback Vite+React).\n\n## Uruchomienie\n```\ncd main/frontend && npm install && npm run dev\n```\nPreview: `main/frontend/preview.html`\n"
     return {
         "files": {
@@ -552,7 +552,7 @@ export default {content:["./index.html","./src/**/*.{ts,tsx}"],theme:{extend:{fo
             "title": title,
             "headline": headline,
             "subheadline": (data.description[:120] if data.description else "Strona stworzona przez SiteMorph AI"),
-            "ctaText": "Skontaktuj się"
+            "ctaText": "Skontaktuj siÄ™"
         }
     }
 
@@ -561,7 +561,7 @@ def generate_site(data: BuilderInput):
     try:
         sections_str = ", ".join(data.sections or [])
         
-        # Określ nazwę pakietu na podstawie kredytów
+        # OkreĹ›l nazwÄ™ pakietu na podstawie kredytĂłw
         package_map = {
             "starter": "STARTER",
             "pro": "PRO", 
@@ -571,12 +571,12 @@ def generate_site(data: BuilderInput):
         package_name = package_map.get((data.package or "starter").lower(), "STARTER")
         credits = data.credits or 10
         template = pick_template(data.business_name or data.niche or "Site")
-        # SYSTEM_PROMPT zawiera {package_name} i {credits} — wypełnij je bezpiecznie (bez ruszenia JSONowych { })
+        # SYSTEM_PROMPT zawiera {package_name} i {credits} â€” wypeĹ‚nij je bezpiecznie (bez ruszenia JSONowych { })
         system_prompt_filled = SYSTEM_PROMPT.replace("{package_name}", package_name).replace("{credits}", str(credits))
-        # Doklej losowy template do system promptu — każda strona inny kolor/zdjęcia/układ
-        system_prompt_filled += f"\n\nWYLOSOWANY TEMPLATE {template['id']}/10: {template['name']} — paleta {template['palette']}, akcent {template['accent']}, zdjęcia: {template['images']}, layout: {template['layout']}. UŻYJ TEGO TEMPLATE (kolory/zdjęcia/układ)."
+        # Doklej losowy template do system promptu â€” kaĹĽda strona inny kolor/zdjÄ™cia/ukĹ‚ad
+        system_prompt_filled += f"\n\nWYLOSOWANY TEMPLATE {template['id']}/10: {template['name']} â€” paleta {template['palette']}, akcent {template['accent']}, zdjÄ™cia: {template['images']}, layout: {template['layout']}. UĹ»YJ TEGO TEMPLATE (kolory/zdjÄ™cia/ukĹ‚ad)."
         
-        user_prompt = f"""Dane firmy / instrukcja od użytkownika:
+        user_prompt = f"""Dane firmy / instrukcja od uĹĽytkownika:
 ---
 BUSINESS_NAME: {data.business_name}
 NICHE: {data.niche}
@@ -585,21 +585,21 @@ STYLE: {data.style}
 COLORS: {data.colors}
 SECTIONS: {sections_str}
 EXTRA: {data.extraPrompt or ''}
-PACKAGE: {package_name} ({credits} kredytów)
+PACKAGE: {package_name} ({credits} kredytĂłw)
 ---
 
-Wygeneruj stronę zgodnie z SYSTEM_PROMPT: React + Vite + TypeScript + Tailwind project structure, polskie treści, premium design, dostosowane do pakietu {package_name}.
-Jeśli w DESCRIPTION/EXTRA jest wklejony surowy tekst z Google Maps — wyciągnij z niego fakty i użyj ich na stronie.
-NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
+Wygeneruj stronÄ™ zgodnie z SYSTEM_PROMPT: React + Vite + TypeScript + Tailwind project structure, polskie treĹ›ci, premium design, dostosowane do pakietu {package_name}.
+JeĹ›li w DESCRIPTION/EXTRA jest wklejony surowy tekst z Google Maps â€” wyciÄ…gnij z niego fakty i uĹĽyj ich na stronie.
+NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
 
         warning = None
         provider = "fallback"
         parsed_files = None
         parsed_meta = None
 
-        # 1) OpenRouter / Laguna S-2.1 = PRIMARY (częściej, nowoczesne strony)
+        # 1) OpenRouter / Laguna S-2.1 = PRIMARY (czÄ™Ĺ›ciej, nowoczesne strony)
         if OPENROUTER_API_KEY:
-            # Vercel 10s → max 8s, inaczej 15s
+            # Vercel 10s â†’ max 8s, inaczej 15s
             _laguna_timeout = 8 if os.getenv("VERCEL") else 15
             try:
                 resp = requests.post(
@@ -630,12 +630,12 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                     parsed_meta = parsed.get("meta", {})
                     provider = "openrouter"
                 else:
-                    warning = "Laguna nie zwróciła plików — próbuję Gemini"
+                    warning = "Laguna nie zwrĂłciĹ‚a plikĂłw â€” prĂłbujÄ™ Gemini"
             except Exception as e:
-                warning = f"Laguna błąd: {str(e)[:150]}"
+                warning = f"Laguna bĹ‚Ä…d: {str(e)[:150]}"
                 print(f"[SiteMorph][Laguna] fail: {warning}", flush=True)
 
-        # 2) Gemini = BACKUP (3.5 flash lite najczęściej, 3.7 flash rzadko) — na Vercel tylko Laguna, potem fallback (limit 10s)
+        # 2) Gemini = BACKUP (3.5 flash lite najczÄ™Ĺ›ciej, 3.7 flash rzadko) â€” na Vercel tylko Laguna, potem fallback (limit 10s)
         if parsed_files is None and GEMINI_API_KEY and not os.getenv("VERCEL"):
             text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=14000)
             if text:
@@ -647,12 +647,12 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
                         parsed_meta = parsed.get("meta", {})
                         provider = "gemini"
                     else:
-                        warning = "Gemini nie zwrócił plików — próbuje fallback"
+                        warning = "Gemini nie zwrĂłciĹ‚ plikĂłw â€” prĂłbuje fallback"
                 except Exception as e:
-                    warning = f"Gemini: nieparsowalna odpowiedź ({str(e)[:120]})"
+                    warning = f"Gemini: nieparsowalna odpowiedĹş ({str(e)[:120]})"
             else:
                 if warning is None:
-                    warning = f"Gemini niedostępny: {err}"
+                    warning = f"Gemini niedostÄ™pny: {err}"
                 else:
                     warning = warning + f" | Gemini: {err}"
 
@@ -663,7 +663,7 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
             parsed_meta = fb["meta"]
             provider = "fallback"
             if warning is None:
-                warning = "Brak dostępnego dostawcy AI — pokazuję szablon awaryjny"
+                warning = "Brak dostÄ™pnego dostawcy AI â€” pokazujÄ™ szablon awaryjny"
 
         meta = parsed_meta or fb["meta"]
         hero = {"title": meta.get("headline", data.business_name), "subtitle": meta.get("subheadline", data.description), "cta_text": meta.get("ctaText", "Kontakt")}
@@ -673,7 +673,8 @@ NIE zadawaj pytań. Zwróć od razu kompletny JSON."""
         print(f"[Builder] CRITICAL ERROR: {e}\n{traceback.format_exc()}", flush=True)
         try:
             fb = fallback_content(data)
-            return {"status": "success", "provider": "fallback", "warning": f"Błąd krytyczny, użyto fallback: {str(e)[:200]}", "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": None, "content": {"hero": {"title": data.business_name, "subtitle": data.description[:120] if data.description else "", "cta_text": "Kontakt"}, "services": [], "pricing": []}, "files": fb["files"], "meta": fb["meta"]}
+            return {"status": "success", "provider": "fallback", "warning": f"BĹ‚Ä…d krytyczny, uĹĽyto fallback: {str(e)[:200]}", "gemini_key_loaded": bool(GEMINI_API_KEY), "gemini_model": None, "content": {"hero": {"title": data.business_name, "subtitle": data.description[:120] if data.description else "", "cta_text": "Kontakt"}, "services": [], "pricing": []}, "files": fb["files"], "meta": fb["meta"]}
         except Exception as e2:
             from fastapi.responses import JSONResponse
             return JSONResponse(status_code=500, content={"detail": f"Builder critical error: {str(e)[:300]} | fallback also failed: {str(e2)[:200]}"})
+
