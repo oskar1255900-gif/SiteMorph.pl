@@ -335,7 +335,7 @@ export const LeadFinderView = ({
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-[760px] mx-auto py-8 px-4 sm:px-6 space-y-6 pb-24 text-blue-600 dark:text-white"
+      className="max-w-[760px] mx-auto py-8 px-4 sm:px-6 space-y-6 pb-24 text-[#111111] dark:text-white"
       style={{ perspective: 1200, fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
       <div className="text-center space-y-3">
@@ -348,7 +348,7 @@ export const LeadFinderView = ({
           </span>
         </div>
       </div>
-      <motion.div variants={cineChild} className="p-6 sm:p-7 rounded-lg border shadow-xl space-y-5 bg-white dark:bg-black border-blue-100 dark:border-neutral-800">
+      <motion.div variants={cineChild} className="p-6 sm:p-7 rounded-lg border shadow-xl space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08]">
         <div className="space-y-1.5">
           <label className="text-[11px] font-black uppercase tracking-widest opacity-60">Kraj</label>
           <div className="relative">
@@ -372,7 +372,7 @@ export const LeadFinderView = ({
             <button
               type="button"
               onClick={() => setCityOpen(!cityOpen)}
-              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-blue-600 dark:text-white'}`}
+              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-[#111111] dark:text-white'}`}
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
@@ -398,7 +398,7 @@ export const LeadFinderView = ({
                         value={cityQuery}
                         onChange={(e) => setCityQuery(e.target.value)}
                         placeholder="Filtruj lub wybierz z listy..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-blue-50/40 dark:bg-neutral-900 border-blue-100 dark:border-neutral-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-blue-50/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
                     <p className="text-[10px] font-bold opacity-50 mt-1.5 px-1">{country ? (citiesLoading ? 'Pobieram pełną listę miejscowości...' : `${allCities.length} miejscowości — przewiń lub wpisz nazwę, aby zawęzić`) : 'Pełna lista miast — najpierw wybierz kraj'}</p>
@@ -436,7 +436,7 @@ export const LeadFinderView = ({
             <button
               type="button"
               onClick={() => setIndustryOpen(!industryOpen)}
-              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-blue-600 dark:text-white'}`}
+              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-[#111111] dark:text-white'}`}
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
@@ -462,7 +462,7 @@ export const LeadFinderView = ({
                         value={industryQuery}
                         onChange={(e) => setIndustryQuery(e.target.value)}
                         placeholder="Filtruj branżę, np. Stomatolog, Hydraulik..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-blue-50/40 dark:bg-neutral-900 border-blue-100 dark:border-neutral-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-blue-50/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
                   </div>
@@ -491,7 +491,7 @@ export const LeadFinderView = ({
         <button
           onClick={handleFind}
           disabled={isSearching || !country || !citySelected || !industry}
-          className="w-full py-[14px] rounded-lg bg-blue-600 dark:bg-white text-white dark:text-black font-black text-[15px] shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          className="w-full py-[14px] rounded-lg bg-[#111111] dark:bg-white text-white dark:text-black font-black text-[15px] shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           style={{ fontFamily: "'SF Pro Display', sans-serif" }}
         >
           {isSearching ? <><span className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> Szukam...</> : 'Szukaj leadów'}
@@ -499,8 +499,8 @@ export const LeadFinderView = ({
         <p className="text-[10px] font-bold opacity-40 text-center">Backend → Nominatim + Overpass • prawdziwe dane OSM • {searchRemaining !== null ? `zostało ${searchRemaining}` : '10/mies Starter, 30/mies Business+'}</p>
       </motion.div>
       {!hasSearched ? (
-        <motion.div variants={cineSoft} className="p-10 rounded-lg border text-center space-y-3 shadow-sm bg-white dark:bg-black border-blue-100 dark:border-neutral-800 max-w-2xl mx-auto">
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto shadow-sm bg-blue-50 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800">
+        <motion.div variants={cineSoft} className="p-10 rounded-lg border text-center space-y-3 shadow-sm bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] max-w-2xl mx-auto">
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto shadow-sm bg-blue-50 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
             <Search size={20} className="opacity-60" />
           </div>
           <h3 className="text-[15px] font-black">Wybierz filtry i kliknij Szukaj leadów</h3>
@@ -510,10 +510,10 @@ export const LeadFinderView = ({
         <motion.div variants={cineSoft} className="space-y-4">
           {searchError && <div className="p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-[13px] font-bold text-rose-700 dark:text-rose-300">{searchError}</div>}
           {searchWarning && !searchError && <div className="p-3.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-[13px] font-bold text-amber-800 dark:text-amber-300">{searchWarning}</div>}
-          {isSearching && <div className="p-8 rounded-lg border bg-white dark:bg-black border-blue-100 dark:border-neutral-800 flex flex-col items-center gap-3"><span className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /><span className="text-[13px] font-bold">Szukam firm w OSM — to może potrwać 3–8s...</span></div>}
+          {isSearching && <div className="p-8 rounded-lg border bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] flex flex-col items-center gap-3"><span className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /><span className="text-[13px] font-bold">Szukam firm w OSM — to może potrwać 3–8s...</span></div>}
           {!isSearching && (
             <>
-              <div className="flex flex-wrap items-center gap-2 text-[13px] font-black p-3 rounded-lg bg-blue-50/60 dark:bg-neutral-900 border border-blue-100 dark:border-neutral-800">
+              <div className="flex flex-wrap items-center gap-2 text-[13px] font-black p-3 rounded-lg bg-blue-50/60 dark:bg-neutral-900 border border-[#EAEAEA] dark:border-white/[0.08]">
                 <span>Znalezione firmy: {leads.length}</span><span className="opacity-30">•</span><span className="text-amber-600 dark:text-amber-400">Bez strony: {noWebsiteCount}</span><span className="opacity-30">•</span><span className="text-emerald-600 dark:text-emerald-400">Ze stroną: {withWebsiteCount}</span>
                 <button onClick={exportCsv} disabled={displayLeads.length===0} className="ml-auto text-[11px] font-black px-3 py-1.5 rounded-lg border bg-white dark:bg-neutral-950 border-blue-200 dark:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-800 disabled:opacity-40">Eksport CSV</button>
               </div>
@@ -524,7 +524,7 @@ export const LeadFinderView = ({
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex rounded-lg border overflow-hidden bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 p-1 gap-1">
+                <div className="flex rounded-lg border overflow-hidden bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] p-1 gap-1">
                   {(['all','no-website','has-website'] as const).map(f => (
                     <button key={f} onClick={() => setWebsiteFilter(f)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black transition ${websiteFilter===f ? 'bg-blue-600 text-white dark:bg-white dark:text-black shadow-sm' : 'hover:bg-blue-50 dark:hover:bg-neutral-900'}`}>
                       {f==='all' ? 'Wszystkie' : f==='no-website' ? 'Bez strony' : 'Ze stroną'}
@@ -533,16 +533,16 @@ export const LeadFinderView = ({
                 </div>
                 <div className="relative flex-1">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
-                  <input value={leadSearch} onChange={(e)=>setLeadSearch(e.target.value)} placeholder="Szukaj firm (filtr po nazwie)..." className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+                  <input value={leadSearch} onChange={(e)=>setLeadSearch(e.target.value)} placeholder="Szukaj firm (filtr po nazwie)..." className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-semibold bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </div>
-                <select value={sortBy} onChange={(e)=>setSortBy(e.target.value as any)} className="px-3 py-2.5 rounded-lg border text-[13px] font-black bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 cursor-pointer outline-none focus:border-blue-500">
+                <select value={sortBy} onChange={(e)=>setSortBy(e.target.value as any)} className="px-3 py-2.5 rounded-lg border text-[13px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] cursor-pointer outline-none focus:border-blue-500">
                   <option value="score">Sortuj: Wynik</option>
                   <option value="name">Sortuj: Nazwa</option>
                   <option value="industry">Sortuj: Branża</option>
                 </select>
               </div>
               {displayLeads.length===0 ? (
-                <div className="p-12 rounded-lg border bg-white dark:bg-black border-blue-100 dark:border-neutral-800 text-center space-y-2">
+                <div className="p-12 rounded-lg border bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] text-center space-y-2">
                   <div className="text-[14px] font-black">Brak wyników</div>
                   <div className="text-[13px] font-semibold opacity-60">{leads.length===0 ? 'Nie znaleziono firm spełniających kryteria w tej okolicy. Spróbuj inne miasto lub branżę. Pokazujemy tylko prawdziwe dane OSM — niczego nie generujemy.' : `Brak wyników dla filtra "${leadSearch}" lub "${websiteFilter}".`}</div>
                 </div>
@@ -560,24 +560,24 @@ export const LeadFinderView = ({
                       // otwiera profil firmy (oceny, zdjecia, godziny), a nie pusty punkt na mapie
                       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([l.name, addr || '', cityCountry].filter(Boolean).join(' '))}`
                       return (
-                        <motion.div layout key={String(l.id)} className="p-4 sm:p-5 rounded-lg border bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 hover:shadow-lg transition flex flex-col gap-3">
+                        <motion.div layout key={String(l.id)} className="p-4 sm:p-5 rounded-lg border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] hover:shadow-lg transition flex flex-col gap-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="font-black text-[15px] leading-tight truncate" title={l.name}>{l.name}</h4>
                               <div className="text-[12px] font-bold opacity-60">{l.industry || l.category}</div>
                             </div>
                             <div className="shrink-0 flex items-center gap-2">
-                              <span title="Punkty: +35 firma, +20 adres, +20 telefon, +20 brak strony, + do 5 bonus za nazwę" className="px-2.5 py-1 rounded-lg bg-blue-600 dark:bg-white text-white dark:text-black text-[11px] font-black cursor-help">Wynik {score}</span>
+                              <span title="Punkty: +35 firma, +20 adres, +20 telefon, +20 brak strony, + do 5 bonus za nazwę" className="px-2.5 py-1 rounded-lg bg-[#111111] dark:bg-white text-white dark:text-black text-[11px] font-black cursor-help">Wynik {score}</span>
                             </div>
                           </div>
                           <div className="space-y-1 text-[12px] font-semibold">
                             <div className="flex items-start gap-1.5 opacity-80"><MapPin size={12} className="mt-0.5 shrink-0" /><span>{cityCountry || 'Brak danych'}</span></div>
                             <div className="flex items-start gap-1.5 opacity-80"><MapPin size={12} className="mt-0.5 shrink-0" /><span className={addr ? '' : 'opacity-50'}>{addr || 'Brak danych'}</span></div>
                             <div className="flex items-center gap-1.5 opacity-80"><Phone size={12} className="shrink-0" /><span className={phone ? '' : 'opacity-50'}>{phone || 'Brak danych'}</span></div>
-                            <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-blue-600 dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony</span>}</div>
+                            <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-[#111111] dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony</span>}</div>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-50 dark:border-neutral-900">
-                            <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-blue-600 dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>
+                            <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>
                             <button onClick={() => copyLeadInfo(l)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition inline-flex items-center gap-1.5 ${copiedId===String(l.id) ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-white dark:bg-neutral-900 border-blue-200 dark:border-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-800'}`}>
                               <CopyIcon size={12} className="shrink-0" />
                               {copiedId===String(l.id) ? '✓ Skopiowano' : 'Kopiuj dane'}
@@ -595,8 +595,8 @@ export const LeadFinderView = ({
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-[12px] font-bold opacity-60">Strona {currentPage} z {totalPages} • {displayLeads.length} wyników • 20/stronę</span>
                     <div className="flex gap-2">
-                      <button disabled={currentPage<=1} onClick={() => setCurrentPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 disabled:opacity-40 hover:bg-blue-50 dark:hover:bg-neutral-900">Poprzednia</button>
-                      <button disabled={currentPage>=totalPages} onClick={() => setCurrentPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-blue-100 dark:border-neutral-800 disabled:opacity-40 hover:bg-blue-50 dark:hover:bg-neutral-900">Następna</button>
+                      <button disabled={currentPage<=1} onClick={() => setCurrentPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] disabled:opacity-40 hover:bg-blue-50 dark:hover:bg-neutral-900">Poprzednia</button>
+                      <button disabled={currentPage>=totalPages} onClick={() => setCurrentPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border text-[12px] font-black bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] disabled:opacity-40 hover:bg-blue-50 dark:hover:bg-neutral-900">Następna</button>
                     </div>
                   </div>
                 </>
