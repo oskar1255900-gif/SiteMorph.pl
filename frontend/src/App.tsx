@@ -18,7 +18,6 @@ import { FinanceSection } from './views/FinanceSection';
 import { TutorialsView } from './views/TutorialsView';
 import { CookieBanner } from './components/CookieBanner';
 import { HelpView } from './views/HelpView';
-import { DomainsView } from './views/DomainsView';
 import { SettingsView } from './views/SettingsView';
 import { AuthModal } from './components/AuthModal';
 import { GlobalNavbar } from './components/GlobalNavbar';
@@ -136,7 +135,7 @@ export default function App() {
   };
 
   // Chronione trasy - jeśli nie zalogowany i próbuje wejść w app, pokazuj landing
-  const isProtectedTab = ['dashboard', 'leadfinder', 'finance', 'domains', 'settings', 'tutorials', 'help'].includes(activeTab);
+  const isProtectedTab = ['dashboard', 'leadfinder', 'finance', 'settings', 'tutorials', 'help'].includes(activeTab);
   const shouldShowApp = currentView === 'app' && (!isProtectedTab || session);
 
   // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
@@ -267,11 +266,7 @@ export default function App() {
                   {activeTab === 'finance' && <FinanceSection />}
                   {activeTab === 'tutorials' && <TutorialsView />}
                   {activeTab === 'help' && <HelpView credits={credits} setCredits={setCredits} />}
-                  {['domains', 'settings'].includes(activeTab) && (
-                    activeTab === 'domains'
-                      ? <DomainsView theme={theme} />
-                      : <SettingsView />
-                  )}
+                  {activeTab === 'settings' && <SettingsView />}
                 </motion.div>
               </AnimatePresence>
             </main>
