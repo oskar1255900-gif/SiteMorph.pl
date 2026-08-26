@@ -33,8 +33,8 @@ export const GlobalNavbar = ({
     setMobileOpen(false);
   };
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-3 pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-5xl backdrop-blur-xl border rounded-xl py-2.5 px-5 shadow-lg flex items-center justify-between bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-blue-600 dark:text-white">
+    <header className="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none" style={{ paddingTop: '24px' }}>
+      <div className="pointer-events-auto w-full max-w-5xl backdrop-blur-2xl border rounded-full px-5 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_18px_60px_rgba(0,0,0,0.18)] flex items-center justify-between h-16 bg-white/80 dark:bg-zinc-950/80 border-black/5 dark:border-white/10 text-zinc-900 dark:text-white" style={{ backdropFilter: 'blur(24px) saturate(180%)' }}>
         <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit">
           <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg" />
           <span className="font-black text-base tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span className="font-black text-base tracking-tight" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
