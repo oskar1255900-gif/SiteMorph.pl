@@ -426,7 +426,12 @@ def fallback_content(data: BuilderInput):
     src = (data.extraPrompt or "") + " " + (data.description or "")
     def _extract(pattern, default=None):
         m = re.search(pattern, src, re.I | re.S)
-        return m.group(1).strip() if m else default
+        if not m:
+            return default
+        try:
+            return (m.group(1) if m.lastindex else m.group(0)).strip()
+        except IndexError:
+            return m.group(0).strip()
     # biznes
     parsed_bn = _extract(r'\*\*OPA![^*]*\*\*') or _extract(r'OPA!\s*Streetfood', None)
     if parsed_bn and "OPA" in parsed_bn:
