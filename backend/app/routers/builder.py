@@ -13,7 +13,7 @@ load_dotenv()
 router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "poolside/laguna-s-2.1:free")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "z-ai/glm-5.2:free")
 OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "http://localhost:3000")
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph")
 
@@ -23,7 +23,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_PREFERRED = [
     m.strip() for m in os.getenv(
         "GEMINI_MODELS",
-        # poolside/laguna-s-2.1:free = PRIMARY (OpenRouter). Gemini = backup:
+        # z-ai/glm-5.2:free = PRIMARY (OpenRouter). Gemini = backup:
         # 3.5 flash lite najczÄ™Ĺ›ciej, 3.7 flash rzadko (mimo ĹĽe user prosi, drogi/wolny)
         "gemini-3.5-flash-lite,gemini-flash-latest,gemini-3.7-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite",
     ).split(",") if m.strip()
@@ -677,4 +677,6 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
         except Exception as e2:
             from fastapi.responses import JSONResponse
             return JSONResponse(status_code=500, content={"detail": f"Builder critical error: {str(e)[:300]} | fallback also failed: {str(e2)[:200]}"})
+
+
 
