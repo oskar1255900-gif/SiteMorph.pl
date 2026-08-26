@@ -52,19 +52,15 @@ export const DashboardMainView = ({
         </div>
       </motion.div>
 
-      <motion.div variants={cineChild} className="text-center space-y-6 relative">
-        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 w-[480px] h-[200px] morph-blob bg-gradient-to-tr from-lime-100 via-emerald-50 to-lime-100 dark:from-lime-500/10 dark:via-emerald-400/5 dark:to-lime-400/10 blur-3xl opacity-70" />
-        <h2 className="relative text-4xl sm:text-5xl font-black tracking-tighter text-blue-600 dark:text-white leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+      <motion.div variants={cineChild} className="text-center space-y-6">
+        <h2 className="text-4xl md:text-6xl font-[700] tracking-[-0.03em] leading-none text-[#111111] dark:text-white" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
           Co dzisiaj stworzymy?
         </h2>
 
         <motion.div
           layout
-          whileHover={{ scale: 1.01 }}
-          transition={springTransition}
-          className="relative rounded-2xl p-2 pl-5 shadow-2xl border text-left flex items-center gap-4 bg-white/95 dark:bg-black/95 border-blue-300 dark:border-neutral-700 text-blue-600 dark:text-white overflow-hidden"
+          className="relative rounded-[12px] p-2 pl-5 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-4 overflow-hidden"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 w-48 h-48 morph-blob bg-gradient-to-tr from-lime-300/40 via-emerald-300/20 to-lime-300/40 blur-2xl" />
           <input
             type="text"
             value={promptInput}
@@ -76,17 +72,17 @@ export const DashboardMainView = ({
               }
             }}
             placeholder="Stwórz stronę dla siłowni z systemem rezerwacji online..."
-            className="relative flex-1 bg-transparent border-none outline-none text-sm sm:text-base font-bold placeholder:text-blue-400 dark:placeholder:text-neutral-500 py-3 text-blue-600 dark:text-white"
+            className="flex-1 bg-transparent border-none outline-none text-[17px] leading-[1.5] placeholder:text-[#787774] py-3 text-[#111111] dark:text-white"
           />
-          <div className="relative flex items-center gap-2 pr-1">
-            <motion.button whileHover={{ scale: 1.1 }} className="p-2 text-blue-600 dark:text-white hover:opacity-80 cursor-pointer bg-transparent border-none">
+          <div className="flex items-center gap-2 pr-1">
+            <motion.button whileHover={{ scale: 1.02 }} className="p-2 text-[#787774] hover:text-[#111111] cursor-pointer bg-transparent border-none">
               <Paperclip size={18} />
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleSendPrompt}
-              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-lime-400 to-emerald-500 text-white dark:from-white dark:to-neutral-200 dark:text-black flex items-center justify-center font-black shadow-lg cursor-pointer border-none"
+              className="w-10 h-10 rounded-full bg-[#111111] dark:bg-white text-white dark:text-black flex items-center justify-center cursor-pointer border-none"
+              style={{ transition: 'transform 160ms cubic-bezier(0.23,1,0.32,1)' }}
             >
               <Send size={16} />
             </motion.button>
@@ -94,23 +90,24 @@ export const DashboardMainView = ({
         </motion.div>
       </motion.div>
 
-      {/* Szybkie akcje */}
-      <motion.div variants={cineParent} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Szybkie akcje — Bento 1+3 per skill (nie 4 równe), warm monochrome */}
+      <motion.div variants={cineParent} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {quickActions.map((a, i) => (
           <motion.button
             key={a.label}
             variants={cineChild}
-            whileHover={{ y: -6, scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             onClick={() => setActiveTab(a.tab)}
-            className="rounded-2xl border p-4 text-left space-y-6 bg-white dark:bg-black border-blue-100 dark:border-neutral-800 shadow-sm hover:shadow-xl transition-shadow cursor-pointer group"
+            className={`text-left p-6 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition-all cursor-pointer ${i===0 ? 'md:col-span-2 rounded-[16px]' : 'rounded-[12px]'}`}
           >
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${a.accent} text-white grid place-items-center shadow-md`}>
-              <a.icon size={18} />
+            <div className="w-8 h-8 rounded-[8px] bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center">
+              <a.icon size={14} />
             </div>
-            <div>
-              <div className="text-xs font-black">{a.label}</div>
-              <div className="text-[10px] font-bold opacity-60 mt-0.5">{a.desc}</div>
+            <div className="mt-4">
+              <div className="text-[17px] font-[600] tracking-[-0.02em] leading-none">{a.label}</div>
+              <div className="text-[13px] leading-[1.5] text-[#787774] dark:text-zinc-400 mt-1">{a.desc}</div>
             </div>
           </motion.button>
         ))}
