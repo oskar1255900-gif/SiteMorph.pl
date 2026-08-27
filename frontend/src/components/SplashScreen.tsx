@@ -35,8 +35,8 @@ export const SplashScreen = ({ onComplete, theme }: { onComplete: () => void; th
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.3, ease: 'easeOut' }}
-        className="mt-5 text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-400"
-        style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+        className="mt-5 text-[10px] font-medium uppercase tracking-[0.3em]"
+        style={{ color: ink, fontFamily: "'SF Pro Display', sans-serif" }}
       >
         Buduj strony. Zarabiaj.
       </motion.p>

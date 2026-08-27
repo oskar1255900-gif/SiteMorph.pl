@@ -151,12 +151,12 @@ export const PublicLandingView = ({
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-[#111111] dark:text-white transition-colors overflow-x-hidden landing-scale">
+    <div className="min-h-screen bg-white dark:bg-black text-[#2563eb] dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
       {/* Hero — minimalistyczny layout SF Pro z jednym morphingiem i adaptacyjnym kolorem nagłówka */}
-      <section className="relative overflow-hidden bg-white text-[#111111] transition-colors dark:bg-black dark:text-white">
+      <section className="relative overflow-hidden bg-white text-[#2563eb] transition-colors dark:bg-black dark:text-white">
         <div className="mx-auto flex min-h-[100dvh] max-w-[1240px] flex-col px-6 lg:px-10">
-          <div className="flex items-center justify-between border-b border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#787774] dark:border-white/15 dark:text-white/45">
+          <div className="flex items-center justify-between border-b border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#2563eb] dark:border-white/15 dark:text-white">
             <span>SiteMorph / AI website studio</span>
             <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-current" /> AI first</span>
           </div>
@@ -167,7 +167,7 @@ export const PublicLandingView = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="mb-6 text-[11px] font-medium uppercase tracking-[0.18em] text-[#787774] dark:text-white/45">Narzędzie dla twórców stron</p>
+              <p className="mb-6 text-[11px] font-medium uppercase tracking-[0.18em] text-[#2563eb] dark:text-white">Narzędzie dla twórców stron</p>
               <motion.h1
                 initial={{ opacity: 0, letterSpacing: '-0.12em' }}
                 animate={{ opacity: 1, letterSpacing: '-0.075em' }}
@@ -178,14 +178,14 @@ export const PublicLandingView = ({
                 Buduj strony.<br />
                 Zarabiaj.
               </motion.h1>
-              <p className="mt-9 max-w-[38ch] text-[16px] leading-[1.55] text-[#787774] dark:text-white/60">
+              <p className="mt-9 max-w-[38ch] text-[16px] leading-[1.55] text-[#2563eb] dark:text-white">
                 Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-5">
-                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-3 rounded-2xl border border-[#111111] bg-[#111111] px-5 py-3.5 text-sm font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-transparent hover:text-[#111111] hover:shadow-lg dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white">
+                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-3 rounded-2xl border border-[#2563eb] bg-transparent px-5 py-3.5 text-sm font-medium text-[#2563eb] transition-all hover:-translate-y-0.5 hover:bg-[#2563eb]/10 hover:shadow-lg dark:border-white dark:bg-transparent dark:text-white dark:hover:bg-white/10 dark:hover:text-white">
                   Zacznij zarabiać <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </button>
-                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium text-[#111111] transition-colors hover:bg-[#F7F6F3] dark:text-white dark:hover:bg-white/10">
+                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium text-[#2563eb] transition-colors hover:bg-[#F7F6F3] dark:text-white dark:hover:bg-white/10">
                   <Play size={13} className="fill-current" /> Obejrzyj demo 90s
                 </button>
               </div>
@@ -211,7 +211,7 @@ export const PublicLandingView = ({
             </motion.div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.18em] text-[#787774] dark:border-white/15 dark:text-white/45">
+          <div className="flex items-center justify-between border-t border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.18em] text-[#2563eb] dark:border-white/15 dark:text-white">
             <span>Podgląd na żywo</span>
             <span>01 / 04</span>
           </div>
@@ -232,7 +232,7 @@ export const PublicLandingView = ({
             <Sparkles size={13} /> Jak to działa
           </div>
           <h2 className="relative text-5xl sm:text-6xl lg:text-[58px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Od jednego zdania<br />do działającej strony<span className="text-gradient-lime-soft">.</span>
+            Od jednego zdania<br />do działającej strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
           <p className="relative text-sm sm:text-[15px] font-bold opacity-80 max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             Napisz, czego potrzebujesz. Oglądaj, jak powstaje projekt. Poprawiaj, prosząc po prostu o zmianę - kolory, zdjęcia, treści.
@@ -289,7 +289,7 @@ export const PublicLandingView = ({
             <LayoutDashboard size={13} /> Funkcje
           </div>
           <h2 className="relative text-5xl sm:text-6xl lg:text-[56px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Wszystko, czego potrzebujesz,<br />żeby sprzedawać strony<span className="text-gradient-lime-soft">.</span>
+            Wszystko, czego potrzebujesz,<br />żeby sprzedawać strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
         </motion.div>
 
@@ -431,7 +431,7 @@ export const PublicLandingView = ({
             <Search size={12} /> Lead Finder
           </div>
           <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Twoi klienci już gdzieś są.<br />Znajdziesz ich w minutę<span className="text-gradient-lime-soft">.</span>
+            Twoi klienci już gdzieś są.<br />Znajdziesz ich w minutę<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
           <p className="text-sm font-bold leading-relaxed opacity-80" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             W każdym planie dostajesz dostęp do lokalnych firm z Google. Telefon, adres, e-mail - a filtr „brak strony” podświetla najlepsze okazje.
@@ -552,7 +552,7 @@ export const PublicLandingView = ({
             <Receipt size={12} /> Rozliczenia
           </div>
           <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Strona gotowa.<br />Czas na przelew<span className="text-gradient-lime-soft">.</span>
+            Strona gotowa.<br />Czas na przelew<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
           <p className="text-sm font-bold leading-relaxed opacity-80 max-w-md" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             Wbudowane faktury bez prowizji. Wystawiasz dokument, wysyłasz PDF i pilnujesz płatności - wszystko w jednym miejscu.
@@ -583,7 +583,7 @@ export const PublicLandingView = ({
         >
           <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[420px] h-[280px] morph-blob bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-100 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl opacity-70" />
           <h2 className="relative text-4xl sm:text-5xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Jedno zdanie.<br />Gotowa strona.<br /><span className="text-gradient-lime-soft">Dzisiaj.</span>
+            Jedno zdanie.<br />Gotowa strona.<br /><span className="text-[#2563eb] dark:text-white">Dzisiaj.</span>
           </h2>
           <p className="relative text-sm font-bold opacity-70 max-w-md mx-auto" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Zrób pierwszy projekt za darmo i pokaż go klientowi jeszcze dziś.</p>
           <div className="relative flex flex-wrap justify-center gap-3 pt-2">
