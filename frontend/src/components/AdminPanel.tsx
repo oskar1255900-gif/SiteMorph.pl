@@ -128,7 +128,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
       animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
       exit={{ opacity: 0, scale: 0.97, filter: 'blur(12px)' }}
       transition={{ type: 'spring' as const, stiffness: 220, damping: 22 }}
-      className="fixed inset-0 z-[95] bg-white dark:bg-black text-[#111111] dark:text-white overflow-y-auto no-scrollbar"
+      className="fixed inset-0 z-[95] bg-white dark:bg-black text-[#2563eb] dark:text-white overflow-y-auto no-scrollbar"
     >
       {/* morph blobs */}
       <div className="pointer-events-none fixed -top-32 -right-32 w-[520px] h-[520px] bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-100 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl morph-blob" />
@@ -213,7 +213,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           <div className="mt-4 space-y-2">
             {(plans.length ? plans : [{name:'Starter',credits:10,price:49,features:['Builder podstawowy']},{name:'Pro',credits:50,price:99,features:['Galeria','Animacje']},{name:'Business',credits:200,price:199,features:['Team','FAQ']},{name:'Agencja',credits:500,price:499,features:['CMS','Multi-language']}]).map((p: any) => (
               <div key={p.name} className="text-[10px] font-bold opacity-80 flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 text-[#111111] dark:text-white">{p.name}</span>
+                <span className="px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 text-[#2563eb] dark:text-white">{p.name}</span>
                 <span className="opacity-60">{p.credits} kr/mies</span>
                 <span className="opacity-60">{p.price} zł/mies</span>
                 <span className="opacity-50">{(p.features||[]).join(', ')}</span>

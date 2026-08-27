@@ -84,7 +84,7 @@ export const GlobalStyles = () => (
       letter-spacing: -0.011em;
       overflow-x: hidden;
       background: #fff;
-      color: #0f172a;
+      color: #2563eb;
       transition: background-color 0.3s ease, color 0.3s ease;
     }
     html.dark body { background: #000; color: #fff; }
@@ -131,8 +131,8 @@ export const Button = ({
     primary: 'bg-[#111111] text-white dark:bg-white dark:text-black shadow-lg shadow-blue-600/20 dark:shadow-white/10 hover:opacity-90',
     lime: 'bg-gradient-to-r from-lime-300 to-emerald-400 text-black hover:opacity-95 font-black shadow-lg shadow-lime-400/20',
     blue: 'bg-[#111111] text-white hover:bg-blue-700 font-black shadow-md shadow-blue-600/30',
-    outline: 'bg-transparent text-[#111111] dark:text-white border border-blue-300 dark:border-neutral-700 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900',
-    ghost: 'bg-transparent text-[#111111] dark:text-white hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'
+    outline: 'bg-transparent text-[#2563eb] dark:text-white border border-blue-300 dark:border-neutral-700 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900',
+    ghost: 'bg-transparent text-[#2563eb] dark:text-white hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'
   };
 
   return (
@@ -158,9 +158,9 @@ export const Badge = ({
   type?: 'default' | 'lime' | 'blue';
 }) => {
   const styles = {
-    default: 'bg-transparent text-[#131412] dark:text-white border-[#e7e5e0] dark:border-neutral-800 font-medium tracking-wide uppercase text-[10px]',
+    default: 'bg-transparent text-[#2563eb] dark:text-white border-[#e7e5e0] dark:border-neutral-800 font-medium tracking-wide uppercase text-[10px]',
     lime: 'bg-[#d8e4bc] text-[#131412] border-[#d8e4bc] font-semibold',
-    blue: 'bg-transparent text-[#131412] dark:text-white border-[#e7e5e0] dark:border-neutral-800 font-medium'
+    blue: 'bg-transparent text-[#2563eb] dark:text-white border-[#e7e5e0] dark:border-neutral-800 font-medium'
   };
 
   return (

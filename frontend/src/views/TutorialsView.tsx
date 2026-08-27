@@ -75,11 +75,11 @@ export const TutorialsView = () => {
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 pb-16 text-[#111111] dark:text-white"
+      className="max-w-5xl mx-auto py-8 px-6 pb-16 text-[#2563eb] dark:text-white"
       style={{ perspective: 1600 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
           <GraduationCap size={22} />
         </div>
         <div>

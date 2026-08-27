@@ -14,7 +14,7 @@ export const StandalonePricingView = () => {
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-6xl mx-auto py-6 lg:py-10 px-6 lg:px-4 space-y-10 pb-24 text-[#111111] dark:text-white"
+      className="max-w-6xl mx-auto py-6 lg:py-10 px-6 lg:px-4 space-y-10 pb-24 text-[#2563eb] dark:text-white"
       style={{ perspective: 1600 }}
     >
       <motion.div variants={cineSoft} className="text-center space-y-3 relative">

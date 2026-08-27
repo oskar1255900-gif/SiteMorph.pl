@@ -335,7 +335,7 @@ export const LeadFinderView = ({
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-[760px] mx-auto py-8 px-4 sm:px-6 space-y-6 pb-24 text-[#111111] dark:text-white"
+      className="max-w-[760px] mx-auto py-8 px-4 sm:px-6 space-y-6 pb-24 text-[#2563eb] dark:text-white"
       style={{ perspective: 1200, fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
       <div className="text-center space-y-3">
@@ -372,7 +372,7 @@ export const LeadFinderView = ({
             <button
               type="button"
               onClick={() => setCityOpen(!cityOpen)}
-              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-[#111111] dark:text-white'}`}
+              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
@@ -436,7 +436,7 @@ export const LeadFinderView = ({
             <button
               type="button"
               onClick={() => setIndustryOpen(!industryOpen)}
-              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-[#111111] dark:text-white'}`}
+              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
@@ -574,7 +574,7 @@ export const LeadFinderView = ({
                             <div className="flex items-start gap-1.5 opacity-80"><MapPin size={12} className="mt-0.5 shrink-0" /><span>{cityCountry || 'Brak danych'}</span></div>
                             <div className="flex items-start gap-1.5 opacity-80"><MapPin size={12} className="mt-0.5 shrink-0" /><span className={addr ? '' : 'opacity-50'}>{addr || 'Brak danych'}</span></div>
                             <div className="flex items-center gap-1.5 opacity-80"><Phone size={12} className="shrink-0" /><span className={phone ? '' : 'opacity-50'}>{phone || 'Brak danych'}</span></div>
-                            <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-[#111111] dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony</span>}</div>
+                            <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-[#2563eb] dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony</span>}</div>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-50 dark:border-neutral-900">
                             <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>

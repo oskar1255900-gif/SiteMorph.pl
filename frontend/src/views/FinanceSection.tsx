@@ -158,7 +158,7 @@ export const FinanceSection = () => {
 
   const totalRevenue = invoices.reduce((s, i) => s + (i.total || 0), 0);
 
-  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
+  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#2563eb] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
 
   const enabledMethods = [
     usePrzelew && 'przelew',
@@ -171,7 +171,7 @@ export const FinanceSection = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[#111111] dark:text-white"
+      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[#2563eb] dark:text-white"
     >
       <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
         <div>
@@ -204,7 +204,7 @@ export const FinanceSection = () => {
                 {idx > 0 && <span className="w-8 h-px bg-blue-200 dark:bg-neutral-800" />}
                 <span className={`flex items-center gap-2 ${setupStep >= step.n ? 'text-emerald-500 font-black' : 'opacity-70'}`}>
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] ${
-                    setupStep >= step.n ? 'bg-lime-400 text-neutral-900 shadow-sm' : 'bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white'
+                    setupStep >= step.n ? 'bg-lime-400 text-neutral-900 shadow-sm' : 'bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white'
                   }`}>{step.n}</span>
                   {step.label}
                 </span>
@@ -337,8 +337,8 @@ export const FinanceSection = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               { title: 'Łączna wartość faktur', value: `${totalRevenue.toFixed(2)} zł`, color: 'text-emerald-500' },
-              { title: 'Wystawione faktury', value: invoices.length, color: 'text-[#111111] dark:text-white' },
-              { title: 'Wysłane e-mailem', value: invoices.filter((i) => i.sent_to).length, color: 'text-[#111111] dark:text-white' }
+              { title: 'Wystawione faktury', value: invoices.length, color: 'text-[#2563eb] dark:text-white' },
+              { title: 'Wysłane e-mailem', value: invoices.filter((i) => i.sent_to).length, color: 'text-[#2563eb] dark:text-white' }
             ].map((stat, i) => (
               <motion.div
                 whileHover={{ y: -3 }}
@@ -428,7 +428,7 @@ export const FinanceSection = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={springTransition}
-              className="w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-4 relative text-left bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 text-[#111111] dark:text-white max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-4 relative text-left bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 text-[#2563eb] dark:text-white max-h-[90vh] overflow-y-auto no-scrollbar"
             >
               <motion.button
                 whileHover={{ scale: 1.15 }}

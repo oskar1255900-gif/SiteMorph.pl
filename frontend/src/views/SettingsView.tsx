@@ -51,18 +51,18 @@ export const SettingsView = () => {
     }
   };
 
-  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
+  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#2563eb] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
 
   return (
     <motion.div
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-3xl mx-auto py-8 px-6 pb-16 text-[#111111] dark:text-white"
+      className="max-w-3xl mx-auto py-8 px-6 pb-16 text-[#2563eb] dark:text-white"
       style={{ perspective: 1200 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#111111] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
           <Settings size={22} />
         </div>
         <div>

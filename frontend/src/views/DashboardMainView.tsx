@@ -43,17 +43,17 @@ export const DashboardMainView = ({
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-4xl mx-auto py-8 px-6 space-y-8 pb-20 text-[#111111] dark:text-white"
+      className="max-w-4xl mx-auto py-8 px-6 space-y-8 pb-20 text-[#2563eb] dark:text-white"
     >
       <motion.div variants={itemVariants} className="flex justify-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border shadow-sm bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#111111] dark:text-white">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border shadow-sm bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#2563eb] dark:text-white">
           <span className="bg-[#111111] text-white dark:bg-white dark:text-black text-[9px] font-black px-1.5 py-0.5 rounded-md">NOWOŚĆ</span>
           Generowanie serwisów www nowej generacji <ArrowRight size={12} />
         </div>
       </motion.div>
 
       <motion.div variants={cineChild} className="text-center space-y-6">
-        <h2 className="text-4xl md:text-6xl font-[700] tracking-[-0.03em] leading-none text-[#111111] dark:text-white" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+        <h2 className="text-4xl md:text-6xl font-[700] tracking-[-0.03em] leading-none text-[#2563eb] dark:text-white" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
           Co dzisiaj stworzymy?
         </h2>
 
@@ -72,10 +72,10 @@ export const DashboardMainView = ({
               }
             }}
             placeholder="Stwórz stronę dla siłowni z systemem rezerwacji online..."
-            className="flex-1 bg-transparent border-none outline-none text-[17px] leading-[1.5] placeholder:text-[#787774] py-3 text-[#111111] dark:text-white"
+            className="flex-1 bg-transparent border-none outline-none text-[17px] leading-[1.5] placeholder:text-[#2563eb] py-3 text-[#2563eb] dark:text-white"
           />
           <div className="flex items-center gap-2 pr-1">
-            <motion.button whileHover={{ scale: 1.02 }} className="p-2 text-[#787774] hover:text-[#111111] cursor-pointer bg-transparent border-none">
+            <motion.button whileHover={{ scale: 1.02 }} className="p-2 text-[#2563eb] hover:text-[#111111] cursor-pointer bg-transparent border-none">
               <Paperclip size={18} />
             </motion.button>
             <motion.button
@@ -107,7 +107,7 @@ export const DashboardMainView = ({
             </div>
             <div className="mt-4">
               <div className="text-[17px] font-[600] tracking-[-0.02em] leading-none">{a.label}</div>
-              <div className="text-[13px] leading-[1.5] text-[#787774] dark:text-zinc-400 mt-1">{a.desc}</div>
+              <div className="text-[13px] leading-[1.5] text-[#2563eb] dark:text-zinc-400 mt-1">{a.desc}</div>
             </div>
           </motion.button>
         ))}
@@ -115,7 +115,7 @@ export const DashboardMainView = ({
 
       <motion.div 
         variants={cineChild}
-        className="rounded-3xl p-6 border shadow-xl space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#111111] dark:text-white"
+        className="rounded-3xl p-6 border shadow-xl space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
       >
         <div className="flex items-center gap-2 text-xs font-bold border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
           <div className="relative flex gap-2">
@@ -124,7 +124,7 @@ export const DashboardMainView = ({
                 key={tab}
                 onClick={() => setActiveTabSub(tab)}
                 className={`relative px-4 py-1.5 rounded-full transition-colors cursor-pointer border-none font-black text-xs ${
-                  activeTabSub === tab ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white hover:opacity-75'
+                  activeTabSub === tab ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:opacity-75'
                 }`}
               >
                 {activeTabSub === tab && (
@@ -152,7 +152,7 @@ export const DashboardMainView = ({
             <motion.div 
               animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.06, 1] }}
               transition={{ duration: 5, repeat: Infinity }}
-              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-lime-50 dark:from-neutral-900 dark:to-neutral-950 text-[#111111] dark:text-white flex items-center justify-center mb-1 border border-[#EAEAEA] dark:border-neutral-800 shadow-inner"
+              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-lime-50 dark:from-neutral-900 dark:to-neutral-950 text-[#2563eb] dark:text-white flex items-center justify-center mb-1 border border-[#EAEAEA] dark:border-neutral-800 shadow-inner"
             >
               {activeTabSub === 'my' ? <Sparkles size={28} className="text-emerald-400" /> : <Clock size={28} className="opacity-60" />}
             </motion.div>

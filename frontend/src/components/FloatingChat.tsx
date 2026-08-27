@@ -21,7 +21,7 @@ export const FloatingChat = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.85, y: 20 }}
           transition={springTransition}
-          className="rounded-3xl shadow-2xl border w-80 p-4 mb-3 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#111111] dark:text-white"
+          className="rounded-3xl shadow-2xl border w-80 p-4 mb-3 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
         >
           <div className="flex justify-between items-center border-b border-[#EAEAEA] dark:border-neutral-900 pb-3 mb-3">
             <div className="flex items-center gap-2">
@@ -43,7 +43,7 @@ export const FloatingChat = ({
             <input
               type="text"
               placeholder="Wpisz wiadomość..."
-              className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold outline-none border text-[#111111] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800"
+              className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold outline-none border text-[#2563eb] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800"
             />
             <motion.button 
               whileHover={{ scale: 1.1 }}

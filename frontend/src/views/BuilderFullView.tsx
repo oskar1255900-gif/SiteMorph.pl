@@ -337,13 +337,13 @@ export const BuilderFullView = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] dark:bg-[#0a0a0a] text-[#131412] dark:text-white"
+      className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] dark:bg-[#0a0a0a] text-[#2563eb] dark:text-white"
     >
-      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 text-[#131412] dark:text-white">
+      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white">
         <motion.button 
           whileHover={{ x: -2 }}
           onClick={onBack} 
-          className="flex items-center gap-2 text-[#111111] dark:text-white hover:text-emerald-400 font-black text-sm transition-colors cursor-pointer bg-transparent border-none"
+          className="flex items-center gap-2 text-[#2563eb] dark:text-white hover:text-emerald-400 font-black text-sm transition-colors cursor-pointer bg-transparent border-none"
         >
           <ArrowLeft size={16} />
           <div className="flex items-center gap-2">
@@ -358,7 +358,7 @@ export const BuilderFullView = ({
               key={mode}
               onClick={() => setActiveMode(mode)}
               className={`relative flex items-center gap-1.5 px-3.5 py-1 rounded-lg text-xs font-black transition-colors cursor-pointer border-none ${
-                activeMode === mode ? 'text-white dark:text-black' : 'text-[#111111] dark:text-white'
+                activeMode === mode ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white'
               }`}
             >
               {activeMode === mode && (
@@ -377,7 +377,7 @@ export const BuilderFullView = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-[10px] font-black text-[#111111] dark:text-white bg-[#F7F6F3] dark:bg-zinc-900 px-2.5 py-1 rounded-md border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-1.5">
+          <div className="text-[10px] font-black text-[#2563eb] dark:text-white bg-[#F7F6F3] dark:bg-zinc-900 px-2.5 py-1 rounded-md border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-1.5">
             <RefreshCw size={12} className={isGenerating ? 'animate-spin text-emerald-400' : ''} /> Autozapis
           </div>
           <Button
@@ -412,11 +412,11 @@ export const BuilderFullView = ({
       <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div
           style={isDesktop ? { width: leftW } : undefined}
-          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-[#131412] dark:text-white rounded-r-2xl shadow-sm"
+          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white rounded-r-2xl shadow-sm"
         >
           <div className="flex-1 p-4 overflow-y-auto no-scrollbar space-y-5">
             <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-[#F7F6F3] dark:bg-zinc-900 text-[#111111] dark:text-white flex items-center justify-center mx-auto mb-3 border border-[#EAEAEA] dark:border-white/[0.08] shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-[#F7F6F3] dark:bg-zinc-900 text-[#2563eb] dark:text-white flex items-center justify-center mx-auto mb-3 border border-[#EAEAEA] dark:border-white/[0.08] shadow-sm">
                 <Globe size={24} />
               </div>
               <h3 className="font-black text-sm">Zbuduj swoją stronę</h3>
@@ -449,7 +449,7 @@ export const BuilderFullView = ({
                   }
                 }}
                 placeholder="Wklej dane z Google Maps albo opisz firmę (Enter = generuj)..."
-                className="w-full bg-transparent border-none outline-none text-xs font-semibold leading-relaxed placeholder:text-blue-400 dark:placeholder:text-neutral-500 resize-y text-[#111111] dark:text-white min-h-[90px]"
+                className="w-full bg-transparent border-none outline-none text-xs font-semibold leading-relaxed placeholder:text-blue-400 dark:placeholder:text-neutral-500 resize-y text-[#2563eb] dark:text-white min-h-[90px]"
               />
               <div className="flex justify-between items-center mt-2">
                 <div className="flex gap-2">
