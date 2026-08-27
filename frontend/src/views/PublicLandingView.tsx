@@ -153,89 +153,71 @@ export const PublicLandingView = ({
   return (
     <div className="min-h-screen bg-white dark:bg-black text-[#111111] dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
-      {/* Hero — nowa kompozycja: dark art-direction, posterowa typografia i zdjęcie zamiast mockupu */}
-      <section className="relative isolate overflow-hidden bg-[#151515] text-white min-h-[100dvh]">
-        <div className="pointer-events-none absolute inset-0 opacity-20" aria-hidden="true">
-          <div className="absolute left-[61%] top-0 h-full w-px bg-white" />
-          <div className="absolute left-0 right-0 top-[28%] h-px bg-white" />
-          <div className="absolute left-[61%] top-[28%] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#a3e635]" />
-        </div>
-        <div className="relative mx-auto flex min-h-[100dvh] max-w-[1440px] flex-col px-6 lg:px-10">
-          <div className="flex items-center justify-between border-b border-white/20 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-            <span>SiteMorph / AI website studio</span>
-            <span className="hidden sm:block">Polska · 2026</span>
-            <span className="flex items-center gap-2 text-white"><span className="h-1.5 w-1.5 rounded-full bg-[#a3e635]" /> Otwarta beta</span>
+      {/* Hero — minimalistyczny layout SF Pro z jednym morphingiem i adaptacyjnym kolorem nagłówka */}
+      <section className="relative overflow-hidden bg-white text-[#111111] transition-colors dark:bg-black dark:text-white">
+        <div className="mx-auto flex min-h-[100dvh] max-w-[1320px] flex-col px-6 lg:px-10">
+          <div className="flex items-center justify-between border-b border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.22em] text-[#787774] dark:border-white/15 dark:text-white/45">
+            <span>SiteMorph</span>
+            <span className="hidden sm:block">01 / 04</span>
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-current" /> AI first</span>
           </div>
 
-          <div className="grid flex-1 grid-cols-1 items-center gap-12 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16">
+          <div className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-12 lg:gap-10 lg:py-20">
             <motion.div
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: 22 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="lg:col-span-7 lg:pr-12"
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              className="lg:col-span-8"
             >
-              <div className="mb-8 flex items-center gap-4 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">
-                <span className="text-[#a3e635]">01</span>
-                <span className="h-px w-12 bg-[#a3e635]" />
-                <span>Od pomysłu do publikacji</span>
-              </div>
-              <h1 className="max-w-[760px] text-[clamp(4.25rem,10vw,9.25rem)] font-bold leading-[0.82] tracking-[-0.075em] text-white" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-                Buduj<br />
-                <span className="font-normal tracking-[-0.055em] text-[#d8e4bc]" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>strony.</span><br />
-                <span className="text-white">Zarabiaj.</span>
+              <p className="mb-7 text-[11px] font-medium uppercase tracking-[0.2em] text-[#787774] dark:text-white/45">Narzędzie dla twórców stron</p>
+              <h1
+                className="max-w-[920px] text-[clamp(4.25rem,11vw,10.5rem)] font-bold leading-[0.83] tracking-[-0.085em]"
+                style={{ fontFamily: "'SF Pro Display', sans-serif", color: theme === 'dark' ? '#ffffff' : '#2563eb' }}
+              >
+                Buduj strony.<br />
+                Zarabiaj.
               </h1>
-              <div className="mt-10 grid max-w-[630px] grid-cols-1 gap-8 border-t border-white/20 pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
-                <p className="max-w-[38ch] text-[16px] leading-[1.55] text-white/65">
+              <div className="mt-10 flex max-w-[680px] flex-col gap-8 border-t border-[#EAEAEA] pt-6 dark:border-white/15 sm:flex-row sm:items-end sm:justify-between">
+                <p className="max-w-[42ch] text-[16px] leading-[1.55] text-[#787774] dark:text-white/60">
                   Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
                 </p>
-                <div className="flex items-center gap-5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">
-                  <span>01 / 04</span>
-                  <span className="h-8 w-px bg-white/20" />
-                  <span>AI first</span>
-                </div>
+                <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[#787774] dark:text-white/45">Realne strony<br />dla realnych firm</span>
               </div>
-              <div className="mt-9 flex flex-wrap items-center gap-5">
-                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-5 bg-[#a3e635] px-6 py-4 text-sm font-bold text-[#151515] transition-colors hover:bg-white">
-                  Zacznij zarabiać
-                  <span className="grid h-7 w-7 place-items-center bg-[#151515] text-[#a3e635] transition-transform group-hover:translate-x-1"><ArrowRight size={15} /></span>
+              <div className="mt-9 flex flex-wrap items-center gap-6">
+                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-4 border border-[#111111] bg-[#111111] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-transparent hover:text-[#111111] dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white">
+                  Zacznij zarabiać <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </button>
-                <button type="button" onClick={() => onEnterApp('pricing')} className="group inline-flex items-center gap-3 border-b border-white/40 pb-2 text-sm font-bold text-white transition-colors hover:border-[#a3e635] hover:text-[#a3e635]">
-                  <Play size={14} className="fill-current" /> Obejrzyj demo 90s
+                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 border-b border-current pb-1 text-sm font-medium text-[#111111] transition-opacity hover:opacity-50 dark:text-white">
+                  <Play size={13} className="fill-current" /> Obejrzyj demo 90s
                 </button>
               </div>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 34, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-              className="relative lg:col-span-5 lg:col-start-8"
+              initial={{ opacity: 0, scale: 0.92, rotate: -8 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+              className="relative flex min-h-[260px] items-center justify-center lg:col-span-4"
+              aria-label="Animacja morphing SiteMorph"
             >
-              <div className="absolute -left-8 top-8 hidden [writing-mode:vertical-rl] text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 lg:block">Realne strony dla realnych firm</div>
-              <div className="relative ml-auto max-w-[500px] overflow-hidden border border-white/25 bg-[#292929] p-3 sm:p-4">
-                <div className="relative aspect-[0.78] overflow-hidden bg-[#343434]">
-                  <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85" alt="Nowoczesne biuro lokalnej firmy" className="h-full w-full object-cover grayscale-[18%] transition-transform duration-700 hover:scale-105" />
-                  <div className="absolute inset-0 bg-[#151515]/10" />
-                  <div className="absolute left-5 top-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
-                    <span className="h-2 w-2 rounded-full bg-[#a3e635]" /> Podgląd na żywo
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 border-t border-white/25 bg-[#151515]/90 p-5 backdrop-blur-sm">
-                    <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-white/55"><span>Projekt #024</span><span>Studio Runo</span></div>
-                    <div className="flex items-end justify-between gap-4"><span className="text-2xl font-bold tracking-[-0.04em]">Dobre miejsce<br /><span className="text-[#d8e4bc]" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>zaczyna się tutaj.</span></span><ArrowRight size={20} className="mb-1 shrink-0 text-[#a3e635]" /></div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-6 -left-4 border border-[#151515] bg-[#d8e4bc] px-5 py-4 text-[#151515] shadow-[8px_8px_0_#a3e635] sm:-left-10">
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em]">Wycena projektu</div>
-                <div className="mt-1 text-2xl font-bold tracking-[-0.04em]">1 500–12 000 zł</div>
-              </div>
+              <motion.div
+                className="h-44 w-44 border-[3px] border-[#2563eb] dark:border-white sm:h-56 sm:w-56"
+                animate={{ borderRadius: ['8%', '50%', '8%'], rotate: [0, 45, 90], scale: [1, 1.08, 1] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="absolute h-3 w-3 bg-[#2563eb] dark:bg-white"
+                animate={{ x: [-84, 0, 84, 0, -84], y: [0, -84, 0, 84, 0] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <span className="absolute bottom-0 right-0 text-[10px] font-medium uppercase tracking-[0.18em] text-[#787774] dark:text-white/45">Podgląd na żywo</span>
             </motion.div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-white/20 py-5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
-            <span>Przewiń, żeby zobaczyć jak to działa</span>
-            <span className="hidden items-center gap-3 sm:flex"><span className="h-px w-14 bg-white/40" /> Scroll to explore</span>
-            <span>↓</span>
+          <div className="grid grid-cols-1 border-t border-[#EAEAEA] py-5 text-[11px] font-medium uppercase tracking-[0.15em] text-[#787774] dark:border-white/15 dark:text-white/45 sm:grid-cols-3">
+            <span className="pb-3 sm:pb-0">Szybciej od briefu do strony</span>
+            <span className="border-[#EAEAEA] pb-3 dark:border-white/15 sm:border-l sm:pb-0 sm:pl-6">Podgląd na żywo bez wysyłania plików</span>
+            <span className="border-[#EAEAEA] dark:border-white/15 sm:border-l sm:pl-6">Wycena projektu 1 500–12 000 zł</span>
           </div>
         </div>
       </section>

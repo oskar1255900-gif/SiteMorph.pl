@@ -37,7 +37,7 @@ export const GlobalNavbar = ({
       <div className="pointer-events-auto w-full max-w-[1440px] border-b border-white/20 px-0 flex items-center justify-between h-20">
         <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit">
           <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg" />
-          <span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'Inter', sans-serif", color: '#a3e635' }}>MORPH</span></span>
+          <span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'Inter', sans-serif", color: '#ffffff' }}>MORPH</span></span>
         </button>
         <nav className="hidden md:flex items-center gap-6 text-xs font-bold opacity-90">
           <button onClick={() => scrollToId('jak-to-dziala')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Jak to działa</button>
