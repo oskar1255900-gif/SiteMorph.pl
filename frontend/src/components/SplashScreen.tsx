@@ -7,7 +7,7 @@ export const SplashScreen = ({ onComplete, theme }: { onComplete: () => void; th
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  const ink = theme === 'dark' ? '#ffffff' : '#111111';
+  const ink = theme === 'dark' ? '#ffffff' : '#2563eb';
 
   return (
     <motion.div

@@ -33,11 +33,11 @@ export const GlobalNavbar = ({
     setMobileOpen(false);
   };
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex justify-center px-6 pointer-events-none bg-[#151515] text-white" style={{ paddingTop: 0 }}>
-      <div className="pointer-events-auto w-full max-w-[1440px] border-b border-white/20 px-0 flex items-center justify-between h-20">
+    <header className={`fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none transition-colors duration-200 ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-[#111111]'}`} style={{ paddingTop: 0 }}>
+      <div className={`pointer-events-auto w-full max-w-[1320px] border-b px-2 flex items-center justify-between h-20 ${theme === 'dark' ? 'border-white/15' : 'border-[#EAEAEA]'}`}>
         <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit">
           <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg" />
-          <span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'Inter', sans-serif", color: '#ffffff' }}>MORPH</span></span>
+          <span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'SF Pro Display', sans-serif", color: theme === 'dark' ? '#ffffff' : '#2563eb' }}>Site<span className="font-bold text-base tracking-[-0.04em]" style={{ fontFamily: "'Inter', sans-serif" }}>MORPH</span></span>
         </button>
         <nav className="hidden md:flex items-center gap-6 text-xs font-bold opacity-90">
           <button onClick={() => scrollToId('jak-to-dziala')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Jak to działa</button>
@@ -47,7 +47,7 @@ export const GlobalNavbar = ({
           <button onClick={() => goTab('pricing')} className="hover:text-emerald-500 transition-colors bg-transparent border-none font-bold cursor-pointer">Cennik</button>
         </nav>
         <div className="flex items-center gap-2">
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-1.5 rounded-full hover:bg-white/10 cursor-pointer border-none bg-transparent text-white" title="Zmień motyw">
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`p-1.5 rounded-full cursor-pointer border-none bg-transparent transition-colors ${theme === 'dark' ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-[#F7F6F3]'}`} title="Zmień motyw">
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
           <div className="hidden sm:flex items-center gap-2">
@@ -61,14 +61,14 @@ export const GlobalNavbar = ({
             )}
             <Button variant="primary" size="sm" onClick={() => goTab('dashboard')} className="px-4 font-black">Zacznij teraz</Button>
           </div>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-full hover:bg-white/10 border-none bg-transparent text-white cursor-pointer">
+          <button onClick={() => setMobileOpen(!mobileOpen)} className={`md:hidden p-2 rounded-full border-none bg-transparent cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-white/10' : 'text-[#111111] hover:bg-[#F7F6F3]'}`}>
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </div>
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-[72px] left-4 right-4 bg-[#151515] text-white border border-white/20 shadow-xl p-4 flex flex-col gap-2 md:hidden pointer-events-auto">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`absolute top-[72px] left-4 right-4 rounded-2xl border shadow-xl p-4 flex flex-col gap-2 md:hidden pointer-events-auto ${theme === 'dark' ? 'bg-black text-white border-white/20' : 'bg-white text-[#111111] border-[#EAEAEA]'}`}>
             {[
               ['Jak to działa', () => scrollToId('jak-to-dziala')],
               ['Funkcje', () => scrollToId('funkcje')],
@@ -76,10 +76,10 @@ export const GlobalNavbar = ({
               ['Rozliczenia', () => goTab('finance')],
               ['Cennik', () => goTab('pricing')],
             ].map(([label, fn]) => (
-              <button key={label as string} onClick={fn as any} className="text-left px-3 py-2.5 hover:bg-white/10 font-bold text-sm">{label as string}</button>
+              <button key={label as string} onClick={fn as any} className="text-left px-3 py-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 font-bold text-sm">{label as string}</button>
             ))}
-            <div className="border-t border-white/20 pt-3 flex gap-2">
-              {session ? <Button variant="outline" size="sm" onClick={onLogout} className="flex-1">Wyloguj</Button> : <Button variant="outline" size="sm" onClick={onShowAuth} className="flex-1">Zaloguj się</Button>}
+            <div className={`border-t pt-3 flex gap-2 ${theme === 'dark' ? 'border-white/20' : 'border-[#EAEAEA]'}`}>
+              {session ? <Button variant="outline" size="sm" onClick={onLogout} className="flex-1 dark:text-white">Wyloguj</Button> : <Button variant="outline" size="sm" onClick={onShowAuth} className="flex-1 dark:text-white">Zaloguj się</Button>}
               <Button variant="primary" size="sm" onClick={() => goTab('dashboard')} className="flex-1">Zacznij</Button>
             </div>
           </motion.div>

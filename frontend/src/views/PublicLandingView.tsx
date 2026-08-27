@@ -155,89 +155,68 @@ export const PublicLandingView = ({
       <div className="h-2" />
       {/* Hero — minimalistyczny layout SF Pro z jednym morphingiem i adaptacyjnym kolorem nagłówka */}
       <section className="relative overflow-hidden bg-white text-[#111111] transition-colors dark:bg-black dark:text-white">
-        <div className="mx-auto flex min-h-[100dvh] max-w-[1320px] flex-col px-6 lg:px-10">
-          <div className="flex items-center justify-between border-b border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.22em] text-[#787774] dark:border-white/15 dark:text-white/45">
-            <span>SiteMorph</span>
-            <span className="hidden sm:block">01 / 04</span>
+        <div className="mx-auto flex min-h-[100dvh] max-w-[1240px] flex-col px-6 lg:px-10">
+          <div className="flex items-center justify-between border-b border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#787774] dark:border-white/15 dark:text-white/45">
+            <span>SiteMorph / AI website studio</span>
             <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-current" /> AI first</span>
           </div>
 
-          <div className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-12 lg:gap-10 lg:py-20">
+          <div className="grid flex-1 items-center gap-10 py-20 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-24 lg:py-24">
             <motion.div
-              initial={{ opacity: 0, y: 22 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="lg:col-span-8"
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="mb-7 text-[11px] font-medium uppercase tracking-[0.2em] text-[#787774] dark:text-white/45">Narzędzie dla twórców stron</p>
-              <h1
-                className="max-w-[920px] text-[clamp(4.25rem,11vw,10.5rem)] font-bold leading-[0.83] tracking-[-0.085em]"
+              <p className="mb-6 text-[11px] font-medium uppercase tracking-[0.18em] text-[#787774] dark:text-white/45">Narzędzie dla twórców stron</p>
+              <motion.h1
+                initial={{ opacity: 0, letterSpacing: '-0.12em' }}
+                animate={{ opacity: 1, letterSpacing: '-0.075em' }}
+                transition={{ duration: 0.8, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="max-w-[950px] text-[clamp(4rem,10.5vw,9.5rem)] font-bold leading-[0.84]"
                 style={{ fontFamily: "'SF Pro Display', sans-serif", color: theme === 'dark' ? '#ffffff' : '#2563eb' }}
               >
                 Buduj strony.<br />
                 Zarabiaj.
-              </h1>
-              <div className="mt-10 flex max-w-[680px] flex-col gap-8 border-t border-[#EAEAEA] pt-6 dark:border-white/15 sm:flex-row sm:items-end sm:justify-between">
-                <p className="max-w-[42ch] text-[16px] leading-[1.55] text-[#787774] dark:text-white/60">
-                  Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
-                </p>
-                <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[#787774] dark:text-white/45">Realne strony<br />dla realnych firm</span>
-              </div>
-              <div className="mt-9 flex flex-wrap items-center gap-6">
-                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-4 border border-[#111111] bg-[#111111] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-transparent hover:text-[#111111] dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white">
+              </motion.h1>
+              <p className="mt-9 max-w-[38ch] text-[16px] leading-[1.55] text-[#787774] dark:text-white/60">
+                Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-5">
+                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-3 rounded-2xl border border-[#111111] bg-[#111111] px-5 py-3.5 text-sm font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-transparent hover:text-[#111111] hover:shadow-lg dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white">
                   Zacznij zarabiać <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </button>
-                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 border-b border-current pb-1 text-sm font-medium text-[#111111] transition-opacity hover:opacity-50 dark:text-white">
+                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium text-[#111111] transition-colors hover:bg-[#F7F6F3] dark:text-white dark:hover:bg-white/10">
                   <Play size={13} className="fill-current" /> Obejrzyj demo 90s
                 </button>
               </div>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, rotate: -8 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
-              className="relative flex min-h-[260px] items-center justify-center lg:col-span-4"
+              initial={{ opacity: 0, scale: 0.86 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.65, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="relative flex min-h-[220px] items-center justify-center"
               aria-label="Animacja morphing SiteMorph"
             >
               <motion.div
-                className="h-44 w-44 border-[3px] border-[#2563eb] dark:border-white sm:h-56 sm:w-56"
-                animate={{ borderRadius: ['8%', '50%', '8%'], rotate: [0, 45, 90], scale: [1, 1.08, 1] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+                className="h-40 w-40 rounded-[34%] border-2 border-[#2563eb] dark:border-white sm:h-52 sm:w-52"
+                animate={{ borderRadius: ['34%', '50%', '34%'], rotate: [0, 90, 180], scale: [1, 1.1, 1] }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <motion.div
-                className="absolute h-3 w-3 bg-[#2563eb] dark:bg-white"
-                animate={{ x: [-84, 0, 84, 0, -84], y: [0, -84, 0, 84, 0] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+              <motion.span
+                className="absolute h-2.5 w-2.5 rounded-full bg-[#2563eb] dark:bg-white"
+                animate={{ x: [-72, 0, 72, 0, -72], y: [0, -72, 0, 72, 0] }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <span className="absolute bottom-0 right-0 text-[10px] font-medium uppercase tracking-[0.18em] text-[#787774] dark:text-white/45">Podgląd na żywo</span>
             </motion.div>
           </div>
 
-          <div className="grid grid-cols-1 border-t border-[#EAEAEA] py-5 text-[11px] font-medium uppercase tracking-[0.15em] text-[#787774] dark:border-white/15 dark:text-white/45 sm:grid-cols-3">
-            <span className="pb-3 sm:pb-0">Szybciej od briefu do strony</span>
-            <span className="border-[#EAEAEA] pb-3 dark:border-white/15 sm:border-l sm:pb-0 sm:pl-6">Podgląd na żywo bez wysyłania plików</span>
-            <span className="border-[#EAEAEA] dark:border-white/15 sm:border-l sm:pl-6">Wycena projektu 1 500–12 000 zł</span>
+          <div className="flex items-center justify-between border-t border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.18em] text-[#787774] dark:border-white/15 dark:text-white/45">
+            <span>Podgląd na żywo</span>
+            <span>01 / 04</span>
           </div>
         </div>
       </section>
-
-      {/* Ticker */}
-      <div className="border-y py-3.5 overflow-hidden relative bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
-        <div className="animate-marquee whitespace-nowrap flex items-center gap-10 text-[11px] font-bold text-[#111111] dark:text-white tracking-wide">
-          {[
-            'Bez kodowania', 'Strona w 5 minut', 'Powtarzalny przychód', '1500–12 000 zł za stronę', 'Natychmiastowy deploy',
-            'Linki podglądu', 'Nielimitowane poprawki', 'Akceptacja klienta', 'Powered by SiteMorph AI', 'Bez kodowania', 'Strona w 5 minut',
-            'Bez kodowania', 'Strona w 5 minut', 'Powtarzalny przychód', '1500–12 000 zł za stronę', 'Natychmiastowy deploy',
-            'Linki podglądu', 'Nielimitowane poprawki', 'Akceptacja klienta', 'Powered by SiteMorph AI', 'Bez kodowania', 'Strona w 5 minut'
-          ].map((item, idx) => (
-            <div key={idx} className="flex items-center gap-3 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#111111] dark:bg-white opacity-80" />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* SEKCJA: JAK TO DZIAŁA */}
       <section id="jak-to-dziala" className="max-w-7xl mx-auto px-6 lg:px-8 pt-12 lg:pt-16 pb-10 scroll-mt-24 space-y-8">
