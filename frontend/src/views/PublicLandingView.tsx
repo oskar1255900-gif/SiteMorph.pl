@@ -153,80 +153,90 @@ export const PublicLandingView = ({
   return (
     <div className="min-h-screen bg-white dark:bg-black text-[#111111] dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
-      {/* Hero — EDITORIAL SPLIT: lewa typografia + prawa horizontal pills, KOMPLETNIE inny niż centralny */}
-      <section className="max-w-[1400px] mx-auto px-6 pt-10 lg:pt-12 pb-12 lg:pb-16 min-h-[100dvh] flex flex-col justify-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -40, filter: 'blur(12px)' }}
-            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-            className="lg:col-span-6 space-y-6"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] text-white text-[10px] font-black tracking-[0.18em] uppercase">
-              ● Nowy — <span className="text-[#a3e635]">10 losowych templatów</span>
-            </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-[72px] font-[700] tracking-[-0.03em] leading-[0.9] text-[#111111] dark:text-white">
-              Buduj strony.<br />
-              <span className="italic font-[400] pr-1" style={{ fontFamily: "'Instrument Serif', serif" }}>Zarabiaj.</span>
-            </h1>
-            <p className="text-[17px] leading-[1.5] text-[#787774] max-w-[42ch]">
-              Jedno zdanie → gotowa strona dla lokalnej firmy. Wyceniaj od 1 500 do 12 000 zł. Preview, poprawki i faktura w jednym miejscu.
-            </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="rounded-full px-6 shadow-none bg-[#111111] hover:bg-[#333333]">
-                Zacznij zarabiać <ArrowRight size={16} />
-              </Button>
-              <Button variant="outline" size="lg" onClick={() => onEnterApp('pricing')} className="rounded-full border-[#EAEAEA]">
-                <Play size={15} className="fill-current" /> 90s demo
-              </Button>
-            </div>
-            <div className="flex items-center gap-3 text-[13px] pt-2">
-              <div className="flex -space-x-2">
-                <img src="https://picsum.photos/seed/a1/64/64" className="w-7 h-7 rounded-full border-2 border-white dark:border-black object-cover" alt="" />
-                <img src="https://picsum.photos/seed/a2/64/64" className="w-7 h-7 rounded-full border-2 border-white dark:border-black object-cover" alt="" />
-                <img src="https://picsum.photos/seed/a3/64/64" className="w-7 h-7 rounded-full border-2 border-white dark:border-black object-cover" alt="" />
-              </div>
-              <span className="font-[600]">2 847 stron</span><span className="text-[#787774]">w tym miesiącu • 4.9/5 (995 opinii)</span>
-            </div>
-          </motion.div>
+      {/* Hero — nowa kompozycja: dark art-direction, posterowa typografia i zdjęcie zamiast mockupu */}
+      <section className="relative isolate overflow-hidden bg-[#151515] text-white min-h-[100dvh]">
+        <div className="pointer-events-none absolute inset-0 opacity-20" aria-hidden="true">
+          <div className="absolute left-[61%] top-0 h-full w-px bg-white" />
+          <div className="absolute left-0 right-0 top-[28%] h-px bg-white" />
+          <div className="absolute left-[61%] top-[28%] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#a3e635]" />
+        </div>
+        <div className="relative mx-auto flex min-h-[100dvh] max-w-[1440px] flex-col px-6 lg:px-10">
+          <div className="flex items-center justify-between border-b border-white/20 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+            <span>SiteMorph / AI website studio</span>
+            <span className="hidden sm:block">Polska · 2026</span>
+            <span className="flex items-center gap-2 text-white"><span className="h-1.5 w-1.5 rounded-full bg-[#a3e635]" /> Otwarta beta</span>
+          </div>
 
-          <motion.div 
-            initial={{ opacity: 0, x: 40, scale: 0.98, filter: 'blur(12px)' }}
-            animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-            className="lg:col-span-6 relative"
-          >
-            <div className="p-2 rounded-[32px] bg-[#F7F6F3] dark:bg-zinc-900 border border-[#EAEAEA] dark:border-white/[0.06]">
-              <div className="rounded-[24px] overflow-hidden bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                <div className="h-8 flex items-center gap-1.5 px-4 border-b border-[#EAEAEA] dark:border-white/[0.06] bg-[#F7F6F3] dark:bg-zinc-900">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]" />
-                  <span className="ml-auto text-[10px] font-mono text-[#787774]">hotfun-cafe.pl — LIVE</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="grid flex-1 grid-cols-1 items-center gap-12 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16">
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="lg:col-span-7 lg:pr-12"
+            >
+              <div className="mb-8 flex items-center gap-4 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">
+                <span className="text-[#a3e635]">01</span>
+                <span className="h-px w-12 bg-[#a3e635]" />
+                <span>Od pomysłu do publikacji</span>
+              </div>
+              <h1 className="max-w-[760px] text-[clamp(4.25rem,10vw,9.25rem)] font-bold leading-[0.82] tracking-[-0.075em] text-white" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+                Buduj<br />
+                <span className="font-normal tracking-[-0.055em] text-[#d8e4bc]" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>strony.</span><br />
+                <span className="text-white">Zarabiaj.</span>
+              </h1>
+              <div className="mt-10 grid max-w-[630px] grid-cols-1 gap-8 border-t border-white/20 pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
+                <p className="max-w-[38ch] text-[16px] leading-[1.55] text-white/65">
+                  Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
+                </p>
+                <div className="flex items-center gap-5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">
+                  <span>01 / 04</span>
+                  <span className="h-8 w-px bg-white/20" />
+                  <span>AI first</span>
                 </div>
-                <div className="p-4 grid grid-cols-12 gap-3">
-                  <div className="col-span-5 space-y-3">
-                    <span className="inline-flex text-[9px] font-mono uppercase tracking-[0.14em] px-2 py-1 rounded-[4px] bg-[#E1F3FE] text-[#1F6C9F]">Kawiarnia • Warszawa</span>
-                    <h3 className="text-[22px] font-[700] leading-[1.1] tracking-[-0.02em]">Kawa, która<br />budzi miasto.</h3>
-                    <p className="text-[13px] leading-[1.5] text-[#787774]">Niemcewicza 3 — 5.0/5, 1 opinia. Czynne całą dobę.</p>
-                    <div className="flex gap-2">
-                      <span className="px-3 py-1.5 rounded-full bg-[#111111] text-white text-[11px] font-bold">Odwiedź nas</span>
-                      <span className="px-3 py-1.5 rounded-full border border-[#EAEAEA] text-[11px] font-bold">Menu</span>
-                    </div>
+              </div>
+              <div className="mt-9 flex flex-wrap items-center gap-5">
+                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-5 bg-[#a3e635] px-6 py-4 text-sm font-bold text-[#151515] transition-colors hover:bg-white">
+                  Zacznij zarabiać
+                  <span className="grid h-7 w-7 place-items-center bg-[#151515] text-[#a3e635] transition-transform group-hover:translate-x-1"><ArrowRight size={15} /></span>
+                </button>
+                <button type="button" onClick={() => onEnterApp('pricing')} className="group inline-flex items-center gap-3 border-b border-white/40 pb-2 text-sm font-bold text-white transition-colors hover:border-[#a3e635] hover:text-[#a3e635]">
+                  <Play size={14} className="fill-current" /> Obejrzyj demo 90s
+                </button>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 34, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+              className="relative lg:col-span-5 lg:col-start-8"
+            >
+              <div className="absolute -left-8 top-8 hidden [writing-mode:vertical-rl] text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 lg:block">Realne strony dla realnych firm</div>
+              <div className="relative ml-auto max-w-[500px] overflow-hidden border border-white/25 bg-[#292929] p-3 sm:p-4">
+                <div className="relative aspect-[0.78] overflow-hidden bg-[#343434]">
+                  <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85" alt="Nowoczesne biuro lokalnej firmy" className="h-full w-full object-cover grayscale-[18%] transition-transform duration-700 hover:scale-105" />
+                  <div className="absolute inset-0 bg-[#151515]/10" />
+                  <div className="absolute left-5 top-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                    <span className="h-2 w-2 rounded-full bg-[#a3e635]" /> Podgląd na żywo
                   </div>
-                  <div className="col-span-7 grid grid-cols-3 gap-2">
-                    <img src="https://picsum.photos/seed/coffee1/400/400" className="h-24 w-full object-cover rounded-[12px] border border-[#EAEAEA]" alt="" />
-                    <img src="https://picsum.photos/seed/coffee2/400/400" className="h-24 w-full object-cover rounded-[12px] border border-[#EAEAEA]" alt="" />
-                    <div className="h-24 rounded-[12px] bg-[#F7F6F3] border border-[#EAEAEA] flex flex-col items-center justify-center">
-                      <span className="text-[10px] font-mono uppercase tracking-widest">LIVE</span>
-                      <span className="text-[11px] font-bold">9 600 zł / tydz.</span>
-                    </div>
+                  <div className="absolute bottom-0 left-0 right-0 border-t border-white/25 bg-[#151515]/90 p-5 backdrop-blur-sm">
+                    <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-white/55"><span>Projekt #024</span><span>Studio Runo</span></div>
+                    <div className="flex items-end justify-between gap-4"><span className="text-2xl font-bold tracking-[-0.04em]">Dobre miejsce<br /><span className="text-[#d8e4bc]" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>zaczyna się tutaj.</span></span><ArrowRight size={20} className="mb-1 shrink-0 text-[#a3e635]" /></div>
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+              <div className="absolute -bottom-6 -left-4 border border-[#151515] bg-[#d8e4bc] px-5 py-4 text-[#151515] shadow-[8px_8px_0_#a3e635] sm:-left-10">
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em]">Wycena projektu</div>
+                <div className="mt-1 text-2xl font-bold tracking-[-0.04em]">1 500–12 000 zł</div>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-white/20 py-5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
+            <span>Przewiń, żeby zobaczyć jak to działa</span>
+            <span className="hidden items-center gap-3 sm:flex"><span className="h-px w-14 bg-white/40" /> Scroll to explore</span>
+            <span>↓</span>
+          </div>
         </div>
       </section>
 
