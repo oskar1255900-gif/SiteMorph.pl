@@ -33,7 +33,7 @@ export const MobileNav = ({
   useEffect(() => { setOpen(false) }, [activeTab])
   return (
     <>
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/90 dark:bg-black/90  border-b border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-[#EAEAEA]/50 dark:border-neutral-900/50 text-[#2563eb] dark:text-white">
         <button onClick={onExit} className="flex items-center gap-2 cursor-pointer bg-transparent border-none text-inherit p-1.5 rounded-lg active:scale-95 transition-transform">
             <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
             <span className="font-black text-sm tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
@@ -63,7 +63,7 @@ export const MobileNav = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring' as const, stiffness: 380, damping: 34 }}
-              className="lg:hidden fixed top-0 bottom-0 left-0 w-[272px] z-50 flex flex-col justify-between bg-white dark:bg-black border-r border-[#EAEAEA] dark:border-neutral-900 shadow-[0_16px_48px_rgba(37,99,235,0.12)] text-[#2563eb] dark:text-white select-none"
+              className="lg:hidden fixed top-0 bottom-0 left-0 w-[280px] z-50 flex flex-col justify-between bg-[#FAFAF9] dark:bg-[#050505] border-r border-[#EAEAEA] dark:border-neutral-900 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] text-[#2563eb] dark:text-white select-none"
             >
               <div>
                 <div className="h-14 flex items-center justify-between px-4 border-b border-[#EAEAEA] dark:border-neutral-900">

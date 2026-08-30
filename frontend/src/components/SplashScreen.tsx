@@ -38,7 +38,7 @@ export const SplashScreen = ({ onComplete, theme }: { onComplete: () => void; th
         className="mt-5 text-[10px] font-medium uppercase tracking-[0.3em]"
         style={{ color: ink, fontFamily: "'SF Pro Display', sans-serif" }}
       >
-        Buduj strony. Zarabiaj.
+        Buduj strony, które sprzedają.
       </motion.p>
     </motion.div>
   );

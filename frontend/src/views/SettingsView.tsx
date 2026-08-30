@@ -51,7 +51,7 @@ export const SettingsView = () => {
     }
   };
 
-  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#2563eb] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
+  const inputClasses = "w-full rounded-xl px-4 py-3 text-sm font-medium outline-none border text-[#2563eb] dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 focus:border-[#2563eb] focus:ring-2 focus:ring-blue-500/10 transition-all";
 
   return (
     <motion.div
@@ -79,7 +79,7 @@ export const SettingsView = () => {
       ) : loading ? (
         <div className="py-16 text-center text-xs font-black opacity-60">Ładowanie…</div>
       ) : (
-        <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 space-y-4">
+        <motion.div variants={itemVariants} className="rounded-2xl border p-8 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.hint ? 'sm:col-span-2' : ''}>

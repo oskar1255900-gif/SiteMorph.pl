@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap');
 
     /* SF PRO DISPLAY (pliki lokalne z /fonts) */
     @font-face {
@@ -48,7 +48,8 @@ export const GlobalStyles = () => (
       font-weight: 400;
       letter-spacing: -0.01em;
     }
-    :root { --paper: #fcfcF9; --ink: #131412; --lime: #a3e635; --sage: #d8e4bc; --clay: #e8ddd3; --line: #e7e5e0; }
+    :root { --paper: #fcfcF9; --ink: #131412; --lime: #a3e635; --sage: #d8e4bc; --clay: #e8ddd3; --line: #e7e5e0; --bg-primary: #ffffff; --bg-secondary: #F7F6F3; --bg-elevated: #ffffff; --border: #EAEAEA; --text-primary: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af; --accent: #2563eb; }
+    html.dark { --bg-primary: #000000; --bg-secondary: #0a0a0a; --bg-elevated: #111111; --border: #222222; --text-primary: #f3f4f6; --text-secondary: #9ca3af; --text-muted: #6b7280; --accent: #60a5fa; }
     .text-lime { color: var(--lime); }
     .bg-lime { background: var(--lime); }
     @keyframes limeFlow {
@@ -80,12 +81,12 @@ export const GlobalStyles = () => (
       padding: 0;
       width: 100%;
       min-height: 100%;
-      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       letter-spacing: -0.011em;
       overflow-x: hidden;
       background: #fff;
       color: #2563eb;
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: background-color 0.4s cubic-bezier(0.4,0,0.2,1), color 0.4s cubic-bezier(0.4,0,0.2,1);
     }
     html.dark body { background: #000; color: #fff; }
     h1, h2 { font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 0.96; }
@@ -97,6 +98,11 @@ export const GlobalStyles = () => (
     /* Ukryty scrollbar po prawej - czyściej, nie jak AI */
     *::-webkit-scrollbar { width: 0; height: 0; }
     * { scrollbar-width: none; -ms-overflow-style: none; }
+    .hover-lift { transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s ease; }
+    .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    html.dark .hover-lift:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+    .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    html.dark .glass { background: rgba(0,0,0,0.7); }
   `}</style>
 );
 

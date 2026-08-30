@@ -59,7 +59,7 @@ export const DashboardMainView = ({
 
         <motion.div
           layout
-          className="relative rounded-2xl p-3 pl-5 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-4 overflow-hidden"
+          className="relative rounded-2xl p-3 pl-5 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-4 overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
         >
           <input
             type="text"
@@ -81,7 +81,7 @@ export const DashboardMainView = ({
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={handleSendPrompt}
-              className="w-10 h-10 rounded-full bg-[#111111] dark:bg-white text-white dark:text-black flex items-center justify-center cursor-pointer border-none"
+              className="w-11 h-11 rounded-full bg-[#2563eb] text-white flex items-center justify-center cursor-pointer border-none hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/25"
               style={{ transition: 'transform 160ms cubic-bezier(0.23,1,0.32,1)' }}
             >
               <Send size={16} />
@@ -100,7 +100,7 @@ export const DashboardMainView = ({
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             onClick={() => setActiveTab(a.tab)}
-            className={`text-left p-6 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] shadow-[0_8px_32px_rgba(37,99,235,0.08)] hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition-all cursor-pointer ${i===0 ? 'md:col-span-2 rounded-2xl' : 'rounded-2xl'}`}
+            className={`text-left p-6 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all cursor-pointer hover-lift ${i===0 ? 'md:col-span-2 rounded-2xl' : 'rounded-2xl'}`}
           >
             <div className="w-8 h-8 rounded-[8px] bg-white border border-[#EAEAEA] dark:border-transparent text-[#2563eb] grid place-items-center shadow-sm">
               <a.icon size={14} className="text-[#2563eb]" />
@@ -115,7 +115,7 @@ export const DashboardMainView = ({
 
       <motion.div 
         variants={cineChild}
-        className="rounded-2xl p-6 border shadow-[0_8px_32px_rgba(37,99,235,0.08)] space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
+        className="rounded-2xl p-6 border shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
       >
         <div className="flex items-center gap-2 text-xs font-bold border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
           <div className="relative flex gap-2">

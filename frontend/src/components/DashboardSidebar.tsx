@@ -47,7 +47,7 @@ export const DashboardSidebar = ({
   return (
     <motion.aside
       layout
-      className="hidden lg:flex w-64 border-r h-screen sticky top-0 flex-col justify-between z-30 shrink-0 select-none bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
+      className="hidden lg:flex w-[260px] border-r h-screen sticky top-0 flex-col justify-between z-30 shrink-0 select-none bg-[#FAFAF9] dark:bg-[#050505] border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
     >
       <div>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#EAEAEA] dark:border-neutral-900">
@@ -141,7 +141,7 @@ export const DashboardSidebar = ({
       <div className="p-3 space-y-2 border-t border-[#EAEAEA] dark:border-neutral-900">
         <motion.div 
           whileHover={{ scale: 1.02 }}
-          className="p-3 rounded-2xl border flex items-center justify-between bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#2563eb] dark:text-white"
+          className="p-3 rounded-2xl border flex items-center justify-between bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#2563eb] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
         >
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center font-black">
@@ -159,7 +159,7 @@ export const DashboardSidebar = ({
 
         <div className="p-2 flex items-center justify-between rounded-2xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-blue-700 text-white font-bold text-xs flex items-center justify-center shadow-sm">
               O
             </div>
             <div className="min-w-0">
