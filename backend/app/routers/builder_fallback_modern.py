@@ -33,6 +33,8 @@ def fallback_content(data):
     phone = parsed_phone or "+48 000 000 000"
 
     accent = random.choice(["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3","#ea580c","#0d9488","#6366f1","#e11d48"])
+    # 4 different visual styles
+    visual_style = random.choice(["editorial", "dark-bold", "color-block", "brutalist"])
     layout = random.choice(["split","centered","full","dark"])
     anim = random.choice(["morph","float","glow","slide"])
 
@@ -103,7 +105,7 @@ def fallback_content(data):
 
     rev_cards = ""
     for txt, nm, ini in chosen_reviews:
-        rev_cards += f'<div class="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100/50"><div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><p class="text-gray-600 text-sm leading-relaxed mb-4 italic">"{txt}"</p><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background:linear-gradient(135deg,{accent},{accent}bb)">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'
+        rev_cards += f'<div class="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100/50"><div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><p class="text-gray-600 text-sm leading-relaxed mb-4 italic">"{txt}"</p><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background:{accent}">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'
 
     # Animation CSS
     anim_css = {
@@ -115,13 +117,13 @@ def fallback_content(data):
 
     # Hero section based on layout
     if layout == "dark":
-        hero_section = f'''<section class="relative min-h-[85vh] flex items-center overflow-hidden bg-gray-950">
+        hero_section = f'''<section class="relative min-h-[85vh] flex items-center overflow-hidden style="background:{body_bg}">
 <img src="{hero_img}" alt="{safe}" class="absolute inset-0 w-full h-full object-cover opacity-20"/>
-<div class="absolute inset-0 bg-gradient-to-b from-gray-950/60 via-gray-950/80 to-gray-950"/>
+<div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black"/>
 <div class="max-w-6xl mx-auto px-6 relative z-10 text-center fade-up">
 <p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/10 text-xs font-medium text-white/70 mb-8"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>{niche} · {addr}</p>
-<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight text-white mb-6">{headline}</h1>
-<p class="text-lg text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed">{sub}</p>
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6" style="color:{body_color}">{headline}</h1>
+<p class="text-lg mb-10 max-w-2xl mx-auto leading-relaxed" style="color:{body_color};opacity:.6">{sub}</p>
 <div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent};color:white">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-white/20 text-lg font-semibold text-white hover:bg-white/10 transition-all">Zobacz ofertę</a></div>
 <div class="flex items-center gap-3 justify-center text-white/70"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-5 h-5 fill-amber-400"></i></div><span class="font-semibold text-white">{rating}</span><span>· {reviews_n} opinii</span></div></div></section>'''
     elif layout == "centered":
@@ -144,6 +146,44 @@ def fallback_content(data):
 <div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews_n} opinii</span></div></div>
 <div class="fade-up relative"><div class="absolute -inset-4 rounded-3xl opacity-20 blur-2xl" style="background:linear-gradient(135deg,{accent}30,transparent)"></div><div class="relative rounded-3xl overflow-hidden shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-[420px] md:h-[480px] object-cover"/></div></div></div></section>'''
 
+    # Visual style variables
+    if visual_style == "editorial":
+        font_stack = "'Playfair Display',Georgia,serif"
+        body_color = "#1a1a1a"
+        body_bg = "#faf8f5"
+        header_bg = "rgba(250,248,245,.92)"
+        header_border = "1px solid rgba(0,0,0,.06)"
+        section_bg = "white"
+        section_alt_bg = "#faf8f5"
+        card_text = "#666"
+    elif visual_style == "dark-bold":
+        font_stack = "'Space Grotesk',system-ui,sans-serif"
+        body_color = "#e5e5e5"
+        body_bg = "#0a0a0a"
+        header_bg = "rgba(10,10,10,.85)"
+        header_border = "1px solid #222"
+        section_bg = "#0f0f0f"
+        section_alt_bg = "#141414"
+        card_text = "#aaa"
+    elif visual_style == "color-block":
+        font_stack = "'Outfit',system-ui,sans-serif"
+        body_color = "#1a1a1a"
+        body_bg = "white"
+        header_bg = accent
+        header_border = "none"
+        section_bg = "#f8f8f8"
+        section_alt_bg = accent
+        card_text = "#555"
+    else:  # brutalist
+        font_stack = "'Space Grotesk',system-ui,sans-serif"
+        body_color = "#111"
+        body_bg = "#f5f0e8"
+        header_bg = "#f5f0e8"
+        header_border = "3px solid #111"
+        section_bg = "white"
+        section_alt_bg = "#f5f0e8"
+        card_text = "#444"
+
     # Build complete HTML
     html = f'''<!DOCTYPE html>
 <html lang="pl">
@@ -151,7 +191,7 @@ def fallback_content(data):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
@@ -167,7 +207,7 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6;bac
 </style>
 </head>
 <body>
-<header class="fixed top-0 w-full z-50 glass border-b border-gray-200/50">
+<header class="fixed top-0 w-full z-50 glass" style="background:{header_bg};border-bottom:{header_border}">
 <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 <div class="flex items-center gap-3">
 <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-modern" style="background:linear-gradient(135deg,{accent},{accent}bb)">{safe[0]}</div>
@@ -181,40 +221,40 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6;bac
 
 {hero_section}
 
-<section id="oferta" class="py-20 md:py-28 bg-white">
+<section id="oferta" class="py-20 md:py-28" style="background:{section_bg}">
 <div class="max-w-6xl mx-auto px-6">
 <div class="fade-up mb-14"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Oferta</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight">{random.choice(["Co dla Ciebie przygotowaliśmy","Nasza oferta","Co mamy w ofercie","Sprawdź naszą ofertę"])}</h2></div>
 <div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-8">{svc_cards}</div></div></section>
 
-<section id="cennik" class="py-20 md:py-28" style="background:linear-gradient(180deg,#fafafa,#fff)">
+<section id="cennik" class="py-20 md:py-28" style="background:{section_alt_bg}">
 <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-start">
 <div class="fade-up"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Cennik</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">Ile to kosztuje</h2><p class="text-gray-500 mb-6">{random.choice(["Przejrzyste ceny — bez niespodzianek.","Jasny cennik, zero ukrytych kosztów.","Co ile kosztuje? Sprawdź poniżej."])}</p>
 <div class="flex items-center gap-2 text-sm text-gray-500"><i data-lucide="phone" class="w-4 h-4" style="color:{accent}"></i><span>Pytaj: <a href="tel:{phone}" class="font-semibold" style="color:{accent}">{phone}</a></span></div></div>
 <div class="fade-up bg-white rounded-2xl p-6 md:p-8 shadow-modern border border-gray-100">{price_rows}</div></div></section>
 
-<section id="opinie" class="py-20 md:py-28 bg-white">
+<section id="opinie" class="py-20 md:py-28" style="background:{section_bg}"
 <div class="max-w-6xl mx-auto px-6">
 <div class="fade-up mb-14"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Opinie</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight">{random.choice(["Co mówią nasi klienci","Opinie klientów","Klienci polecają nas dalej"])}</h2><p class="text-gray-500 mt-2">{reviews_n} zadowolonych klientów nie kłamie.</p></div>
 <div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{rev_cards}</div></div></section>
 
-<section id="kontakt" class="py-20 md:py-28" style="background:linear-gradient(180deg,#fafafa,#fff)">
+<section id="kontakt" class="py-20 md:py-28" style="background:{section_alt_bg}">
 <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
 <div class="fade-up"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Kontakt</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Porozmawiajmy</h2><p class="text-gray-500 mb-8">{random.choice(["Napisz lub zadzwoń — odpowiadamy szybko.","Masz pytanie? Dzwoń śmiało.","Czekamy na Ciebie."])}</p>
 <div class="space-y-5">
 <div class="flex items-start gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:{accent}10"><i data-lucide="map-pin" class="w-5 h-5" style="color:{accent}"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją</p></div></div>
 <div class="flex items-start gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:{accent}10"><i data-lucide="phone" class="w-5 h-5" style="color:{accent}"></i></div><div><a href="tel:{phone}" class="font-medium text-sm hover:underline" style="color:{accent}">{phone}</a><p class="text-gray-400 text-xs mt-0.5">Pon-Pt 8:00-18:00</p></div></div>
 <div class="flex items-start gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:{accent}10"><i data-lucide="clock" class="w-5 h-5" style="color:{accent}"></i></div><div><p class="font-medium text-sm">Pon-Sob: 10:00 - 22:00</p><p class="text-gray-400 text-xs mt-0.5">Niedziela: 12:00 - 20:00</p></div></div></div></div>
-<div class="fade-up"><form class="bg-white rounded-2xl p-6 md:p-8 shadow-modern border border-gray-100 space-y-4">
+<div class="fade-up"><form style="background:{rev_bg};border:{rev_border};border-radius:16px;padding:24px" class="space-y-4">
 <div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Imię</label><input type="text" placeholder="Jan Kowalski" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></div>
 <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Email</label><input type="email" placeholder="jan@firma.pl" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></div>
 <div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Telefon</label><input type="tel" placeholder="+48 123 456 789" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></div></div>
 <div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Wiadomość</label><textarea rows="4" placeholder="W czym możemy pomóc?" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></textarea></div>
 <button type="submit" class="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all hover:shadow-lg hover:scale-[1.01]" style="background:{accent}">Wyślij wiadomość</button></form></div></div></section>
 
-<footer class="border-t border-gray-200/50 py-10 bg-white">
+<footer class="border-t py-10" style="border-color:rgba(128,128,128,.2);background:{section_bg}">
 <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-<p class="text-sm text-gray-400">© {year} {safe}</p>
-<div class="flex items-center gap-6 text-sm text-gray-400">
+<p class="text-sm" style="color:{card_text}">© {year} {safe}</p>
+<div class="flex items-center gap-6 text-sm" style="color:{card_text}">
 <a href="#oferta" class="hover:text-gray-700 transition-colors">Oferta</a>
 <a href="#cennik" class="hover:text-gray-700 transition-colors">Cennik</a>
 <a href="#kontakt" class="hover:text-gray-700 transition-colors">Kontakt</a></div></div></footer>
