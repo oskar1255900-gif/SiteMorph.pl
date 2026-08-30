@@ -309,7 +309,6 @@ export const BuilderFullView = ({
             'src/App.tsx': `export default function App(){return <div className="p-8"><h1>${p}</h1><p style="color:red">${msg}</p></div>}`,
           },
         });
-        setCredits((c) => Math.max(0, c - cost));
       }
       setIsGenerating(false);
     }

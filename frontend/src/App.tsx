@@ -150,7 +150,6 @@ export default function App() {
     return (
       <>
         <GlobalStyles />
-        <CookieBanner />
         <BuilderFullView
           theme={theme}
           initialPrompt={prefilledPrompt}
