@@ -496,7 +496,7 @@ export const LeadFinderView = ({
         >
           {isSearching ? <><span className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> Szukam...</> : 'Szukaj leadów'}
         </button>
-        <p className="text-[10px] font-bold opacity-40 text-center">Backend → Nominatim + Overpass • prawdziwe dane OSM • {searchRemaining !== null ? `zostało ${searchRemaining}` : '10/mies Starter, 30/mies Business+'}</p>
+        <p className="text-[11px] font-medium text-[#2563eb] dark:text-white/60 text-center">Prawdziwe firmy z OpenStreetMap — zawsze aktualne.</p>
       </motion.div>
       {!hasSearched ? (
         <motion.div variants={cineSoft} className="p-10 rounded-lg border text-center space-y-3 shadow-sm bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08] max-w-2xl mx-auto">

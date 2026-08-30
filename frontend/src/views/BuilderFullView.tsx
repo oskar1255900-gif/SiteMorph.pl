@@ -51,11 +51,11 @@ export const BuilderFullView = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [genStep, setGenStep] = useState(0);
-  const GEN_MSGS = ['Analizuję prompt…', 'Generuję sekcje…', 'Dobieram paletę i grafiki…', 'Składam podgląd na żywo…'];
+  const GEN_MSGS = ['Analizuję brief i dane z Google…', 'Projektuję układ i dobieram zdjęcia…', 'Piszę treści i styluję sekcje…', 'Składam podgląd na żywo…'];
 
   useEffect(() => {
     if (!isGenerating) return;
-    const id = setInterval(() => setGenStep((s) => (s + 1) % GEN_MSGS.length), 360);
+    const id = setInterval(() => setGenStep((s) => (s + 1) % GEN_MSGS.length), 6200);
     return () => clearInterval(id);
   }, [isGenerating]);
 
@@ -71,7 +71,7 @@ export const BuilderFullView = ({
 
   const [q1, setQ1] = useState('Restauracja');
   const [q2, setQ2] = useState('Nowoczesny, minimalistyczny');
-  const [q3, setQ3] = useState('Limonkowy #a3e635 + czarny + biały');
+  const [q3, setQ3] = useState('Niebieski #2563eb + biały + czarny');
   const [q4, setQ4] = useState<string[]>(['Hero', 'Oferta', 'Cennik', 'Kontakt']);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
@@ -247,12 +247,15 @@ export const BuilderFullView = ({
     setGenStep(0);
     setSelectedFile('src/App.tsx');
     setShowWizard(false);
+    const start = Date.now();
+    const MIN_MS = 26000;
+    let fetchResult: any = null;
+    let fetchError: any = null;
     try {
       const plan = (() => { try { return localStorage.getItem('sitemorph-plan') || 'Starter' } catch { return 'Starter' } })();
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
         headers: { 'X-User-Plan': plan },
-        // Vercel Hobby 10s → frontend 9s (Laguna 8s + fallback instant)
         timeoutMs: 9000,
         body: JSON.stringify({
           business_name: bizName,
@@ -269,39 +272,45 @@ export const BuilderFullView = ({
         throw new Error(errData.detail || errData.warning || `Błąd generowania: HTTP ${res.status}`);
       }
       const data = await res.json();
-      const files: Record<string, string> = data.files || {};
-      const meta = data.meta || {};
-      setGeneratedSite({
-        title: meta.title || p.slice(0, 28),
-        category: q1,
-        domain: `${q1.toLowerCase().replace(/\s+/g, '')}.sitemorph.pl`,
-        headline: meta.headline || p,
-        subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'AI'})`,
-        ctaText: meta.ctaText || 'Skontaktuj się',
-        files,
-      });
-      const first = Object.keys(files).find(f => f.endsWith('index.html')) || Object.keys(files)[0];
-      if (first) setSelectedFile(first);
-      setCredits((c) => Math.max(0, c - cost));
-      if (data.warning) {
-        console.warn('[Builder] Warning:', data.warning);
-      }
+      fetchResult = data;
     } catch (e: any) {
+      fetchError = e;
       console.error('[Builder] Generation error:', e);
-      const msg = e.message || 'Błąd generowania - sprawdź konsolę';
-      setGeneratedSite({
-        title: p.slice(0, 25),
-        category: q1,
-        domain: 'mojastrona.sitemorph.pl',
-        headline: p,
-        subheadline: `Błąd: ${msg}`,
-        ctaText: 'Skontaktuj się',
-        files: {
-          'src/App.tsx': `export default function App(){return <div className="p-8"><h1>${p}</h1><p style="color:red">${msg}</p></div>}`,
-        },
-      });
-      setCredits((c) => Math.max(0, c - cost));
     } finally {
+      const elapsed = Date.now() - start;
+      if (elapsed < MIN_MS) await new Promise((r) => setTimeout(r, MIN_MS - elapsed));
+      if (fetchResult && !fetchError) {
+        const data = fetchResult;
+        const files: Record<string, string> = data.files || {};
+        const meta = data.meta || {};
+        setGeneratedSite({
+          title: meta.title || p.slice(0, 28),
+          category: q1,
+          domain: `${(meta.title || bizName || q1).toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
+          headline: meta.headline || p,
+          subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'AI'})`,
+          ctaText: meta.ctaText || 'Skontaktuj się',
+          files,
+        });
+        const first = Object.keys(files).find((f) => f.endsWith('index.html')) || Object.keys(files)[0];
+        if (first) setSelectedFile(first);
+        setCredits((c) => Math.max(0, c - cost));
+        if (data.warning) console.warn('[Builder] Warning:', data.warning);
+      } else if (fetchError) {
+        const msg = fetchError.message || 'Błąd generowania - spróbuj ponownie';
+        setGeneratedSite({
+          title: p.slice(0, 25),
+          category: q1,
+          domain: 'mojastrona.sitemorph.pl',
+          headline: p,
+          subheadline: `Błąd: ${msg}`,
+          ctaText: 'Skontaktuj się',
+          files: {
+            'src/App.tsx': `export default function App(){return <div className="p-8"><h1>${p}</h1><p style="color:red">${msg}</p></div>}`,
+          },
+        });
+        setCredits((c) => Math.max(0, c - cost));
+      }
       setIsGenerating(false);
     }
   };

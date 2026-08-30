@@ -167,28 +167,29 @@ export const PublicLandingView = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="mb-6 text-[11px] font-medium uppercase tracking-[0.18em] text-[#2563eb] dark:text-white">Narzędzie dla twórców stron</p>
+              <p className="mb-8 text-xs font-bold uppercase tracking-[0.2em] text-[#2563eb] dark:text-white">Narzędzie dla twórców stron • 2 847 stron w tym miesiącu</p>
               <motion.h1
-                initial={{ opacity: 0, letterSpacing: '-0.12em' }}
-                animate={{ opacity: 1, letterSpacing: '-0.075em' }}
-                transition={{ duration: 0.8, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-                className="max-w-[950px] text-[clamp(4rem,10.5vw,9.5rem)] font-bold leading-[0.84]"
+                initial={{ opacity: 0, letterSpacing: '-0.12em', y: 12 }}
+                animate={{ opacity: 1, letterSpacing: '-0.08em', y: 0 }}
+                transition={{ duration: 0.85, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="max-w-[980px] text-[clamp(4.5rem,12vw,11rem)] font-bold leading-[0.82]"
                 style={{ fontFamily: "'SF Pro Display', sans-serif", color: theme === 'dark' ? '#ffffff' : '#2563eb' }}
               >
                 Buduj strony.<br />
                 Zarabiaj.
               </motion.h1>
-              <p className="mt-9 max-w-[38ch] text-[16px] leading-[1.55] text-[#2563eb] dark:text-white">
+              <p className="mt-8 max-w-[42ch] text-[19px] leading-[1.5] font-medium text-[#2563eb] dark:text-white">
                 Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-5">
-                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-3 rounded-2xl border border-[#2563eb] bg-transparent px-5 py-3.5 text-sm font-medium text-[#2563eb] transition-all hover:-translate-y-0.5 hover:bg-[#2563eb]/10 hover:shadow-lg dark:border-white dark:bg-transparent dark:text-white dark:hover:bg-white/10 dark:hover:text-white">
-                  Zacznij zarabiać <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              <div className="mt-10 flex flex-wrap items-center gap-6">
+                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-4 rounded-2xl bg-[#2563eb] px-8 py-4 text-[15px] font-bold text-white shadow-[0_12px_40px_rgba(37,99,235,0.35)] transition-all hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(37,99,235,0.45)] hover:bg-[#1d4ed8] dark:bg-white dark:text-[#2563eb] dark:shadow-[0_12px_40px_rgba(255,255,255,0.15)]">
+                  Zacznij zarabiać <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/20 group-hover:bg-white/30 transition-colors dark:bg-[#2563eb]/10"><ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></span>
                 </button>
-                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium text-[#2563eb] transition-colors hover:bg-[#F7F6F3] dark:text-white dark:hover:bg-white/10">
-                  <Play size={13} className="fill-current" /> Obejrzyj demo 90s
+                <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-[#2563eb] transition-colors hover:bg-[#F7F6F3] dark:text-white dark:hover:bg-white/10">
+                  <Play size={14} className="fill-current" /> Obejrzyj demo 90s
                 </button>
               </div>
+              <p className="mt-4 text-xs font-medium text-[#2563eb]/60 dark:text-white/50">Bez karty • 15 kredytów na start • anulujesz w każdej chwili</p>
             </motion.div>
 
             <motion.div
@@ -218,20 +219,20 @@ export const PublicLandingView = ({
         </div>
       </section>
 
-      {/* SEKCJA: JAK TO DZIAŁA */}
-      <section id="jak-to-dziala" className="max-w-7xl mx-auto px-6 lg:px-8 pt-12 lg:pt-16 pb-10 scroll-mt-24 space-y-8">
+      {/* SEKCJA: JAK TO DZIAŁA — uproszczona, większe tytuły */}
+      <section id="jak-to-dziala" className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 lg:pt-28 pb-16 scroll-mt-24 space-y-10">
         <motion.div
           variants={cineSoft}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-80px' }}
-          className="text-center space-y-4 relative"
+          className="text-center space-y-5 relative"
         >
-          <h2 className="relative text-5xl sm:text-6xl lg:text-[58px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <h2 className="relative text-5xl sm:text-6xl lg:text-[64px] font-bold tracking-[-0.04em] leading-[0.9]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             Od jednego zdania<br />do działającej strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
-          <p className="relative text-sm sm:text-[15px] font-bold opacity-80 max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            Napisz, czego potrzebujesz. Oglądaj, jak powstaje projekt. Poprawiaj, prosząc po prostu o zmianę - kolory, zdjęcia, treści.
+          <p className="relative text-[18px] font-medium text-[#2563eb]/70 dark:text-white/60 max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+            Napisz, czego potrzebujesz. Oglądaj, jak powstaje projekt. Poprawiaj jednym zdaniem.
           </p>
         </motion.div>
 
