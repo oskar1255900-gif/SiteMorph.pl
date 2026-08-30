@@ -276,7 +276,7 @@ KLUCZOWE ZASADY DLA preview.html:
 
 
 def fallback_content(data: BuilderInput):
-    """Fallback when AI fails — generates a good-looking standalone HTML."""
+    """Fallback when AI fails — generates a RICH, modern standalone HTML."""
     src = (data.extraPrompt or "") + " " + (data.description or "")
     def _extract(pattern, default=None):
         m = re.search(pattern, src, re.I | re.S)
@@ -304,6 +304,11 @@ def fallback_content(data: BuilderInput):
         parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-ZĄ-ź][a-zą-ź]+')
     parsed_phone = _extract(r'(?:\+?48[\s-]?)?\d{3}[\s-]?\d{3}[\s-]?\d{3}')
 
+    # Extract rating from source text
+    rating_match = re.search(r'(\d[,\.]\d)\s*\((\d+)\)', src)
+    rating = rating_match.group(1).replace(',', '.') if rating_match else "4.8"
+    review_count = rating_match.group(2) if rating_match else "127"
+
     niche = data.niche or "Usługi lokalne"
     desc = data.description[:300] if data.description else f"{bn} — sprawdź naszą ofertę."
     headline = bn
@@ -311,7 +316,6 @@ def fallback_content(data: BuilderInput):
     year = time.strftime("%Y")
     safe_bn = (bn or "Site").strip()[:30] or "Site"
 
-    # Template colors
     try:
         tpl = pick_template(bn)
         accent = tpl.get("accent", "#2563eb")
@@ -321,84 +325,124 @@ def fallback_content(data: BuilderInput):
     addr_display = parsed_addr or "Adres do uzupełnienia"
     phone_display = parsed_phone or "+48 000 000 000"
 
-    # Niche-specific content
     niche_lower = (niche or "").lower()
-    is_restaurant = any(k in niche_lower for k in ["restaurac", "gastronom", "bistro", "pizzeria", "bar ", "kebab", "kurczaki", "ziemniaki"])
+    is_restaurant = any(k in niche_lower for k in ["restaurac", "gastronom", "bistro", "pizzeria", "bar ", "kebab", "kurczaki", "ziemniaki", "jedzenie", "food"])
     is_barber = any(k in niche_lower for k in ["barber", "fryzjer", "strzyż", "salon fryzj"])
     is_beauty = any(k in niche_lower for k in ["beauty", "kosmetolog", "salon urod", "spa", "manicure"])
     is_gym = any(k in niche_lower for k in ["siłowni", "fitness", "gym", "crossfit"])
 
     if is_restaurant:
         hero_img = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80"
-        sections = """
-        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Nasze menu</h2>
-        <div class="reveal grid md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="text-3xl mb-3">🍗</div><h3 class="text-lg font-bold mb-2">Kurczaki</h3><p class="text-gray-600 text-sm mb-3">Smażone, grillowane, w panierce — zawsze świeże i chrupkie.</p><span class="font-bold" style="color:${accent}">od 18 zł</span></div>
-          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="text-3xl mb-3">🥔</div><h3 class="text-lg font-bold mb-2">Ziemniaki</h3><p class="text-gray-600 text-sm mb-3">Pieczona, smażone, w varyingach — idealny dodatek do każdego dania.</p><span class="font-bold" style="color:${accent}">od 12 zł</span></div>
-          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="text-3xl mb-3">🥙</div><h3 class="text-lg font-bold mb-2">Kebab</h3><p class="text-gray-600 text-sm mb-3">Klasyczny, w bułce, na talerzu — z surówką i sosem.</p><span class="font-bold" style="color:${accent}">od 20 zł</span></div>
-        </div></div></section>
-        <section class="py-20 px-6 bg-gray-50"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Cennik</h2>
-        <div class="reveal grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Kurczak smażony + ziemniaki</span><span class="font-bold text-lg" style="color:${accent}">25 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Kebab w bułce</span><span class="font-bold text-lg" style="color:${accent}">22 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Kurczak grillowany + sałatka</span><span class="font-bold text-lg" style="color:${accent}">28 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Zestaw rodzinny (4 os.)</span><span class="font-bold text-lg" style="color:${accent}">89 zł</span></div>
-        </div></div></section>
-        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Opinie klientów</h2>
-        <div class="reveal grid md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Najlepszy kebak w okolicy! Kurczaki soczyste, ziemniaki chrupkie. Polecam!"</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-sm" style="color:${accent}">MK</div><div><p class="font-bold text-sm">Marek K.</p><p class="text-xs text-gray-500">Lokalny przewodnik</p></div></div></div>
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Chodzę tu co tydzień. Porcje duże, ceny przystępne, obsługa miła."</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-bold text-sm" style="color:${accent}">AN</div><div><p class="font-bold text-sm">Anna N.</p><p class="text-xs text-gray-500">Stały klient</p></div></div></div>
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★☆</div><p class="text-gray-700 text-sm mb-4">"Dobra lokalizacja, szybka obsługa. Kurczak zasmażany to_hit!"</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center font-bold text-sm" style="color:${accent}">JP</div><div><p class="font-bold text-sm">Jan P.</p><p class="text-xs text-gray-500">Google Reviews</p></div></div></div>
-        </div></div></section>"""
+        food_img1 = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80"
+        food_img2 = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80"
+        food_img3 = "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"
+        menu_cards = f"""
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img1}" alt="Kurczaki" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Kurczaki</h3><p class="text-gray-500 text-sm mb-4 leading-relaxed">Smażone, grillowane, w panierce — zawsze świeże i chrupkie. Podajemy z surówką i pieczywem.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 18 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">Bestseller</span></div></div></div>
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img2}" alt="Ziemniaki" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Ziemniaki</h3><p class="text-gray-500 text-sm mb-4 leading-relaxed">Pieczona, smażone, w varyingach — idealny dodatek do każdego dania.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 12 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">Popularne</span></div></div></div>
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img3}" alt="Kebab" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Kebab</h3><p class="text-gray-500 text-sm mb-4 leading-relaxed">Klasyczny, w bułce, na talerzu — z surówką i sosem do wyboru.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 20 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">Polecamy</span></div></div></div>"""
+        cennik_rows = """
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Kurczak smażony + ziemniaki</span><span class="font-bold text-lg" style="color:""" + accent + """">25 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Kebab w bułce z surówką</span><span class="font-bold text-lg" style="color:""" + accent + """">22 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Kurczak grillowany + sałatka</span><span class="font-bold text-lg" style="color:""" + accent + """">28 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Zestaw rodzinny (4 osoby)</span><span class="font-bold text-lg" style="color:""" + accent + """">89 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Ziemniaki pieczone + sos</span><span class="font-bold text-lg" style="color:""" + accent + """">15 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Napój / Surówka</span><span class="font-bold text-lg" style="color:""" + accent + """">5-8 zł</span></div>"""
+        social_proof = f'{rating} na Google · {review_count} opinii'
+    elif is_barber:
+        hero_img = "https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80"
+        food_img1 = "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80"
+        food_img2 = "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80"
+        food_img3 = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"
+        menu_cards = f"""
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img1}" alt="Strzyżenie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Strzyżenie</h3><p class="text-gray-500 text-sm mb-4">Klasyczne i nowoczesne fryzury. Doradztwo w cenie.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 50 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">45 min</span></div></div></div>
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img2}" alt="Golenie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Golenie brody</h3><p class="text-gray-500 text-sm mb-4">Golenie brzytwą, balsam, ręcznik gorący. Pełny rytuał.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 40 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">30 min</span></div></div></div>
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img3}" alt="Strzyżenie + golenie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Pakiet complete</h3><p class="text-gray-500 text-sm mb-4">Strzyżenie + golenie + stylizacja. Wyjdziesz jak nowy.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 80 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">75 min</span></div></div></div>"""
+        cennik_rows = """
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Strzyżenie męskie</span><span class="font-bold text-lg" style="color:""" + accent + """">50 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Golenie brody brzytwą</span><span class="font-bold text-lg" style="color:""" + accent + """">40 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Strzyżenie + golenie</span><span class="font-bold text-lg" style="color:""" + accent + """">80 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Trymowanie brody</span><span class="font-bold text-lg" style="color:""" + accent + """">30 zł</span></div>"""
+        social_proof = f'{rating} na Google · {review_count} opinii'
     else:
         hero_img = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80"
-        sections = """
-        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Co oferujemy</h2>
-        <div class="reveal grid md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl" style="background:${accent}15;color:${accent}">⚡</div><h3 class="text-lg font-bold mb-2">Szybko</h3><p class="text-gray-600 text-sm">Realizacja w 48h, poprawki bez dopłat.</p></div>
-          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl" style="background:${accent}15;color:${accent}">✨</div><h3 class="text-lg font-bold mb-2">Dopracowane</h3><p class="text-gray-600 text-sm">Każdy detal przemyślany i dopieszczony.</p></div>
-          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl" style="background:${accent}15;color:${accent}">🤝</div><h3 class="text-lg font-bold mb-2">Wsparcie</h3><p class="text-gray-600 text-sm">Jesteśmy obok — kontakt direct, aktualizacje w cenie.</p></div>
-        </div></div></section>
-        <section class="py-20 px-6 bg-gray-50"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Cennik</h2>
-        <div class="reveal max-w-2xl mx-auto space-y-4">
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Podstawowy pakiet</span><span class="font-bold text-lg" style="color:${accent}">od 500 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Rozbudowany pakiet</span><span class="font-bold text-lg" style="color:${accent}">od 1200 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Premium pakiet</span><span class="font-bold text-lg" style="color:${accent}">od 2500 zł</span></div>
-        </div></div></section>
-        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Opinie</h2>
-        <div class="reveal grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Profesjonalne podejście i szybka realizacja. Polecam!"</p><p class="font-bold text-sm">— Klient</p></div>
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Współpraca na najwyższym poziomie. Na pewno wrócę."</p><p class="font-bold text-sm">— Klient</p></div>
-        </div></div></section>"""
+        food_img1 = "https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80"
+        food_img2 = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80"
+        food_img3 = "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"
+        menu_cards = f"""
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img1}" alt="Usługa 1" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Szybka realizacja</h3><p class="text-gray-500 text-sm mb-4">Projekt gotowy w 48h. Poprawki bez dopłat, pełna satysfakcja.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 500 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">48h</span></div></div></div>
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img2}" alt="Usługa 2" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Kompleksowa obsługa</h3><p class="text-gray-500 text-sm mb-4">Od pomysłu do gotowego produktu. Jeden kontakt, zero stresu.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 1200 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">1 tydzień</span></div></div></div>
+          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
+            <div class="h-48 overflow-hidden"><img src="{food_img3}" alt="Usługa 3" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="p-6"><h3 class="text-xl font-bold mb-2">Premium pakiet</h3><p class="text-gray-500 text-sm mb-4">Wszystko w cenie + wsparcie techniczne i aktualizacje przez rok.</p>
+            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 2500 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">2 tygodnie</span></div></div></div>"""
+        cennik_rows = """
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Pakiet podstawowy</span><span class="font-bold text-lg" style="color:""" + accent + """">500 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Pakiet rozbudowany</span><span class="font-bold text-lg" style="color:""" + accent + """">1 200 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Pakiet premium</span><span class="font-bold text-lg" style="color:""" + accent + """">2 500 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Konsultacja (1h)</span><span class="font-bold text-lg" style="color:""" + accent + """">150 zł</span></div>"""
+        social_proof = f'{rating} na Google · {review_count} opinii'
 
-    # Build the full standalone HTML
     preview_html = f'''<!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={{theme:{{extend:{{fontFamily:{{serif:["Instrument Serif","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
 <style>
-* {{ margin:0; padding:0; box-sizing:border-box; scroll-behavior:smooth; }}
-body {{ font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; }}
-.reveal {{ opacity:0; transform:translateY(30px); transition:all 0.6s cubic-bezier(0.16,1,0.3,1); }}
-.reveal.visible {{ opacity:1; transform:translateY(0); }}
-.hero-gradient {{ background:linear-gradient(135deg, {accent}08 0%, {accent}15 50%, {accent}05 100%); }}
-@keyframes float {{ 0%,100%{{transform:translateY(0)}} 50%{{transform:translateY(-12px)}} }}
-.float {{ animation:float 6s ease-in-out infinite; }}
+*{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}
+body{{font-family:'Inter',sans-serif;background:#fafafa;color:#1a1a1a;overflow-x:hidden}}
+.reveal{{opacity:0;transform:translateY(40px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}}
+.reveal.visible{{opacity:1;transform:translateY(0)}}
+.reveal-delay-1{{transition-delay:0.1s}}
+.reveal-delay-2{{transition-delay:0.2s}}
+.reveal-delay-3{{transition-delay:0.3s}}
+@keyframes gradient-shift{{0%,100%{{background-position:0% 50%}}50%{{background-position:100% 50%}}}}
+@keyframes float{{0%,100%{{transform:translateY(0) rotate(0deg)}}50%{{transform:translateY(-20px) rotate(2deg)}}}}
+@keyframes pulse-glow{{0%,100%{{box-shadow:0 0 20px rgba(37,99,235,0.2)}}50%{{box-shadow:0 0 40px rgba(37,99,235,0.4)}}}}
+.hero-gradient{{background:linear-gradient(135deg,{accent}08 0%,{accent}12 25%,{accent}06 50%,{accent}18 75%,{accent}08 100%);background-size:400% 400%;animation:gradient-shift 15s ease infinite}}
+.glass{{background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}}
+.text-gradient{{background:linear-gradient(135deg,{accent},#000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
+.card-3d{{transform-style:preserve-3d;perspective:1000px}}
+.card-3d:hover{{transform:translateY(-8px) rotateX(2deg)}}
+@keyframes marquee{{0%{{transform:translateX(0)}}100%{{transform:translateX(-50%)}}}}
+.marquee{{animation:marquee 30s linear infinite}}
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
-<header class="fixed top-0 w-full bg-white/80 backdrop-blur-xl z-50 border-b border-gray-100">
-  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background:{accent}">{safe_bn[0]}</div>
-      <span class="font-semibold text-base">{safe_bn}</span>
+<header class="fixed top-0 w-full glass z-50 border-b border-white/20">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">{safe_bn[0:2]}</div>
+      <span class="font-bold text-base tracking-tight">{safe_bn}</span>
     </div>
     <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
       <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
@@ -406,41 +450,47 @@ body {{ font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; }}
       <a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
       <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a>
     </nav>
-    <a href="tel:{phone_display}" class="px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:scale-105" style="background:{accent}">Zadzwoń</a>
+    <a href="tel:{phone_display}" class="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold transition-all hover:scale-105 shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">Zadzwoń teraz</a>
   </div>
 </header>
 
 <!-- HERO -->
-<section class="hero-gradient min-h-screen flex items-center pt-16">
-  <div class="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+<section class="hero-gradient min-h-screen flex items-center relative overflow-hidden">
+  <!-- Decorative blobs -->
+  <div class="absolute top-20 right-10 w-72 h-72 rounded-full blur-3xl opacity-20" style="background:{accent}"></div>
+  <div class="absolute bottom-20 left-10 w-96 h-96 rounded-full blur-3xl opacity-10" style="background:{accent}"></div>
+  
+  <div class="max-w-7xl mx-auto px-6 py-32 grid md:grid-cols-2 gap-16 items-center relative z-10">
     <div class="reveal">
-      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-gray-100 text-xs font-semibold mb-6">
-        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        {niche} · {addr_display}
+      <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur shadow-sm border border-white/50 text-xs font-semibold mb-8">
+        <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+        <span style="color:{accent}">{niche}</span>
+        <span class="text-gray-400">·</span>
+        <span>{addr_display}</span>
       </div>
-      <h1 class="text-5xl md:text-7xl font-bold leading-[0.95] mb-6" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">{headline}</h1>
-      <p class="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">{desc}</p>
-      <div class="flex flex-wrap gap-4">
-        <a href="#kontakt" class="px-8 py-4 rounded-xl text-white font-semibold text-sm transition-all hover:scale-105 hover:shadow-lg" style="background:{accent}">Skontaktuj się</a>
-        <a href="#oferta" class="px-8 py-4 rounded-xl border-2 border-gray-200 font-semibold text-sm transition-all hover:border-gray-400 hover:bg-gray-50">Zobacz ofertę</a>
+      <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] mb-8" style="font-family:'Instrument Serif',serif;letter-spacing:-0.03em">{headline}</h1>
+      <p class="text-lg md:text-xl text-gray-600 mb-10 max-w-lg leading-relaxed">{desc}</p>
+      <div class="flex flex-wrap gap-4 mb-10">
+        <a href="#kontakt" class="px-8 py-4 rounded-2xl text-white font-semibold text-base transition-all hover:scale-105 hover:shadow-xl shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">Skontaktuj się</a>
+        <a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 font-semibold text-base transition-all hover:border-gray-400 hover:bg-white/50 backdrop-blur">Zobacz ofertę</a>
       </div>
-      <div class="flex items-center gap-4 mt-8">
-        <div class="flex -space-x-2">
-          <div class="w-8 h-8 rounded-full bg-yellow-400 border-2 border-white flex items-center justify-center text-xs text-white">★</div>
-          <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-white flex items-center justify-center text-xs text-white">4.5</div>
+      <div class="flex items-center gap-5">
+        <div class="flex -space-x-3">
+          <div class="w-10 h-10 rounded-full border-2 border-white shadow-md flex items-center justify-center text-sm" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:white">★</div>
+          <div class="w-10 h-10 rounded-full border-2 border-white shadow-md flex items-center justify-center text-xs font-bold" style="background:linear-gradient(135deg,{accent},{accent}cc);color:white">{rating}</div>
         </div>
-        <span class="text-sm text-gray-600"><strong>4.5</strong> na Google · 196 opinii</span>
+        <div><span class="font-bold text-sm">{rating}</span> <span class="text-gray-500 text-sm">na Google · {review_count} opinii</span></div>
       </div>
     </div>
-    <div class="reveal float">
-      <div class="rounded-3xl overflow-hidden shadow-2xl">
-        <img src="{hero_img}" alt="{safe_bn}" class="w-full h-[400px] object-cover">
-        <div class="p-4 bg-white flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 font-medium">{addr_display}</p>
-            <p class="text-sm font-bold mt-1">{phone_display}</p>
+    <div class="reveal reveal-delay-2 relative">
+      <div class="absolute -inset-4 rounded-3xl opacity-30 blur-xl" style="background:linear-gradient(135deg,{accent}40,transparent)"></div>
+      <div class="relative rounded-3xl overflow-hidden shadow-2xl group">
+        <img src="{hero_img}" alt="{safe_bn}" class="w-full h-[420px] md:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700">
+        <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+          <div class="flex items-center justify-between">
+            <div><p class="text-white/80 text-xs font-medium">{addr_display}</p><p class="text-white font-bold mt-1">{phone_display}</p></div>
+            <span class="px-4 py-2 rounded-full bg-green-500 text-white text-xs font-bold shadow-lg">Otwarte</span>
           </div>
-          <span class="px-4 py-2 rounded-full bg-green-500 text-white text-xs font-bold">Otwarte</span>
         </div>
       </div>
     </div>
@@ -448,30 +498,79 @@ body {{ font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; }}
 </section>
 
 <!-- OFERTA -->
-{sections}
+<section id="oferta" class="py-24 px-6 bg-white">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16 reveal">
+      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Nasza oferta</p>
+      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Co mamy dla Ciebie</h2>
+    </div>
+    <div class="reveal grid md:grid-cols-3 gap-8">{menu_cards}</div>
+  </div>
+</section>
+
+<!-- CENNIK -->
+<section id="cennik" class="py-24 px-6" style="background:linear-gradient(180deg,#f8fafc,#fff)">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16 reveal">
+      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Cennik</p>
+      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Ile to kosztuje</h2>
+    </div>
+    <div class="reveal max-w-2xl mx-auto space-y-3">{cennik_rows}</div>
+  </div>
+</section>
+
+<!-- OPINIE -->
+<section id="opinie" class="py-24 px-6 bg-white">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16 reveal">
+      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Opinie</p>
+      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Co mówią klienci</h2>
+    </div>
+    <div class="reveal grid md:grid-cols-3 gap-8">
+      <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">★★★★★</div>
+        <p class="text-gray-700 text-sm leading-relaxed mb-6">"Najlepsze jedzenie w okolicy! Kurczaki soczyste, ziemniaki chrupkie, a kebab to istne mistrzostwo. Chodzę tu co tydzień."</p>
+        <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,{accent},{accent}cc)">MK</div><div><p class="font-bold text-sm">Marek K.</p><p class="text-xs text-gray-500">Lokalny przewodnik · 47 opinii</p></div></div>
+      </div>
+      <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">★★★★★</div>
+        <p class="text-gray-700 text-sm leading-relaxed mb-6">"Porcje ogromne, ceny przystępne, obsługa mega miła. Zestaw rodzinny to strzał w dziesiątkę na weekendowy obiad."</p>
+        <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,#10b981,#059669)">AN</div><div><p class="font-bold text-sm">Anna N.</p><p class="text-xs text-gray-500">Stały klient · 12 opinii</p></div></div>
+      </div>
+      <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">★★★★☆</div>
+        <p class="text-gray-700 text-sm leading-relaxed mb-6">"Dobra lokalizacja, szybka obsługa. Kebab w bułce zawsze na czas. Jedyny minus — czasem kolejka w piątek!"</p>
+        <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">JP</div><div><p class="font-bold text-sm">Jan P.</p><p class="text-xs text-gray-500">Google Reviews · 5 opinii</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- KONTAKT -->
-<section id="kontakt" class="py-20 px-6">
-  <div class="max-w-6xl mx-auto">
-    <h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Skontaktuj się</h2>
-    <div class="reveal grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-      <div class="bg-gray-900 text-white rounded-3xl p-8">
-        <h3 class="text-2xl font-bold mb-4">Napisz do nas</h3>
-        <p class="text-gray-400 mb-6 text-sm">{addr_display}</p>
-        <a href="tel:{phone_display}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-gray-900 font-semibold text-sm transition-all hover:scale-105">📞 Zadzwoń: {phone_display}</a>
-        <div class="mt-6 pt-6 border-t border-gray-700">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Godziny otwarcia</p>
-          <p class="text-sm">Pon-Sob: 10:00 - 22:00</p>
-          <p class="text-sm text-gray-400">Niedziela: 12:00 - 20:00</p>
+<section id="kontakt" class="py-24 px-6" style="background:linear-gradient(180deg,#f8fafc,#fff)">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16 reveal">
+      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Kontakt</p>
+      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Porozmawiajmy</h2>
+    </div>
+    <div class="reveal grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+      <div class="rounded-3xl p-10 text-white relative overflow-hidden" style="background:linear-gradient(135deg,#111,#333)">
+        <div class="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-30" style="background:{accent}"></div>
+        <h3 class="text-2xl font-bold mb-6 relative z-10">Dane kontaktowe</h3>
+        <div class="space-y-5 relative z-10">
+          <div class="flex items-start gap-4"><span class="text-2xl">📍</span><div><p class="font-medium">{addr_display}</p><p class="text-white/60 text-sm mt-1">Dojazd: mapa poniżej</p></div></div>
+          <div class="flex items-start gap-4"><span class="text-2xl">📞</span><div><a href="tel:{phone_display}" class="font-medium hover:underline">{phone_display}</a><p class="text-white/60 text-sm mt-1">Zadzwoń — odbierzemy od razu</p></div></div>
+          <div class="flex items-start gap-4"><span class="text-2xl">🕐</span><div><p class="font-medium">Pon-Sob: 10:00 - 22:00</p><p class="text-white/60 text-sm mt-1">Niedziela: 12:00 - 20:00</p></div></div>
         </div>
       </div>
-      <div class="bg-gray-50 rounded-3xl p-8">
+      <div class="bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
+        <h3 class="text-xl font-bold mb-6">Napisz do nas</h3>
         <form class="space-y-4">
-          <input type="text" placeholder="Twoje imię" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0" style="focus:ring-color:{accent}">
-          <input type="email" placeholder="Email" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0">
-          <input type="tel" placeholder="Telefon" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0">
-          <textarea rows="4" placeholder="Wiadomość..." class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"></textarea>
-          <button type="submit" class="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[1.02] hover:shadow-lg" style="background:{accent}">Wyślij wiadomość</button>
+          <input type="text" placeholder="Twoje imię" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 transition-all" style="focus:ring-color:{accent}">
+          <input type="email" placeholder="Email" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 transition-all">
+          <input type="tel" placeholder="Telefon" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 transition-all">
+          <textarea rows="4" placeholder="Jak możemy pomóc?" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 transition-all"></textarea>
+          <button type="submit" class="w-full py-4 rounded-2xl text-white font-semibold text-sm transition-all hover:scale-[1.02] hover:shadow-xl shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">Wyślij wiadomość →</button>
         </form>
       </div>
     </div>
@@ -479,9 +578,13 @@ body {{ font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; }}
 </section>
 
 <!-- FOOTER -->
-<footer class="border-t border-gray-100 py-8 px-6">
-  <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-    <p class="text-sm text-gray-500">© {year} {safe_bn}. Wszelkie prawa zastrzeżone.</p>
+<footer class="border-t border-gray-100 py-10 px-6 bg-white">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background:linear-gradient(135deg,{accent},{accent}cc)">{safe_bn[0]}</div>
+      <span class="font-semibold text-sm">{safe_bn}</span>
+    </div>
+    <p class="text-sm text-gray-400">© {year} {safe_bn}. Wszelkie prawa zastrzeżone.</p>
     <div class="flex items-center gap-6 text-sm text-gray-500">
       <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
       <a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
@@ -495,6 +598,13 @@ const observer = new IntersectionObserver((entries) => {{
   entries.forEach(e => {{ if(e.isIntersecting) {{ e.target.classList.add('visible'); observer.unobserve(e.target); }} }});
 }}, {{threshold: 0.1}});
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+// Smooth parallax on scroll
+window.addEventListener('scroll', () => {{
+  const scrolled = window.pageYOffset;
+  document.querySelectorAll('.hero-gradient > div').forEach(el => {{
+    el.style.transform = `translateY(${{scrolled * 0.15}}px)`;
+  }});
+}});
 </script>
 </body>
 </html>'''
