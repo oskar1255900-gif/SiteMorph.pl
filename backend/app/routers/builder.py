@@ -274,8 +274,8 @@ def fallback_content(data: BuilderInput):
     addr = parsed_addr or "Adres do uzupełnienia"
     phone = parsed_phone or "+48 000 000 000"
 
-    # Dynamic accent color
-    accents = ["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3"]
+    # Dynamic accent color — wiele opcji, losowane
+    accents = ["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3","#ea580c","#0d9488","#6366f1","#e11d48","#ca8a04","#4f46e5"]
     accent = random.choice(accents)
 
     # Dynamic hero background
@@ -294,8 +294,8 @@ def fallback_content(data: BuilderInput):
     ]
     anim_css = random.choice(anim_styles)
 
-    # Dynamic layout style
-    layouts = ["split","centered","full"]
+    # Dynamic layout style — więcej opcji
+    layouts = ["split","centered","full","split-left","grid"]
     layout = random.choice(layouts)
 
     niche_l = (niche or "").lower()
@@ -315,8 +315,8 @@ def fallback_content(data: BuilderInput):
             ("Desery","Domowe ciasta i lody. Słodkie zakończenie, które zapamiętasz.","od 12 zł","sparkles"),
         ]
         price_pool = [("Danie dnia","18-22 zł"),("Kebab w bułce","22 zł"),("Kurczak + frytki","25 zł"),("Zestaw rodzinny","79-99 zł"),("Surówka","5-8 zł"),("Napój","4-6 zł"),("Deser","12-18 zł")]
-        headline_pool = ["Jedzenie, do którego się wraca","Smak, który zapamiętasz","Tu się je inaczej","Prawdziwy smak, prawdziwe ceny","Gdzie apetyt rośnie z każdym kęsem","Stawiamy na smak, nie na marketing"]
-        sub_pool = ["Od 15 lat karmimy mieszkańców. Duże porcje, ceny bez niespodzianek.","Świeże składniki codziennie. Zero mrożonek. Przyjdź i sprawdź.","Duże porcje w cenach, które nie przerażają. Rodzina znajdzie tu coś dla siebie.","Tu nie ma kompromisów — jest smak, świeżość i uczciwa cena."]
+        headline_pool = ["Jedzenie, do którego się wraca","Smak, który zapamiętasz","Tu się je inaczej","Prawdziwy smak, prawdziwe ceny","Gdzie apetyt rośnie z każdym kęsem","Stawiamy na smak, nie na marketing","Kęs, który zmieni Twój dzień","Tu nie ma kompromisów — jest smak"]
+        sub_pool = ["Od 15 lat karmimy mieszkańców. Duże porcje, ceny bez niespodzianek.","Świeże składniki codziennie. Zero mrożonek. Przyjdź i sprawdź.","Duże porcje w cenach, które nie przerażają. Rodzina znajdzie tu coś dla siebie.","Tu nie ma kompromisów — jest smak, świeżość i uczciwa cena.","Gotujemy jak w domu, tylko lepiej. Przyjdź głodny, wyjdź szczęśliwy.","Kurczaki z grilla, kebab z surówką — to lubimy najbardziej."]
     elif is_barber:
         hero_imgs = ["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1200&q=80","https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1200&q=80"]
         food_imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80","https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&q=80"]
@@ -386,6 +386,12 @@ def fallback_content(data: BuilderInput):
         ("Super atmosfera, szybka obsługa, efekt przechodzi oczekiwania.","Kasia W.","KW"),
         ("Mój znajomy polecił — i miał rację. To miejsce ma klimat.","Piotr S.","PS"),
         ("Szukałam czegoś dobrego w okolicy — i znalazłam. Brawo!","Ola M.","OM"),
+        ("Chodzę co tydzień. Nie wyobrażam sobie piątku bez tego miejsca.","Tomek L.","TL"),
+        ("Żona zabrała mnie tutaj na randkę — i nie żałuję. Pychota!","Jakub D.","JD"),
+        ("Duże porcje, małe ceny. Dzieciaki zachwycone, ja też.","Marta B.","MB"),
+        ("Jakość idzie w parze z ceną. Tu się czuje, że ktoś dba o klienta.","Arek Z.","AZ"),
+        ("Polecam z czystym sumieniem. Tu się wraca jak do domu.","Kasia P.","KP"),
+        ("Odkryłam to miejsce miesiąc temu i już jestem uzależniona.","Natalia F.","NF"),
     ]
     chosen_reviews = random.sample(review_pool, 3)
     rev_cards = ""
