@@ -145,16 +145,18 @@ class BuilderInput(BaseModel):
     package: Optional[str] = "starter"
     credits: Optional[int] = 10
 
+# System prompt for SiteMorph AI Builder
+# AI generates ONE standalone HTML file — beautiful, modern, animated
+
 EDITORIAL_RULES = """Jesteś premium projektantem stron. Twoje strony wyglądają jak z najlepszej agencji, nie jak generator AI.
 
 ZASADY:
 - Paleta: białe tło, akcent kolorystyczny wg danych klienta (niebieski #2563eb domyślnie)
-- Typografia: Google Fonts, nagłówki 48-72px bold, body 16px/1.6
+- Typografia: Google Fonts (Inter + Instrument Serif), nagłówki 48-72px bold, body 16px/1.6
 - Układ: 12 kolumn, max 1240px, 80-120px między sekcjami, asymetria
 - Karty: rounded-2xl, subtelne cienie, hover translateY(-4px)
 - Zdjęcia: Unsplash z konkretnymi frazami pasującymi do branży
-- Ikony: Lucide 16px, spójne
-- Animacje: subtelne hover/scroll, smooth transitions 150-250ms
+- Animacje: scroll reveal (opacity 0→1 + translateY), hover effects, smooth transitions
 - Pisz po polsku, jak człowiek nie jak marketingowiec. Zero "profesjonalny", "kompleksowy", "premium"
 - Zero lorem ipsum — prawdziwe dane klienta
 """
@@ -182,29 +184,16 @@ def pick_template(business_name: str) -> dict:
         return random.choice(TEMPLATES)
     return TEMPLATES[h % len(TEMPLATES)]
 
+
 SYSTEM_PROMPT = """Jesteś SiteMorph AI — generator premium stron dla lokalnych firm.
 
-ZADANIE: Wygeneruj kompletne pliki strony dla firmy. Zwracasz POPRAWNY JSON.
+ZADANIE: Wygeneruj JEDEN plik HTML (standalone, z Tailwind CDN) dla podanej firmy.
+To jest strona podglądu — musi wyglądać GOTOWO i PIĘKNIE jak profesjonalna strona.
 
-FORMAT ODPOWIEDZI — TYLKO JSON, bez markdown:
+FORMAT ODPOWIEDZI — TYLKO POPRAWNY JSON, zero markdown:
 {
   "files": {
-    "main/frontend/preview.html": "PEŁNY standalone HTML z Tailwind CDN do podglądu w iframe — MUST HAVE",
-    "main/frontend/src/App.tsx": " Główny komponent React",
-    "main/frontend/src/main.tsx": "React entry point",
-    "main/frontend/src/index.css": "Tailwind directives",
-    "main/frontend/src/components/Hero.tsx": "Sekcja Hero",
-    "main/frontend/src/components/Offer.tsx": "Sekcja Oferta",
-    "main/frontend/src/components/Pricing.tsx": "Sekcja Cennik",
-    "main/frontend/src/components/Testimonials.tsx": "Sekcja Opinie",
-    "main/frontend/src/components/Contact.tsx": "Sekcja Kontakt",
-    "main/frontend/src/components/Footer.tsx": "Stopka",
-    "main/frontend/index.html": "Vite entry HTML",
-    "main/frontend/package.json": "Zależności: react, react-dom, vite, tailwindcss, lucide-react",
-    "main/frontend/tsconfig.json": "TypeScript config",
-    "main/frontend/vite.config.ts": "Vite + React plugin",
-    "main/frontend/tailwind.config.js": "Tailwind config",
-    "main/frontend/postcss.config.js": "PostCSS config"
+    "main/frontend/preview.html": "TUTAJ PEŁNY KOD HTML"
   },
   "meta": {
     "title": "Nazwa Firmy — tytuł SEO",
@@ -214,25 +203,80 @@ FORMAT ODPOWIEDZI — TYLKO JSON, bez markdown:
   }
 }
 
-KLUCZOWE ZASADY:
-1. **preview.html to PODSTAWA** — to single-file standalone HTML z Tailwind CDN + Google Fonts. Musi wyglądać GOTOWO i PIĘKNIE. To co użytkownik zobaczy w podglądzie. Użyj inline style lub <style> tag. Pełna strona: header, hero z grandeszyn nagłówkiem, oferta kartami, cennik, opinie, kontakt z adresem/telefonem, stopka.
+KLUCZOWE ZASADY DLA preview.html:
 
-2. **REACT PLIKI** — generuj kompletne, działające komponenty. App.tsx importuje sekcje. Tailwind CSS. Lucide React ikony.
+1. JEDEN PLIK HTML z wbudowanym <style> i Tailwind CDN + Google Fonts (Inter + Instrument Serif).
+   Absolutnie MINIMUM 200 linii kodu HTML. Nie skracaj. Pełna strona.
 
-3. **DANE KLIENTA** — wyciągnij WSZYSTKO z opisu: nazwa firmy, adres, telefon, godziny, opinie, ceny, menu. Użyj tego na stronie. Zero placeholderów.
+2. STRUKTURA strony (kolejność sekcji):
+   - Sticky header z logo firmy, nawigacją i przyciskiem CTA
+   - Hero: DUŻY nagłówek (Instrument Serif, 56-80px), podtytuł,2 przyciski CTA, zdjęcie z Unsplash
+   - Oferta: 3-6 kart z usługami (ikony Lucide lub emoji, nagłówki, opisy)
+   - Cennik: tabela lub karty z cenami (jeśli podano ceny w danych)
+   - Opinie: 2-3 opinie klientów z imionami i gwiazdkami
+   - Kontakt: adres, telefon (klikalny tel:), mapa, formularz kontaktowy
+   - Stopka:© rok, nazwa firmy, linki
 
-4. **KOLORY** — jeśli podano kolory klienta, użyj ich. Jeśli nie — niebieski #2563eb jako akcent.
+3. ANIMACJE (wbudowane w <style>):
+   - Scroll reveal: elements start opacity:0 + translateY(30px), animate to visible on scroll
+   - Hover na kartach: translateY(-6px) + shadow
+   - Hover na przyciskach: scale(1.02) + ciemniejszy kolor
+   - Płynne scrollowanie (smooth scroll)
+   - Gradient animations w hero (subtelne)
+   Użyj IntersectionObserver w <script> do scroll reveal
 
-5. **RESPONSYWNOŚĆ** — mobile-first, grid na desktopie.
+4. TYPOGRAFIA:
+   - Nagłówki: font-family: 'Instrument Serif', serif (lub 'Playfair Display')
+   - Body: font-family: 'Inter', sans-serif
+   - H1: 56-80px, letter-spacing: -0.02em, line-height: 0.95
+   - H2: 36-48px, letter-spacing: -0.01em
 
-6. **JĘZYK** — po polsku, naturalne teksty jak pisałby człowiek.
+5. KOLORY i DESIGN:
+   - Jeśli podano kolory → użyj ich jako accent
+   - Jeśli nie → niebieski #2563eb jako główny akcent
+   - Białe tło, dużo przestrzeni, rounded-2xl na kartach
+   - Gradient w hero (np. accent→white)
+   - Cienie: 0 4px 24px rgba(0,0,0,0.08)
 
-7. **NIGDY** nie zadawaj pytań. Nie pisz "...". Nie skracaj kodu. Pełne pliki.
+6. ZDJĘCIA: Unsplash src z konkretnymi frazami branżowymi:
+   - Restauracja: "cozy restaurant interior", "gourmet food plating"
+   - Barber: "barber shop interior", "men haircut"
+   - Kwiaciarnia: "flower shop interior", "bouquet"
+   - Itd. — dobieraj pod branżę
 
-8. **SEKCJE** — dobieraj pod branżę: restauracja → Hero/Galeria menu/Cennik/Opinie/Kontakt. Barber → Hero/Ofercja/Cennik/Opinie/Kontakt. Itd.
+7. DANE KLIENTA: Wyciągnij WSZYSTKO z opisu:
+   - Nazwa firmy → header, hero, footer
+   - Telefon → klikalny tel: w hero i kontakcie
+   - Adres → sekcja kontakt
+   - Godziny → sekcja kontakt
+   - Ceny → cennik
+   - Opinie → sekcja opinie
+   - Menu/oferty → sekcja oferta
+   - Ocena → badge social proof w hero
+
+8. RESPONSYWNOŚĆ: mobile-first. Na mobile: stacked layout, smaller fonts, full-width cards.
+
+9. MINIMALNA DŁUGOŚĆ: preview.html MUSI mieć MINIMUM 200 linii kodu. Nie rób "placeholderów".
+   Każda sekcja musi mieć REALNĄ treść (nazwa firmy, konkretne usługi, ceny, adres, telefon).
+
+10. JĘZYK: po polsku. Pisz jak człowiek, nie jak marketingowiec.
+    ZAKAZ: "profesjonalny", "kompleksowy", "innowacyjny", "premium", "ekspert", "lider"
+    ZAMIAST: konkretne opisy, lata doświadczenia, nazwy ulic, imiona klientów
+
+11. NIGDY nie zadawaj pytań. Nie pisz "...". Nie skracaj. Pełny kod HTML.
+
+12. SCROLL REVEAL IMPLEMENTACJA — dodaj w <script>:
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+    }, {threshold: 0.1});
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    W <style>: .reveal { opacity: 0; transform: translateY(30px); transition: all 0.6s cubic-bezier(0.16,1,0.3,1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
 """
+
+
 def fallback_content(data: BuilderInput):
-    # Parsuj extraPrompt/description żeby wyciągnąć prawdziwe dane OPA! itp. (nie "Branża: Restauracja...")
+    """Fallback when AI fails — generates a good-looking standalone HTML."""
     src = (data.extraPrompt or "") + " " + (data.description or "")
     def _extract(pattern, default=None):
         m = re.search(pattern, src, re.I | re.S)
@@ -242,159 +286,228 @@ def fallback_content(data: BuilderInput):
             return (m.group(1) if m.lastindex else m.group(0)).strip()
         except IndexError:
             return m.group(0).strip()
-    # biznes — genericzne wyciąganie z dowolnego promptu (nie hardcoded OPA)
-    m2 = re.search(r'dla firmy\s*[\"„]([^\"”]+)[\"”]', src, re.I)
-    if m2 and len(m2.group(1).strip()) > 2 and "Branża" not in m2.group(1):
+
+    # Extract business name
+    m2 = re.search(r'dla firmy\s*["„"]([^"""]+)[""""]', src, re.I)
+    if m2 and len(m2.group(1).strip()) > 2 and "Branż" not in m2.group(1):
         bn = m2.group(1).strip()
     else:
         bn = data.business_name or "Twoja Firma"
         if bn.lower() in ("restauracja","kawiarnia","piekarnia","barber","salon","siłownia","warsztat"):
-            extra_first = (data.extraPrompt or "").split(chr(10))[0][:60] if data.extraPrompt else ""
+            extra_first = (data.extraPrompt or "").split("\n")[0][:60] if data.extraPrompt else ""
             if extra_first and len(extra_first) > 3:
                 bn = extra_first
-    # adres / telefon — wyciągnij z dowolnego promptu
-    parsed_addr = _extract(r'(?:ul\.?\s*)?[A-ZĄ-ź][a-zĄ-ź\s]+\s+\d+[a-z]?[/\s]*\d*-?\d*\s*[Łódź]')
+
+    # Extract address/phone
+    parsed_addr = _extract(r'(?:ul\.?\s*)?[A-ZĄ-ź][a-zą-ź\s]+\s+\d+[a-z]?[/\s]*\d*-?\d*\s*[Łódź]')
     if not parsed_addr:
-        parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-ZĄ-ź][a-zĄ-ź]+')
+        parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-ZĄ-ź][a-zą-ź]+')
     parsed_phone = _extract(r'(?:\+?48[\s-]?)?\d{3}[\s-]?\d{3}[\s-]?\d{3}')
+
     niche = data.niche or "Usługi lokalne"
-    desc = data.description[:200] if data.description else f"{bn} — sprawdź naszą ofertę i skontaktuj się."
+    desc = data.description[:300] if data.description else f"{bn} — sprawdź naszą ofertę."
     headline = bn
-    # tytuł
     title = f"{bn} - {niche}"
     year = time.strftime("%Y")
-    safe_bn = (bn or "Site").strip()[:24] or "Site"
-    # Fallback teĹĽ losuje template ĹĽeby nie kaĹĽdy fallback byĹ‚ identyczny
+    safe_bn = (bn or "Site").strip()[:30] or "Site"
+
+    # Template colors
     try:
         tpl = pick_template(bn)
-        accent = tpl.get("accent", "#a3e635")
-    except Exception:
-        tpl = TEMPLATES[0]
+        accent = tpl.get("accent", "#2563eb")
+    except:
         accent = "#2563eb"
-    # Minimalist Vite + React + TS structure - fallback when AI fails
-    index_html = f"""<!doctype html>
-<html lang="pl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title}</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>"""
-    main_tsx = """import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-import './index.css'
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)"""
-    index_css = """@tailwind base;
-@tailwind components;
-@tailwind utilities;
-:root{--paper:#fcfcf9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc}
-body{font-family:'SF Pro Display',system-ui,sans-serif;background:#ffffff;color:#2563eb} html.dark body{background:#000;color:#fff}
-h1,h2{font-family:'Instrument Serif',Georgia,serif;letter-spacing:-.02em}"""
-    utils_ts = """export function cn(...c:(string|boolean|undefined)[]){return c.filter(Boolean).join(' ')}"""
-    types_ts = """export interface BusinessData{name:string;niche:string;description:string}"""
-    hook_ts = """import {useEffect,useRef,useState} from 'react'
-export function useScrollReveal(){const ref=useRef<HTMLDivElement>(null);const [v,setV]=useState(false);useEffect(()=>{const o=new IntersectionObserver(([e])=>e.isIntersecting&&setV(true),{threshold:.15});if(ref.current)o.observe(ref.current);return()=>o.disconnect()},[]);return {ref,visible:v}}"""
-    button_tsx = """import {cn} from '../lib/utils'
-export function Button({children,className,...p}:React.ButtonHTMLAttributes<HTMLButtonElement>&{variant?:'primary'|'ghost'}){return <button className={cn('px-5 py-2.5 rounded-xl font-medium text-sm',p.variant==='primary'?'bg-black text-white':'border',className)} {...p}>{children}</button>}"""
-    card_tsx = """export function Card({children,className}:{children:React.ReactNode;className?:string}){return <div className={'rounded-2xl border bg-white p-6 '+ (className||'')}>{children}</div>}"""
-    container_tsx = """export function Container({children}:{children:React.ReactNode}){return <div className="max-w-[1120px] mx-auto px-6">{children}</div>}"""
-    section_tsx = """export function Section({children,id,className}:{children:React.ReactNode;id?:string;className?:string}){return <section id={id} className={'py-16 '+ (className||'')}>{children}</section>}"""
-    hero_tsx = f"""import {{Container}} from '../ui/Container'
-import {{Section}} from '../ui/Section'
-export function Hero(){{return <Section><Container><div className="grid md:grid-cols-12 gap-8 items-start"><div className="md:col-span-7"><p className="text-xs uppercase tracking-widest border inline-block px-2.5 py-1 rounded-full">DostÄ™pne od rÄ™ki</p><h1 className="text-[48px] md:text-[64px] leading-[0.9] mt-6 font-serif">{headline}</h1><p className="mt-6 opacity-70 max-w-[42ch]">{desc}</p><a href="#kontakt" className="inline-block mt-8 px-6 py-3 rounded-xl bg-black text-white text-sm">UmĂłw wycenÄ™ â€” odpowiadamy dziĹ›</a></div><div className="md:col-span-5"><div className="rounded-2xl border p-6 bg-white"><p className="text-sm font-medium">Bez zobowiÄ…zaĹ„. Zapytaj o wycenÄ™ w 15 min.</p><p className="mt-3 text-xs flex gap-2 items-center"><span className="w-2 h-2 rounded-full bg-emerald-500"/> DostÄ™pni dziĹ› do 18:00</p></div></div></div></Container></Section>}}"""
-    offer_tsx = """import {Container} from '../ui/Container'
-import {Section} from '../ui/Section'
-import {Card} from '../ui/Card'
-export function Offer(){return <Section><Container><div className="grid sm:grid-cols-3 gap-6 border-t pt-10"><Card><p className="text-xs uppercase opacity-60">01 â€” Szybko</p><h3 className="font-medium mt-2">Realizacja 48h</h3><p className="text-sm opacity-70">Projekt gotowy w dwa dni.</p></Card><Card><p className="text-xs uppercase opacity-60">02 â€” Dopracowane</p><h3 className="font-medium mt-2">Redakcyjny szlif</h3><p className="text-sm opacity-70">KaĹĽdy nagĹ‚Ăłwek pod branĹĽÄ™.</p></Card><Card><p className="text-xs uppercase opacity-60">03 â€” Wsparcie</p><h3 className="font-medium mt-2">JesteĹ›my obok</h3><p className="text-sm opacity-70">Poprawki bez dopĹ‚at.</p></Card></div></Container></Section>}"""
-    pricing_tsx = """import {Container} from '../ui/Container'
-import {Section} from '../ui/Section'
-export function Pricing(){return <Section><Container><h2 className="text-2xl font-serif">Cennik</h2><p className="opacity-70">Skontaktuj siÄ™ po wycenÄ™ dopasowanÄ… do potrzeb.</p></Container></Section>}"""
-    testimonials_tsx = """import {Container} from '../ui/Container'
-import {Section} from '../ui/Section'
-export function Testimonials(){return <Section><Container><h2 className="text-2xl font-serif">Opinie</h2><p className="opacity-70">Klienci nas polecajÄ….</p></Container></Section>}"""
-    contact_tsx = """import {Container} from '../ui/Container'
-import {Section} from '../ui/Section'
-export function Contact(){return <Section id="kontakt"><Container><div className="max-w-[720px] mx-auto"><div className="rounded-2xl border p-8 bg-white text-center"><h2 className="text-2xl font-serif">Porozmawiajmy</h2><p className="mt-2 text-sm opacity-70">Odpowiadamy tego samego dnia.</p><a href="tel:+48000000000" className="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white text-sm">ZadzwoĹ„ teraz</a></div></div></Container></Section>}"""
-    footer_tsx = f"""export function Footer(){{return <footer className="border-t py-8 text-center text-sm opacity-60">Â© {year} {bn} â€” MarszaĹ‚kowska 1, Warszawa Â· kontakt@sitemorph.pl</footer>}}"""
-    app_tsx = f"""import {{Hero}} from './components/Hero'
-import {{Offer}} from './components/Offer'
-import {{Pricing}} from './components/Pricing'
-import {{Testimonials}} from './components/Testimonials'
-import {{Contact}} from './components/Contact'
-import {{Footer}} from './components/Footer'
-export default function App(){{return <><header className="max-w-[1120px] mx-auto px-6 py-6 flex justify-between border-b"><span className="font-serif text-xl">{safe_bn}</span><a href="#kontakt" className="px-5 py-2 rounded-xl bg-black text-white text-sm">Kontakt</a></header><Hero/><Offer/><Pricing/><Testimonials/><Contact/><Footer/></>}}"""
-    pkg = json.dumps({"name": f"{safe_bn.lower()}-site","private": True,"type": "module","scripts": {"dev": "vite","build": "tsc && vite build","preview": "vite preview"},"dependencies": {"react": "^18.2.0","react-dom": "^18.2.0","lucide-react": "^0.300.0"},"devDependencies": {"@types/react": "^18.2.0","@types/react-dom": "^18.2.0","@vitejs/plugin-react": "^4.2.0","autoprefixer": "^10.4.0","postcss": "^8.4.0","tailwindcss": "^3.4.0","typescript": "^5.3.0","vite": "^5.0.0"}}, ensure_ascii=False, indent=2)
-    tsconfig = json.dumps({"compilerOptions": {"target": "ES2020","useDefineForClassFields": True,"lib": ["ES2020","DOM","DOM.Iterable"],"module": "ESNext","skipLibCheck": True,"moduleResolution": "bundler","allowImportingTsExtensions": True,"resolveJsonModule": True,"isolatedModules": True,"noEmit": True,"jsx": "react-jsx","strict": True,"noUnusedLocals": True,"noUnusedParameters": True,"noFallthroughCasesInSwitch": True},"include": ["src"],"references": [{"path": "./tsconfig.node.json"}]}, indent=2)
-    tsconfig_node = json.dumps({"compilerOptions": {"composite": True,"skipLibCheck": True,"module": "ESNext","moduleResolution": "bundler","allowSyntheticDefaultImports": True},"include": ["vite.config.ts"]}, indent=2)
-    vite_config = """import {defineConfig} from 'vite'
-import react from '@vitejs/plugin-react'
-export default defineConfig({plugins:[react()]})"""
-    tailwind_config = """/** @type {import('tailwindcss').Config} */
-export default {content:["./index.html","./src/**/*.{ts,tsx}"],theme:{extend:{fontFamily:{serif:['Instrument Serif','serif']}}},plugins:[]}"""
-    postcss_config = """export default {plugins:{tailwindcss:{},autoprefixer:{}}}"""
-    # Preview-friendly standalone HTML (dla iframe srcDoc) â€” premium fallback, nie czarny tekst na bialym
-    niche_lower = (niche or "").lower()
-    is_cafe = any(k in niche_lower for k in ["kawiarni","cafe","coffee","barista"])
-    is_restaurant = any(k in niche_lower for k in ["restaurac","gastronom","bistro","pizzeria","bar "])
-    hero_img = "https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=1200&q=80" if is_cafe else ("https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80" if is_restaurant else "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80")
+
     addr_display = parsed_addr or "Adres do uzupełnienia"
-    phone_display = parsed_phone or "Tel: do uzupełnienia"
-    hero_kicker = bn + (" • " + (data.niche or "")) if data.niche else bn
-    # Offer jako uniwersalne filary
-    if is_cafe:
-        offer_html = """<section id="oferta" class="max-w-[1120px] mx-auto px-6 py-10 grid md:grid-cols-3 gap-5"><div class="rounded-2xl border border-[var(--line)] bg-white p-6 hover-lift"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">01 — Kawa</p><h3 class="font-serif text-lg mt-2">Przelew & espresso</h3><p class="text-sm opacity-70 mt-2">Sezonowe ziarna, palone w Warszawie. V60, Chemex, batch brew.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6 hover-lift"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">02 — Przestrzeń</p><h3 class="font-serif text-lg mt-2">Cisza w centrum</h3><p class="text-sm opacity-70 mt-2">Stolik do pracy, półka z książkami, szybkie Wi-Fi.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6 hover-lift"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">03 — Ludzie</p><h3 class="font-serif text-lg mt-2">Barista na miejscu</h3><p class="text-sm opacity-70 mt-2">Opowiemy o pochodzeniu ziaren i zaparzymy pod Ciebie.</p></div></section>"""
+    phone_display = parsed_phone or "+48 000 000 000"
+
+    # Niche-specific content
+    niche_lower = (niche or "").lower()
+    is_restaurant = any(k in niche_lower for k in ["restaurac", "gastronom", "bistro", "pizzeria", "bar ", "kebab", "kurczaki", "ziemniaki"])
+    is_barber = any(k in niche_lower for k in ["barber", "fryzjer", "strzyż", "salon fryzj"])
+    is_beauty = any(k in niche_lower for k in ["beauty", "kosmetolog", "salon urod", "spa", "manicure"])
+    is_gym = any(k in niche_lower for k in ["siłowni", "fitness", "gym", "crossfit"])
+
+    if is_restaurant:
+        hero_img = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80"
+        sections = """
+        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Nasze menu</h2>
+        <div class="reveal grid md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="text-3xl mb-3">🍗</div><h3 class="text-lg font-bold mb-2">Kurczaki</h3><p class="text-gray-600 text-sm mb-3">Smażone, grillowane, w panierce — zawsze świeże i chrupkie.</p><span class="font-bold" style="color:${accent}">od 18 zł</span></div>
+          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="text-3xl mb-3">🥔</div><h3 class="text-lg font-bold mb-2">Ziemniaki</h3><p class="text-gray-600 text-sm mb-3">Pieczona, smażone, w varyingach — idealny dodatek do każdego dania.</p><span class="font-bold" style="color:${accent}">od 12 zł</span></div>
+          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="text-3xl mb-3">🥙</div><h3 class="text-lg font-bold mb-2">Kebab</h3><p class="text-gray-600 text-sm mb-3">Klasyczny, w bułce, na talerzu — z surówką i sosem.</p><span class="font-bold" style="color:${accent}">od 20 zł</span></div>
+        </div></div></section>
+        <section class="py-20 px-6 bg-gray-50"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Cennik</h2>
+        <div class="reveal grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Kurczak smażony + ziemniaki</span><span class="font-bold text-lg" style="color:${accent}">25 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Kebab w bułce</span><span class="font-bold text-lg" style="color:${accent}">22 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Kurczak grillowany + sałatka</span><span class="font-bold text-lg" style="color:${accent}">28 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Zestaw rodzinny (4 os.)</span><span class="font-bold text-lg" style="color:${accent}">89 zł</span></div>
+        </div></div></section>
+        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Opinie klientów</h2>
+        <div class="reveal grid md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Najlepszy kebak w okolicy! Kurczaki soczyste, ziemniaki chrupkie. Polecam!"</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-sm" style="color:${accent}">MK</div><div><p class="font-bold text-sm">Marek K.</p><p class="text-xs text-gray-500">Lokalny przewodnik</p></div></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Chodzę tu co tydzień. Porcje duże, ceny przystępne, obsługa miła."</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-bold text-sm" style="color:${accent}">AN</div><div><p class="font-bold text-sm">Anna N.</p><p class="text-xs text-gray-500">Stały klient</p></div></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★☆</div><p class="text-gray-700 text-sm mb-4">"Dobra lokalizacja, szybka obsługa. Kurczak zasmażany to_hit!"</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center font-bold text-sm" style="color:${accent}">JP</div><div><p class="font-bold text-sm">Jan P.</p><p class="text-xs text-gray-500">Google Reviews</p></div></div></div>
+        </div></div></section>"""
     else:
-        offer_html = f"""<section id="oferta" class="max-w-[1120px] mx-auto px-6 py-10 grid md:grid-cols-3 gap-5"><div class="rounded-2xl border border-[var(--line)] bg-white p-6 hover-lift"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">01 — Szybko</p><h3 class="font-serif text-lg mt-2">Realizacja 48h</h3><p class="text-sm opacity-70 mt-2">Projekt gotowy w dwa dni, poprawki bez dopłat.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6 hover-lift"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">02 — Dopracowane</p><h3 class="font-serif text-lg mt-2">Redakcyjny szlif</h3><p class="text-sm opacity-70 mt-2">Każdy nagłówek pod branżę, zdjęcia i treści od AI.</p></div><div class="rounded-2xl border border-[var(--line)] bg-white p-6 hover-lift"><p class="text-[11px] tracking-widest uppercase opacity-50 font-bold">03 — Wsparcie</p><h3 class="font-serif text-lg mt-2">Jesteśmy obok</h3><p class="text-sm opacity-70 mt-2">Kontakt bezpośredni, aktualizacje i hosting w cenie.</p></div></section>"""
-    # dopracowany fallback: hero z obrazem + 3 filary + oferta + kontakt
-    preview_html = f"""<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{title}</title><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;700&display=swap" rel="stylesheet"><style>:root{{--paper:#fcfcf9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc}}body{{font-family:'SF Pro Display',system-ui,sans-serif;background:var(--paper);color:var(--ink)}}h1,h2{{font-family:'SF Pro Display',sans-serif;font-weight:400;letter-spacing:-.02em}}.morph-blob{{border-radius:42% 58% 60% 40% / 42% 42% 58% 58%;animation:morph 9s ease-in-out infinite}}@keyframes morph{{0%,100%{{border-radius:42% 58% 60% 40% / 42% 42% 58% 58%}}50%{{border-radius:58% 42% 40% 60% / 58% 60% 42% 42%}}}}</style></head><body class="antialiased">
-<header class="max-w-[1120px] mx-auto px-6 py-5 flex items-center justify-between sticky top-0 bg-[var(--paper)]/80 backdrop-blur z-20 border-b border-[var(--line)]"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-xl bg-black text-white grid place-items-center text-[10px] font-black">SM</div><span class="font-serif text-[15px] font-bold tracking-tight">{safe_bn}</span></div><nav class="hidden md:flex gap-6 text-xs font-semibold opacity-70"><a href="#oferta">Oferta</a><a href="#onas">O nas</a><a href="#kontakt">Kontakt</a></nav><a href="#kontakt" class="px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold">Umów wizytę</a></header>
-<section class="max-w-[1120px] mx-auto px-6 pt-8 animate-fade md:pt-12 pb-10 grid md:grid-cols-12 gap-8 items-center relative overflow-hidden"><div class="absolute -top-10 -right-20 w-[380px] h-[380px] bg-gradient-to-tr from-amber-100 via-orange-50 to-amber-100 blur-3xl morph-blob opacity-60 pointer-events-none"></div><div class="md:col-span-6 relative"><p class="inline-flex items-center gap-2 text-[10px] tracking-[0.14em] uppercase font-bold border border-[var(--line)] px-3 py-1.5 rounded-full bg-white"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> {hero_kicker}</p><h1 class="font-serif text-[40px] md:text-[52px] leading-[0.95] mt-5">{headline}</h1><p class="mt-4 text-[15px] leading-relaxed opacity-70 max-w-[44ch]">{desc}</p><div class="mt-7 flex flex-wrap gap-3"><a href="#kontakt" class="px-6 py-3 rounded-full bg-black text-white text-sm font-bold">Odwiedź nas</a><a href="#oferta" class="px-6 py-3 rounded-full border border-[var(--line)] bg-white text-sm font-bold">Zobacz menu</a></div><div class="mt-6 flex items-center gap-3 text-xs"><div class="flex -space-x-2"><span class="w-7 h-7 rounded-full bg-amber-200 border-2 border-white grid place-items-center text-[10px]">★</span><span class="w-7 h-7 rounded-full bg-neutral-800 text-white border-2 border-white grid place-items-center text-[10px]">5.0</span></div><span class="font-semibold">5,0 na Google • 1 opinia • Czynne całą dobę</span></div></div><div class="md:col-span-6 relative"><div class="rounded-[24px] overflow-hidden border border-[var(--line)] shadow-xl"><img src="{hero_img}" alt="{bn}" class="w-full h-[380px] object-cover"/><div class="p-4 bg-white flex items-center justify-between"><div><p class="text-xs font-bold opacity-60">{addr_display}</p><p class="text-sm font-bold">{phone_display}</p></div><span class="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold">Otwarte</span></div></div></div></section>
-{offer_html}
-<section id="onas" class="max-w-[720px] mx-auto px-6 pb-10"><div class="rounded-2xl border border-[var(--line)] bg-white p-8"><h3 class="font-serif text-xl">O nas</h3><p class="text-sm leading-relaxed opacity-70 mt-3">{desc}</p></div></section>
-<section id="kontakt" class="max-w-[1120px] mx-auto px-6 pb-12"><div class="rounded-[24px] border border-[var(--line)] bg-black text-white p-8 md:p-10 flex flex-col md:flex-row justify-between gap-8"><div><h2 class="font-serif text-3xl">Skontaktuj się</h2><p class="opacity-70 mt-3 text-sm max-w-[36ch]">{addr_display}. {phone_display}.</p><a href="tel:{phone_display}" class="inline-block mt-6 px-6 py-3 rounded-full bg-white text-black text-sm font-bold">Zadzwoń</a></div><div class="bg-white/10 rounded-2xl p-6 min-w-[220px]"><p class="text-xs uppercase tracking-widest opacity-60">Godziny</p><p class="text-sm mt-2 leading-relaxed">Codziennie 00:00–24:00<br/>Kuchnia do 22:00</p></div></div></section>
-<footer class="border-t border-[var(--line)] py-8 text-center text-xs opacity-60">© {year} {safe_bn}</footer></body></html>"""
-    readme = f"# {title}\n\nStrona wygenerowana przez SiteMorph AI (fallback Vite+React).\n\n## Uruchomienie\n```\ncd main/frontend && npm install && npm run dev\n```\nPreview: `main/frontend/preview.html`\n"
+        hero_img = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80"
+        sections = """
+        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Co oferujemy</h2>
+        <div class="reveal grid md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl" style="background:${accent}15;color:${accent}">⚡</div><h3 class="text-lg font-bold mb-2">Szybko</h3><p class="text-gray-600 text-sm">Realizacja w 48h, poprawki bez dopłat.</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl" style="background:${accent}15;color:${accent}">✨</div><h3 class="text-lg font-bold mb-2">Dopracowane</h3><p class="text-gray-600 text-sm">Każdy detal przemyślany i dopieszczony.</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-lg hover:-translate-y-1.5 transition-all duration-300 border border-gray-100"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl" style="background:${accent}15;color:${accent}">🤝</div><h3 class="text-lg font-bold mb-2">Wsparcie</h3><p class="text-gray-600 text-sm">Jesteśmy obok — kontakt direct, aktualizacje w cenie.</p></div>
+        </div></div></section>
+        <section class="py-20 px-6 bg-gray-50"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Cennik</h2>
+        <div class="reveal max-w-2xl mx-auto space-y-4">
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Podstawowy pakiet</span><span class="font-bold text-lg" style="color:${accent}">od 500 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Rozbudowany pakiet</span><span class="font-bold text-lg" style="color:${accent}">od 1200 zł</span></div>
+          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100"><span class="font-medium">Premium pakiet</span><span class="font-bold text-lg" style="color:${accent}">od 2500 zł</span></div>
+        </div></div></section>
+        <section class="py-20 px-6"><div class="max-w-6xl mx-auto"><h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Opinie</h2>
+        <div class="reveal grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Profesjonalne podejście i szybka realizacja. Polecam!"</p><p class="font-bold text-sm">— Klient</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"><div class="flex items-center gap-1 text-yellow-400 mb-3">★★★★★</div><p class="text-gray-700 text-sm mb-4">"Współpraca na najwyższym poziomie. Na pewno wrócę."</p><p class="font-bold text-sm">— Klient</p></div>
+        </div></div></section>"""
+
+    # Build the full standalone HTML
+    preview_html = f'''<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={{theme:{{extend:{{fontFamily:{{serif:["Instrument Serif","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
+<style>
+* {{ margin:0; padding:0; box-sizing:border-box; scroll-behavior:smooth; }}
+body {{ font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; }}
+.reveal {{ opacity:0; transform:translateY(30px); transition:all 0.6s cubic-bezier(0.16,1,0.3,1); }}
+.reveal.visible {{ opacity:1; transform:translateY(0); }}
+.hero-gradient {{ background:linear-gradient(135deg, {accent}08 0%, {accent}15 50%, {accent}05 100%); }}
+@keyframes float {{ 0%,100%{{transform:translateY(0)}} 50%{{transform:translateY(-12px)}} }}
+.float {{ animation:float 6s ease-in-out infinite; }}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="fixed top-0 w-full bg-white/80 backdrop-blur-xl z-50 border-b border-gray-100">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background:{accent}">{safe_bn[0]}</div>
+      <span class="font-semibold text-base">{safe_bn}</span>
+    </div>
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+      <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
+      <a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
+      <a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
+      <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a>
+    </nav>
+    <a href="tel:{phone_display}" class="px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:scale-105" style="background:{accent}">Zadzwoń</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero-gradient min-h-screen flex items-center pt-16">
+  <div class="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+    <div class="reveal">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-gray-100 text-xs font-semibold mb-6">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        {niche} · {addr_display}
+      </div>
+      <h1 class="text-5xl md:text-7xl font-bold leading-[0.95] mb-6" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">{headline}</h1>
+      <p class="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">{desc}</p>
+      <div class="flex flex-wrap gap-4">
+        <a href="#kontakt" class="px-8 py-4 rounded-xl text-white font-semibold text-sm transition-all hover:scale-105 hover:shadow-lg" style="background:{accent}">Skontaktuj się</a>
+        <a href="#oferta" class="px-8 py-4 rounded-xl border-2 border-gray-200 font-semibold text-sm transition-all hover:border-gray-400 hover:bg-gray-50">Zobacz ofertę</a>
+      </div>
+      <div class="flex items-center gap-4 mt-8">
+        <div class="flex -space-x-2">
+          <div class="w-8 h-8 rounded-full bg-yellow-400 border-2 border-white flex items-center justify-center text-xs text-white">★</div>
+          <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-white flex items-center justify-center text-xs text-white">4.5</div>
+        </div>
+        <span class="text-sm text-gray-600"><strong>4.5</strong> na Google · 196 opinii</span>
+      </div>
+    </div>
+    <div class="reveal float">
+      <div class="rounded-3xl overflow-hidden shadow-2xl">
+        <img src="{hero_img}" alt="{safe_bn}" class="w-full h-[400px] object-cover">
+        <div class="p-4 bg-white flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 font-medium">{addr_display}</p>
+            <p class="text-sm font-bold mt-1">{phone_display}</p>
+          </div>
+          <span class="px-4 py-2 rounded-full bg-green-500 text-white text-xs font-bold">Otwarte</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OFERTA -->
+{sections}
+
+<!-- KONTAKT -->
+<section id="kontakt" class="py-20 px-6">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="reveal text-4xl md:text-5xl font-bold mb-12 text-center" style="font-family:'Instrument Serif',serif">Skontaktuj się</h2>
+    <div class="reveal grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div class="bg-gray-900 text-white rounded-3xl p-8">
+        <h3 class="text-2xl font-bold mb-4">Napisz do nas</h3>
+        <p class="text-gray-400 mb-6 text-sm">{addr_display}</p>
+        <a href="tel:{phone_display}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-gray-900 font-semibold text-sm transition-all hover:scale-105">📞 Zadzwoń: {phone_display}</a>
+        <div class="mt-6 pt-6 border-t border-gray-700">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Godziny otwarcia</p>
+          <p class="text-sm">Pon-Sob: 10:00 - 22:00</p>
+          <p class="text-sm text-gray-400">Niedziela: 12:00 - 20:00</p>
+        </div>
+      </div>
+      <div class="bg-gray-50 rounded-3xl p-8">
+        <form class="space-y-4">
+          <input type="text" placeholder="Twoje imię" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0" style="focus:ring-color:{accent}">
+          <input type="email" placeholder="Email" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0">
+          <input type="tel" placeholder="Telefon" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0">
+          <textarea rows="4" placeholder="Wiadomość..." class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"></textarea>
+          <button type="submit" class="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[1.02] hover:shadow-lg" style="background:{accent}">Wyślij wiadomość</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-gray-100 py-8 px-6">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <p class="text-sm text-gray-500">© {year} {safe_bn}. Wszelkie prawa zastrzeżone.</p>
+    <div class="flex items-center gap-6 text-sm text-gray-500">
+      <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
+      <a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
+      <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const observer = new IntersectionObserver((entries) => {{
+  entries.forEach(e => {{ if(e.isIntersecting) {{ e.target.classList.add('visible'); observer.unobserve(e.target); }} }});
+}}, {{threshold: 0.1}});
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>'''
+
     return {
         "files": {
             "main/frontend/preview.html": preview_html,
-            "main/frontend/index.html": index_html,
-            "main/frontend/src/main.tsx": main_tsx,
-            "main/frontend/src/App.tsx": app_tsx,
-            "main/frontend/src/index.css": index_css,
-            "main/frontend/src/components/Hero.tsx": hero_tsx,
-            "main/frontend/src/components/Offer.tsx": offer_tsx,
-            "main/frontend/src/components/Pricing.tsx": pricing_tsx,
-            "main/frontend/src/components/Testimonials.tsx": testimonials_tsx,
-            "main/frontend/src/components/Contact.tsx": contact_tsx,
-            "main/frontend/src/components/Footer.tsx": footer_tsx,
-            "main/frontend/src/ui/Button.tsx": button_tsx,
-            "main/frontend/src/ui/Card.tsx": card_tsx,
-            "main/frontend/src/ui/Container.tsx": container_tsx,
-            "main/frontend/src/ui/Section.tsx": section_tsx,
-            "main/frontend/src/hooks/useScrollReveal.ts": hook_ts,
-            "main/frontend/src/lib/utils.ts": utils_ts,
-            "main/frontend/src/types.ts": types_ts,
-            "main/frontend/package.json": pkg,
-            "main/frontend/tsconfig.json": tsconfig,
-            "main/frontend/tsconfig.node.json": tsconfig_node,
-            "main/frontend/vite.config.ts": vite_config,
-            "main/frontend/tailwind.config.js": tailwind_config,
-            "main/frontend/postcss.config.js": postcss_config,
-            "main/frontend/public/favicon.svg": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="black"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#a3e635" font-size="14" font-weight="900">SM</text></svg>',
-            "main/frontend/README.md": readme,
-            "main/package.json": json.dumps({"name": "sitemorph-site","private": True}, indent=2),
-            "main/README.md": readme,
         },
         "meta": {
             "title": title,
             "headline": headline,
             "subheadline": (data.description[:120] if data.description else "Strona stworzona przez SiteMorph AI"),
-            "ctaText": "Skontaktuj siÄ™"
+            "ctaText": "Skontaktuj się"
         }
     }
 
