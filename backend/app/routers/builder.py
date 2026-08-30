@@ -276,350 +276,251 @@ KLUCZOWE ZASADY DLA preview.html:
 
 
 def fallback_content(data: BuilderInput):
-    """Fallback when AI fails — generates a RICH, modern standalone HTML."""
+    """Fallback — rich standalone HTML with SVG icons, varied layouts, always has form."""
     src = (data.extraPrompt or "") + " " + (data.description or "")
     def _extract(pattern, default=None):
         m = re.search(pattern, src, re.I | re.S)
-        if not m:
-            return default
-        try:
-            return (m.group(1) if m.lastindex else m.group(0)).strip()
-        except IndexError:
-            return m.group(0).strip()
+        if not m: return default
+        try: return (m.group(1) if m.lastindex else m.group(0)).strip()
+        except: return m.group(0).strip()
 
-    # Extract business name
     m2 = re.search(r'dla firmy\s*["„"]([^"""]+)[""""]', src, re.I)
     if m2 and len(m2.group(1).strip()) > 2 and "Branż" not in m2.group(1):
         bn = m2.group(1).strip()
     else:
         bn = data.business_name or "Twoja Firma"
         if bn.lower() in ("restauracja","kawiarnia","piekarnia","barber","salon","siłownia","warsztat"):
-            extra_first = (data.extraPrompt or "").split("\n")[0][:60] if data.extraPrompt else ""
-            if extra_first and len(extra_first) > 3:
-                bn = extra_first
+            ef = (data.extraPrompt or "").split("\n")[0][:60] if data.extraPrompt else ""
+            if ef and len(ef) > 3: bn = ef
 
-    # Extract address/phone
     parsed_addr = _extract(r'(?:ul\.?\s*)?[A-ZĄ-ź][a-zą-ź\s]+\s+\d+[a-z]?[/\s]*\d*-?\d*\s*[Łódź]')
-    if not parsed_addr:
-        parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-ZĄ-ź][a-zą-ź]+')
+    if not parsed_addr: parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-ZĄ-ź][a-zą-ź]+')
     parsed_phone = _extract(r'(?:\+?48[\s-]?)?\d{3}[\s-]?\d{3}[\s-]?\d{3}')
-
-    # Extract rating from source text
-    rating_match = re.search(r'(\d[,\.]\d)\s*\((\d+)\)', src)
-    rating = rating_match.group(1).replace(',', '.') if rating_match else "4.8"
-    review_count = rating_match.group(2) if rating_match else "127"
-
+    rating_m = re.search(r'(\d[,\.]\d)\s*\((\d+)\)', src)
+    rating = rating_m.group(1).replace(',','.') if rating_m else "4.8"
+    reviews = rating_m.group(2) if rating_m else "127"
     niche = data.niche or "Usługi lokalne"
     desc = data.description[:300] if data.description else f"{bn} — sprawdź naszą ofertę."
-    headline = bn
     title = f"{bn} - {niche}"
     year = time.strftime("%Y")
-    safe_bn = (bn or "Site").strip()[:30] or "Site"
+    safe = (bn or "Site").strip()[:30] or "Site"
+    addr = parsed_addr or "Adres do uzupełnienia"
+    phone = parsed_phone or "+48 000 000 000"
+    accent = "#2563eb"
 
-    try:
-        tpl = pick_template(bn)
-        accent = tpl.get("accent", "#2563eb")
-    except:
-        accent = "#2563eb"
+    niche_l = (niche or "").lower()
+    is_rest = any(k in niche_l for k in ["restaurac","kebab","kurczaki","ziemniaki","jedzenie","food","pizzeria","bistro"])
+    is_barber = any(k in niche_l for k in ["barber","fryzjer","strzyż","salon fryzj"])
+    is_beauty = any(k in niche_l for k in ["beauty","kosmetolog","salon urod","spa","manicure","paznokci"])
+    is_gym = any(k in niche_l for k in ["siłowni","fitness","gym","crossfit"])
 
-    addr_display = parsed_addr or "Adres do uzupełnienia"
-    phone_display = parsed_phone or "+48 000 000 000"
+    # SVG icon helpers (inline, no external deps)
+    ICONS = {
+        "utensils": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+        "scissors": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
+        "star": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+        "phone": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+        "map_pin": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+        "clock": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        "send": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
+        "arrow_right": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+        "dumbbell": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>',
+        "sparkles": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+        "heart": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+        "zap": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+        "shield": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+        "flame": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+        "smile": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
+    }
 
-    niche_lower = (niche or "").lower()
-    is_restaurant = any(k in niche_lower for k in ["restaurac", "gastronom", "bistro", "pizzeria", "bar ", "kebab", "kurczaki", "ziemniaki", "jedzenie", "food"])
-    is_barber = any(k in niche_lower for k in ["barber", "fryzjer", "strzyż", "salon fryzj"])
-    is_beauty = any(k in niche_lower for k in ["beauty", "kosmetolog", "salon urod", "spa", "manicure"])
-    is_gym = any(k in niche_lower for k in ["siłowni", "fitness", "gym", "crossfit"])
-
-    if is_restaurant:
+    if is_rest:
         hero_img = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80"
-        food_img1 = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80"
-        food_img2 = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80"
-        food_img3 = "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"
-        menu_cards = f"""
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img1}" alt="Kurczaki" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Kurczaki</h3><p class="text-gray-500 text-sm mb-4 leading-relaxed">Smażone, grillowane, w panierce — zawsze świeże i chrupkie. Podajemy z surówką i pieczywem.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 18 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">Bestseller</span></div></div></div>
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img2}" alt="Ziemniaki" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Ziemniaki</h3><p class="text-gray-500 text-sm mb-4 leading-relaxed">Pieczona, smażone, w varyingach — idealny dodatek do każdego dania.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 12 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">Popularne</span></div></div></div>
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img3}" alt="Kebab" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Kebab</h3><p class="text-gray-500 text-sm mb-4 leading-relaxed">Klasyczny, w bułce, na talerzu — z surówką i sosem do wyboru.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 20 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">Polecamy</span></div></div></div>"""
-        cennik_rows = """
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Kurczak smażony + ziemniaki</span><span class="font-bold text-lg" style="color:""" + accent + """">25 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Kebab w bułce z surówką</span><span class="font-bold text-lg" style="color:""" + accent + """">22 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Kurczak grillowany + sałatka</span><span class="font-bold text-lg" style="color:""" + accent + """">28 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Zestaw rodzinny (4 osoby)</span><span class="font-bold text-lg" style="color:""" + accent + """">89 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Ziemniaki pieczone + sos</span><span class="font-bold text-lg" style="color:""" + accent + """">15 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Napój / Surówka</span><span class="font-bold text-lg" style="color:""" + accent + """">5-8 zł</span></div>"""
-        social_proof = f'{rating} na Google · {review_count} opinii'
+        food1 = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80"
+        food2 = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80"
+        food3 = "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"
+        icon1, icon2, icon3 = ICONS["utensils"], ICONS["flame"], ICONS["star"]
+        svc = [
+            ("Kurczaki", "Smażone, grillowane, w panierce — zawsze świeże i chrupkie.", "od 18 zł", food1, "Bestseller"),
+            ("Ziemniaki", "Pieczona, smażone, w varyingach — idealny dodatek.", "od 12 zł", food2, "Popularne"),
+            ("Kebab", "Klasyczny, w bułce, na talerzu — z surówką i sosem.", "od 20 zł", food3, "Polecamy"),
+        ]
+        prices = [("Kurczak + ziemniaki", "25 zł"), ("Kebab w bułce", "22 zł"), ("Kurczak grillowany + sałatka", "28 zł"), ("Zestaw rodzinny (4 os.)", "89 zł"), ("Ziemniaki pieczone + sos", "15 zł"), ("Napój / Surówka", "5-8 zł")]
     elif is_barber:
         hero_img = "https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80"
-        food_img1 = "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80"
-        food_img2 = "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80"
-        food_img3 = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"
-        menu_cards = f"""
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img1}" alt="Strzyżenie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Strzyżenie</h3><p class="text-gray-500 text-sm mb-4">Klasyczne i nowoczesne fryzury. Doradztwo w cenie.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 50 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">45 min</span></div></div></div>
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img2}" alt="Golenie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Golenie brody</h3><p class="text-gray-500 text-sm mb-4">Golenie brzytwą, balsam, ręcznik gorący. Pełny rytuał.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 40 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">30 min</span></div></div></div>
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img3}" alt="Strzyżenie + golenie" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Pakiet complete</h3><p class="text-gray-500 text-sm mb-4">Strzyżenie + golenie + stylizacja. Wyjdziesz jak nowy.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 80 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">75 min</span></div></div></div>"""
-        cennik_rows = """
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Strzyżenie męskie</span><span class="font-bold text-lg" style="color:""" + accent + """">50 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Golenie brody brzytwą</span><span class="font-bold text-lg" style="color:""" + accent + """">40 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Strzyżenie + golenie</span><span class="font-bold text-lg" style="color:""" + accent + """">80 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Trymowanie brody</span><span class="font-bold text-lg" style="color:""" + accent + """">30 zł</span></div>"""
-        social_proof = f'{rating} na Google · {review_count} opinii'
+        food1 = "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80"
+        food2 = "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80"
+        food3 = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"
+        icon1, icon2, icon3 = ICONS["scissors"], ICONS["sparkles"], ICONS["star"]
+        svc = [
+            ("Strzyżenie", "Klasyczne i nowoczesne fryzury. Doradztwo w cenie.", "od 50 zł", food1, "45 min"),
+            ("Golenie brody", "Golenie brzytwą, balsam, ręcznik gorący. Pełny rytuał.", "od 40 zł", food2, "30 min"),
+            ("Pakiet complete", "Strzyżenie + golenie + stylizacja. Wyjdziesz jak nowy.", "od 80 zł", food3, "75 min"),
+        ]
+        prices = [("Strzyżenie męskie", "50 zł"), ("Golenie brody brzytwą", "40 zł"), ("Strzyżenie + golenie", "80 zł"), ("Trymowanie brody", "30 zł")]
     else:
         hero_img = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80"
-        food_img1 = "https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80"
-        food_img2 = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80"
-        food_img3 = "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"
-        menu_cards = f"""
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img1}" alt="Usługa 1" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Szybka realizacja</h3><p class="text-gray-500 text-sm mb-4">Projekt gotowy w 48h. Poprawki bez dopłat, pełna satysfakcja.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 500 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">48h</span></div></div></div>
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img2}" alt="Usługa 2" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Kompleksowa obsługa</h3><p class="text-gray-500 text-sm mb-4">Od pomysłu do gotowego produktu. Jeden kontakt, zero stresu.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 1200 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">1 tydzień</span></div></div></div>
-          <div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{food_img3}" alt="Usługa 3" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><h3 class="text-xl font-bold mb-2">Premium pakiet</h3><p class="text-gray-500 text-sm mb-4">Wszystko w cenie + wsparcie techniczne i aktualizacje przez rok.</p>
-            <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">od 2500 zł</span><span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-500 font-medium">2 tygodnie</span></div></div></div>"""
-        cennik_rows = """
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Pakiet podstawowy</span><span class="font-bold text-lg" style="color:""" + accent + """">500 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Pakiet rozbudowany</span><span class="font-bold text-lg" style="color:""" + accent + """">1 200 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Pakiet premium</span><span class="font-bold text-lg" style="color:""" + accent + """">2 500 zł</span></div>
-          <div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium">Konsultacja (1h)</span><span class="font-bold text-lg" style="color:""" + accent + """">150 zł</span></div>"""
-        social_proof = f'{rating} na Google · {review_count} opinii'
+        food1 = "https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80"
+        food2 = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80"
+        food3 = "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"
+        icon1, icon2, icon3 = ICONS["zap"], ICONS["sparkles"], ICONS["shield"]
+        svc = [
+            ("Szybka realizacja", "Projekt gotowy w 48h. Poprawki bez dopłat.", "od 500 zł", food1, "48h"),
+            ("Kompleksowa obsługa", "Od pomysłu do gotowego produktu. Jeden kontakt.", "od 1 200 zł", food2, "1 tydzień"),
+            ("Premium pakiet", "Wszystko + wsparcie techniczne przez rok.", "od 2 500 zł", food3, "2 tygodnie"),
+        ]
+        prices = [("Pakiet podstawowy", "500 zł"), ("Pakiet rozbudowany", "1 200 zł"), ("Pakiet premium", "2 500 zł"), ("Konsultacja (1h)", "150 zł")]
 
-    preview_html = f'''<!DOCTYPE html>
+    svc_cards = ""
+    for i, (nm, ds, pr, img, tag) in enumerate(svc):
+        ic = [icon1, icon2, icon3][i]
+        svc_cards += f'''<div class="group relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100">
+        <div class="h-52 overflow-hidden relative"><img src="{img}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"><div class="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-xs font-bold shadow">{tag}</div></div>
+        <div class="p-6"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background:{accent}15;color:{accent}">{ic}</div><h3 class="text-xl font-bold">{nm}</h3></div>
+        <p class="text-gray-500 text-sm mb-4 leading-relaxed">{ds}</p>
+        <div class="flex items-center justify-between"><span class="font-bold text-lg" style="color:{accent}">{pr}</span><a href="#kontakt" class="text-xs font-semibold flex items-center gap-1 hover:gap-2 transition-all" style="color:{accent}">Zamów {ICONS["arrow_right"][:50]}</a></div></div></div>'''
+
+    price_rows = ""
+    for nm, pr in prices:
+        price_rows += f'<div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium text-gray-700">{nm}</span><span class="font-bold text-lg" style="color:{accent}">{pr}</span></div>'
+
+    reviews_html = ""
+    names = [("Marek K.", "MK", "#10b981"), ("Anna N.", "AN", accent), ("Jan P.", "JP", "#8b5cf6")]
+    texts = [
+        '"Najlepsze w okolicy! Jedzenie świeże, porcje duże, obsługa super. Polecam każdemu!"',
+        '"Chodzę tu co tydzień. Ceny przystępne, jakość zawsze na najwyższym poziomie."',
+        '"Szybko, smacznie i w dobrej cenie. Jedyny minus — brakuje miejsc w piątek!"'
+    ]
+    stars = ["★★★★★", "★★★★★", "★★★★☆"]
+    for i, ((nm, ini, cl), txt, st) in enumerate(zip(names, texts, stars)):
+        reviews_html += f'''<div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 rounded-bl-full opacity-5" style="background:{accent}"></div>
+        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">{st}</div>
+        <p class="text-gray-700 text-sm leading-relaxed mb-6 italic">{txt}</p>
+        <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,{cl},{cl}cc)">{ini}</div>
+        <div><p class="font-bold text-sm">{nm}</p><p class="text-xs text-gray-400">Google Reviews</p></div></div></div>'''
+
+    # Rating badge HTML
+    stars_html = '<div class="flex items-center gap-1 text-yellow-400">' + ICONS["star"] + f'</div><span class="font-bold">{rating}</span><span class="text-gray-400 text-sm">· {reviews} opinii</span>'
+
+    html = f'''<!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>{title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={{theme:{{extend:{{fontFamily:{{serif:["Instrument Serif","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
+<script>tailwind.config={{theme:{{extend:{{fontFamily:{{display:["Playfair Display","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
 <style>
 *{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}
 body{{font-family:'Inter',sans-serif;background:#fafafa;color:#1a1a1a;overflow-x:hidden}}
-.reveal{{opacity:0;transform:translateY(40px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}}
+.reveal{{opacity:0;transform:translateY(40px);transition:all 0.7s cubic-bezier(0.16,1,0.3,1)}}
 .reveal.visible{{opacity:1;transform:translateY(0)}}
-.reveal-delay-1{{transition-delay:0.1s}}
-.reveal-delay-2{{transition-delay:0.2s}}
-.reveal-delay-3{{transition-delay:0.3s}}
+.reveal-d1{{transition-delay:0.1s}}.reveal-d2{{transition-delay:0.2s}}.reveal-d3{{transition-delay:0.3s}}
 @keyframes gradient-shift{{0%,100%{{background-position:0% 50%}}50%{{background-position:100% 50%}}}}
-@keyframes float{{0%,100%{{transform:translateY(0) rotate(0deg)}}50%{{transform:translateY(-20px) rotate(2deg)}}}}
-@keyframes pulse-glow{{0%,100%{{box-shadow:0 0 20px rgba(37,99,235,0.2)}}50%{{box-shadow:0 0 40px rgba(37,99,235,0.4)}}}}
-.hero-gradient{{background:linear-gradient(135deg,{accent}08 0%,{accent}12 25%,{accent}06 50%,{accent}18 75%,{accent}08 100%);background-size:400% 400%;animation:gradient-shift 15s ease infinite}}
-.glass{{background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}}
-.text-gradient{{background:linear-gradient(135deg,{accent},#000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
-.card-3d{{transform-style:preserve-3d;perspective:1000px}}
-.card-3d:hover{{transform:translateY(-8px) rotateX(2deg)}}
-@keyframes marquee{{0%{{transform:translateX(0)}}100%{{transform:translateX(-50%)}}}}
-.marquee{{animation:marquee 30s linear infinite}}
+.hero-grad{{background:linear-gradient(135deg,{accent}10 0%,{accent}20 30%,{accent}08 60%,{accent}18 100%);background-size:400% 400%;animation:gradient-shift 12s ease infinite}}
+.glass{{background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <header class="fixed top-0 w-full glass z-50 border-b border-white/20">
-  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">{safe_bn[0:2]}</div>
-      <span class="font-bold text-base tracking-tight">{safe_bn}</span>
-    </div>
-    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-      <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
-      <a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
-      <a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
-      <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a>
-    </nav>
-    <a href="tel:{phone_display}" class="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold transition-all hover:scale-105 shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">Zadzwoń teraz</a>
-  </div>
-</header>
+<div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}aa)">{safe[0:2]}</div>
+<span class="font-bold text-base">{safe}</span></div>
+<nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+<a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
+<a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
+<a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
+<a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav>
+<a href="tel:{phone}" class="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold transition-all hover:scale-105 shadow-lg flex items-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}aa)">{ICONS["phone"][:80]} Zadzwoń</a>
+</div></header>
 
-<!-- HERO -->
-<section class="hero-gradient min-h-screen flex items-center relative overflow-hidden">
-  <!-- Decorative blobs -->
-  <div class="absolute top-20 right-10 w-72 h-72 rounded-full blur-3xl opacity-20" style="background:{accent}"></div>
-  <div class="absolute bottom-20 left-10 w-96 h-96 rounded-full blur-3xl opacity-10" style="background:{accent}"></div>
-  
-  <div class="max-w-7xl mx-auto px-6 py-32 grid md:grid-cols-2 gap-16 items-center relative z-10">
-    <div class="reveal">
-      <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur shadow-sm border border-white/50 text-xs font-semibold mb-8">
-        <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-        <span style="color:{accent}">{niche}</span>
-        <span class="text-gray-400">·</span>
-        <span>{addr_display}</span>
-      </div>
-      <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] mb-8" style="font-family:'Instrument Serif',serif;letter-spacing:-0.03em">{headline}</h1>
-      <p class="text-lg md:text-xl text-gray-600 mb-10 max-w-lg leading-relaxed">{desc}</p>
-      <div class="flex flex-wrap gap-4 mb-10">
-        <a href="#kontakt" class="px-8 py-4 rounded-2xl text-white font-semibold text-base transition-all hover:scale-105 hover:shadow-xl shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">Skontaktuj się</a>
-        <a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 font-semibold text-base transition-all hover:border-gray-400 hover:bg-white/50 backdrop-blur">Zobacz ofertę</a>
-      </div>
-      <div class="flex items-center gap-5">
-        <div class="flex -space-x-3">
-          <div class="w-10 h-10 rounded-full border-2 border-white shadow-md flex items-center justify-center text-sm" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:white">★</div>
-          <div class="w-10 h-10 rounded-full border-2 border-white shadow-md flex items-center justify-center text-xs font-bold" style="background:linear-gradient(135deg,{accent},{accent}cc);color:white">{rating}</div>
-        </div>
-        <div><span class="font-bold text-sm">{rating}</span> <span class="text-gray-500 text-sm">na Google · {review_count} opinii</span></div>
-      </div>
-    </div>
-    <div class="reveal reveal-delay-2 relative">
-      <div class="absolute -inset-4 rounded-3xl opacity-30 blur-xl" style="background:linear-gradient(135deg,{accent}40,transparent)"></div>
-      <div class="relative rounded-3xl overflow-hidden shadow-2xl group">
-        <img src="{hero_img}" alt="{safe_bn}" class="w-full h-[420px] md:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700">
-        <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-          <div class="flex items-center justify-between">
-            <div><p class="text-white/80 text-xs font-medium">{addr_display}</p><p class="text-white font-bold mt-1">{phone_display}</p></div>
-            <span class="px-4 py-2 rounded-full bg-green-500 text-white text-xs font-bold shadow-lg">Otwarte</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<section class="hero-grad min-h-screen flex items-center relative overflow-hidden">
+<div class="absolute top-10 right-20 w-96 h-96 rounded-full blur-3xl opacity-10" style="background:{accent}"></div>
+<div class="absolute bottom-10 left-10 w-72 h-72 rounded-full blur-3xl opacity-5" style="background:{accent}"></div>
+<div class="max-w-7xl mx-auto px-6 py-32 grid md:grid-cols-2 gap-16 items-center relative z-10">
+<div class="reveal">
+<div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur shadow-sm border border-white/50 text-xs font-semibold mb-8">
+<span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+<span style="color:{accent}">{niche}</span>
+<span class="text-gray-300">·</span><span>{addr}</span></div>
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] mb-8" style="font-family:'Playfair Display',serif;letter-spacing:-0.03em">{bn}</h1>
+<p class="text-lg md:text-xl text-gray-600 mb-10 max-w-lg leading-relaxed">{desc}</p>
+<div class="flex flex-wrap gap-4 mb-10">
+<a href="#kontakt" class="px-8 py-4 rounded-2xl text-white font-semibold text-base transition-all hover:scale-105 hover:shadow-xl shadow-lg flex items-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}aa)">Skontaktuj się {ICONS["arrow_right"][:60]}</a>
+<a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 font-semibold text-base transition-all hover:border-gray-400 hover:bg-white/50">Zobacz ofertę</a></div>
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-1 text-yellow-400">{ICONS["star"]}</div>
+<div class="flex items-center gap-2">{stars_html}</div></div></div>
+<div class="reveal reveal-d2 relative">
+<div class="absolute -inset-4 rounded-3xl opacity-20 blur-xl" style="background:linear-gradient(135deg,{accent}40,transparent)"></div>
+<div class="relative rounded-3xl overflow-hidden shadow-2xl group">
+<img src="{hero_img}" alt="{safe}" class="w-full h-[420px] md:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700">
+<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+<div class="flex items-center justify-between">
+<div><p class="text-white/80 text-xs font-medium">{addr}</p><p class="text-white font-bold mt-1 flex items-center gap-2">{ICONS["phone"][:50]} {phone}</p></div>
+<span class="px-4 py-2 rounded-full bg-green-500 text-white text-xs font-bold shadow-lg">Otwarte</span>
+</div></div></div></div></div></section>
 
-<!-- OFERTA -->
 <section id="oferta" class="py-24 px-6 bg-white">
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-16 reveal">
-      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Nasza oferta</p>
-      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Co mamy dla Ciebie</h2>
-    </div>
-    <div class="reveal grid md:grid-cols-3 gap-8">{menu_cards}</div>
-  </div>
-</section>
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-16 reveal"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Nasza oferta</p>
+<h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif;letter-spacing:-0.02em">Co mamy dla Ciebie</h2></div>
+<div class="reveal grid md:grid-cols-3 gap-8">{svc_cards}</div></div></section>
 
-<!-- CENNIK -->
 <section id="cennik" class="py-24 px-6" style="background:linear-gradient(180deg,#f8fafc,#fff)">
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-16 reveal">
-      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Cennik</p>
-      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Ile to kosztuje</h2>
-    </div>
-    <div class="reveal max-w-2xl mx-auto space-y-3">{cennik_rows}</div>
-  </div>
-</section>
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-16 reveal"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Cennik</p>
+<h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif;letter-spacing:-0.02em">Ile to kosztuje</h2></div>
+<div class="reveal max-w-2xl mx-auto space-y-3">{price_rows}</div></div></section>
 
-<!-- OPINIE -->
 <section id="opinie" class="py-24 px-6 bg-white">
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-16 reveal">
-      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Opinie</p>
-      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Co mówią klienci</h2>
-    </div>
-    <div class="reveal grid md:grid-cols-3 gap-8">
-      <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">★★★★★</div>
-        <p class="text-gray-700 text-sm leading-relaxed mb-6">"Najlepsze jedzenie w okolicy! Kurczaki soczyste, ziemniaki chrupkie, a kebab to istne mistrzostwo. Chodzę tu co tydzień."</p>
-        <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,{accent},{accent}cc)">MK</div><div><p class="font-bold text-sm">Marek K.</p><p class="text-xs text-gray-500">Lokalny przewodnik · 47 opinii</p></div></div>
-      </div>
-      <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">★★★★★</div>
-        <p class="text-gray-700 text-sm leading-relaxed mb-6">"Porcje ogromne, ceny przystępne, obsługa mega miła. Zestaw rodzinny to strzał w dziesiątkę na weekendowy obiad."</p>
-        <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,#10b981,#059669)">AN</div><div><p class="font-bold text-sm">Anna N.</p><p class="text-xs text-gray-500">Stały klient · 12 opinii</p></div></div>
-      </div>
-      <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center gap-1 text-yellow-400 text-lg mb-4">★★★★☆</div>
-        <p class="text-gray-700 text-sm leading-relaxed mb-6">"Dobra lokalizacja, szybka obsługa. Kebab w bułce zawsze na czas. Jedyny minus — czasem kolejka w piątek!"</p>
-        <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-md" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">JP</div><div><p class="font-bold text-sm">Jan P.</p><p class="text-xs text-gray-500">Google Reviews · 5 opinii</p></div></div>
-      </div>
-    </div>
-  </div>
-</section>
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-16 reveal"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Opinie</p>
+<h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif;letter-spacing:-0.02em">Co mówią klienci</h2></div>
+<div class="reveal grid md:grid-cols-3 gap-8">{reviews_html}</div></div></section>
 
-<!-- KONTAKT -->
 <section id="kontakt" class="py-24 px-6" style="background:linear-gradient(180deg,#f8fafc,#fff)">
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-16 reveal">
-      <p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Kontakt</p>
-      <h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Instrument Serif',serif;letter-spacing:-0.02em">Porozmawiajmy</h2>
-    </div>
-    <div class="reveal grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
-      <div class="rounded-3xl p-10 text-white relative overflow-hidden" style="background:linear-gradient(135deg,#111,#333)">
-        <div class="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-30" style="background:{accent}"></div>
-        <h3 class="text-2xl font-bold mb-6 relative z-10">Dane kontaktowe</h3>
-        <div class="space-y-5 relative z-10">
-          <div class="flex items-start gap-4"><span class="text-2xl">📍</span><div><p class="font-medium">{addr_display}</p><p class="text-white/60 text-sm mt-1">Dojazd: mapa poniżej</p></div></div>
-          <div class="flex items-start gap-4"><span class="text-2xl">📞</span><div><a href="tel:{phone_display}" class="font-medium hover:underline">{phone_display}</a><p class="text-white/60 text-sm mt-1">Zadzwoń — odbierzemy od razu</p></div></div>
-          <div class="flex items-start gap-4"><span class="text-2xl">🕐</span><div><p class="font-medium">Pon-Sob: 10:00 - 22:00</p><p class="text-white/60 text-sm mt-1">Niedziela: 12:00 - 20:00</p></div></div>
-        </div>
-      </div>
-      <div class="bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
-        <h3 class="text-xl font-bold mb-6">Napisz do nas</h3>
-        <form class="space-y-4">
-          <input type="text" placeholder="Twoje imię" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 transition-all" style="focus:ring-color:{accent}">
-          <input type="email" placeholder="Email" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 transition-all">
-          <input type="tel" placeholder="Telefon" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 transition-all">
-          <textarea rows="4" placeholder="Jak możemy pomóc?" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 transition-all"></textarea>
-          <button type="submit" class="w-full py-4 rounded-2xl text-white font-semibold text-sm transition-all hover:scale-[1.02] hover:shadow-xl shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}cc)">Wyślij wiadomość →</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</section>
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-16 reveal"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Kontakt</p>
+<h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif;letter-spacing:-0.02em">Porozmawiajmy</h2></div>
+<div class="reveal grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+<div class="rounded-3xl p-10 text-white relative overflow-hidden" style="background:linear-gradient(135deg,#111,#333)">
+<div class="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-30" style="background:{accent}"></div>
+<h3 class="text-2xl font-bold mb-6 relative z-10">Dane kontaktowe</h3>
+<div class="space-y-5 relative z-10">
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:{accent}30">{ICONS["map_pin"][:70]}</div><div><p class="font-medium">{addr}</p><p class="text-white/50 text-sm mt-1">Dojazd: mapa poniżej</p></div></div>
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:{accent}30">{ICONS["phone"][:70]}</div><div><a href="tel:{phone}" class="font-medium hover:underline">{phone}</a><p class="text-white/50 text-sm mt-1">Zadzwoń — odbierzemy</p></div></div>
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:{accent}30">{ICONS["clock"][:70]}</div><div><p class="font-medium">Pon-Sob: 10:00 - 22:00</p><p class="text-white/50 text-sm mt-1">Niedziela: 12:00 - 20:00</p></div></div>
+</div></div>
+<div class="bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
+<h3 class="text-xl font-bold mb-6">Napisz do nas</h3>
+<form class="space-y-4">
+<input type="text" placeholder="Twoje imię" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all" style="--tw-ring-color:{accent}">
+<input type="email" placeholder="Email" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all" style="--tw-ring-color:{accent}">
+<input type="tel" placeholder="Telefon" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all" style="--tw-ring-color:{accent}">
+<textarea rows="4" placeholder="Jak możemy pomóc?" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all" style="--tw-ring-color:{accent}"></textarea>
+<button type="submit" class="w-full py-4 rounded-2xl text-white font-semibold text-sm transition-all hover:scale-[1.02] hover:shadow-xl shadow-lg flex items-center justify-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}aa)">Wyślij wiadomość {ICONS["send"][:50]}</button>
+</form></div></div></div></div></section>
 
-<!-- FOOTER -->
 <footer class="border-t border-gray-100 py-10 px-6 bg-white">
-  <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background:linear-gradient(135deg,{accent},{accent}cc)">{safe_bn[0]}</div>
-      <span class="font-semibold text-sm">{safe_bn}</span>
-    </div>
-    <p class="text-sm text-gray-400">© {year} {safe_bn}. Wszelkie prawa zastrzeżone.</p>
-    <div class="flex items-center gap-6 text-sm text-gray-500">
-      <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
-      <a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
-      <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a>
-    </div>
-  </div>
-</footer>
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background:linear-gradient(135deg,{accent},{accent}aa)">{safe[0]}</div><span class="font-semibold text-sm">{safe}</span></div>
+<p class="text-sm text-gray-400">© {year} {safe}. Wszelkie prawa zastrzeżone.</p>
+<div class="flex items-center gap-6 text-sm text-gray-500">
+<a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
+<a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
+<a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></div></div></footer>
 
 <script>
-const observer = new IntersectionObserver((entries) => {{
-  entries.forEach(e => {{ if(e.isIntersecting) {{ e.target.classList.add('visible'); observer.unobserve(e.target); }} }});
-}}, {{threshold: 0.1}});
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-// Smooth parallax on scroll
-window.addEventListener('scroll', () => {{
-  const scrolled = window.pageYOffset;
-  document.querySelectorAll('.hero-gradient > div').forEach(el => {{
-    el.style.transform = `translateY(${{scrolled * 0.15}}px)`;
-  }});
-}});
+const o=new IntersectionObserver(e=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('visible');o.unobserve(x.target)}}}})}},{{threshold:.1}});
+document.querySelectorAll('.reveal').forEach(el=>o.observe(el));
 </script>
-</body>
-</html>'''
+</body></html>'''
 
-    return {
-        "files": {
-            "main/frontend/preview.html": preview_html,
-        },
-        "meta": {
-            "title": title,
-            "headline": headline,
-            "subheadline": (data.description[:120] if data.description else "Strona stworzona przez SiteMorph AI"),
-            "ctaText": "Skontaktuj się"
-        }
-    }
+    return {"files": {"main/frontend/preview.html": html}, "meta": {"title": title, "headline": bn, "subheadline": desc[:120], "ctaText": "Skontaktuj się"}}
 
 @router.post("/generate")
 def generate_site(data: BuilderInput):
