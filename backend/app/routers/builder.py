@@ -276,9 +276,9 @@ KLUCZOWE ZASADY DLA preview.html:
 
 
 def fallback_content(data: BuilderInput):
-    """Fallback — multiple varied layouts, randomly picked per generation."""
-    import random, hashlib
-    
+    """Clean professional fallback — looks like a real designer made it."""
+    import random
+
     src = (data.extraPrompt or "") + " " + (data.description or "")
     def _extract(pattern, default=None):
         m = re.search(pattern, src, re.I | re.S)
@@ -286,7 +286,6 @@ def fallback_content(data: BuilderInput):
         try: return (m.group(1) if m.lastindex else m.group(0)).strip()
         except: return m.group(0).strip()
 
-    # Extract data
     m2 = re.search(r'dla firmy\s*["„"]([^"""]+)[""""]', src, re.I)
     if m2 and len(m2.group(1).strip()) > 2 and "Branż" not in m2.group(1):
         bn = m2.group(1).strip()
@@ -317,180 +316,147 @@ def fallback_content(data: BuilderInput):
     is_beauty = any(k in niche_l for k in ["beauty","kosmetolog","salon urod","spa","manicure","paznokci"])
     is_gym = any(k in niche_l for k in ["siłowni","fitness","gym","crossfit"])
 
-    # Pick images per niche
+    # Niche-specific data
     if is_rest:
         hero_img = random.choice(["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80","https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80","https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80","https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80","https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"]
-        items = [("Kurczaki","Smażone i grillowane, zawsze świeże.","od 18 zł"),("Ziemniaki","Pieczona, smażone — idealny dodatek.","od 12 zł"),("Kebab","Klasyczny, w bułce, na talerzu.","od 20 zł")]
-        prices = [("Kurczak + ziemniaki","25 zł"),("Kebab w bułce","22 zł"),("Grillowany + sałatka","28 zł"),("Zestaw rodzinny","89 zł")]
+        svc = [("Kurczaki","Smażone, grillowane, w panierce — zawsze świeże i chrupkie.","od 18 zł",imgs[0],"utensils"),("Ziemniaki","Pieczona, smażone — idealny dodatek do każdego dania.","od 12 zł",imgs[1],"flame"),("Kebab","Klasyczny, w bułce, na talerzu — z surówką i sosem do wyboru.","od 20 zł",imgs[2],"star")]
+        prices = [("Kurczak smażony + ziemniaki","25 zł"),("Kebab w bułce z surówką","22 zł"),("Kurczak grillowany + sałatka","28 zł"),("Zestaw rodzinny (4 os.)","89 zł"),("Ziemniaki pieczone + sos","15 zł"),("Napój / Surówka","5-8 zł")]
     elif is_barber:
         hero_img = random.choice(["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"]
-        items = [("Strzyżenie","Klasyczne i nowoczesne fryzury.","od 50 zł"),("Golenie brody","Golenie brzytwą, pełny rytuał.","od 40 zł"),("Pakiet complete","Strzyżenie + golenie + stylizacja.","od 80 zł")]
+        svc = [("Strzyżenie","Klasyczne i nowoczesne fryzury. Doradztwo w cenie.","od 50 zł",imgs[0],"scissors"),("Golenie brody","Golenie brzytwą, balsam, ręcznik gorący.","od 40 zł",imgs[1],"sparkles"),("Pakiet complete","Strzyżenie + golenie + stylizacja.","od 80 zł",imgs[2],"star")]
         prices = [("Strzyżenie męskie","50 zł"),("Golenie brzytwą","40 zł"),("Strzyżenie + golenie","80 zł"),("Trymowanie brody","30 zł")]
     else:
         hero_img = random.choice(["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80","https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80","https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"]
-        items = [("Szybka realizacja","Projekt gotowy w 48h, poprawki w cenie.","od 500 zł"),("Kompleksowo","Od pomysłu do produktu, jeden kontakt.","od 1 200 zł"),("Premium","Wszystko + wsparcie przez rok.","od 2 500 zł")]
-        prices = [("Pakiet podstawowy","500 zł"),("Pakiet rozbudowany","1 200 zł"),("Pakiet premium","2 500 zł"),("Konsultacja","150 zł")]
+        svc = [("Szybka realizacja","Projekt gotowy w 48h. Poprawki bez dopłat, pełna satysfakcja.","od 500 zł",imgs[0],"zap"),("Kompleksowa obsługa","Od pomysłu do gotowego produktu. Jeden kontakt, zero stresu.","od 1 200 zł",imgs[1],"sparkles"),("Premium pakiet","Wszystko + wsparcie techniczne i aktualizacje przez rok.","od 2 500 zł",imgs[2],"shield")]
+        prices = [("Pakiet podstawowy","500 zł"),("Pakiet rozbudowany","1 200 zł"),("Pakiet premium","2 500 zł"),("Konsultacja (1h)","150 zł")]
 
-    # SVG icons
-    svg = {
-        'utensils': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
-        'scissors': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
-        'zap': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-        'star': '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
-        'phone': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-        'pin': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
-        'clock': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-        'send': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
-        'arrow': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
-        'check': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
-        'sparkle': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
-        'heart': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
-        'flame': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
-        'shield': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
-        'smile': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
-    }
+    # Lucide icon names → HTML icons
+    svc_cards = ""
+    for nm, ds, pr, img, icon in svc:
+        svc_cards += f'''<div class="group">
+        <div class="aspect-[4/3] rounded-xl overflow-hidden mb-4"><img src="{img}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"></div>
+        <div class="flex items-center gap-2.5 mb-2"><i data-lucide="{icon}" class="w-5 h-5" style="color:{accent}"></i><h3 class="font-semibold text-[15px]">{nm}</h3></div>
+        <p class="text-gray-500 text-sm leading-relaxed mb-2">{ds}</p>
+        <span class="text-sm font-semibold" style="color:{accent}">{pr}</span></div>'''
 
-    svc_icon = svg['utensils'] if is_rest else svg['scissors'] if is_barber else svg['zap']
+    price_rows = ""
+    for n, p in prices:
+        price_rows += f'<div class="flex justify-between items-center py-4 border-b border-gray-100 last:border-0"><span class="text-gray-600 text-[15px]">{n}</span><span class="font-semibold" style="color:{accent}">{p}</span></div>'
 
-    # Pick 3 random review texts
-    review_pool = [
-        ("Najlepsze w okolicy! Polecam każdemu.","Marek K.","MK"),
-        ("Chodzę tu co tydzień. Ceny przystępne.","Anna N.","AN"),
-        ("Szybko, smacznie, w dobrej cenie. Polecam!","Jan P.","JP"),
-        ("Super obsługa, wrócę na pewno!","Kasia W.","KW"),
-        ("Genialne jedzenie,_ZERO zastrzeżeń.","Tomek R.","TR"),
+    rev_cards = ""
+    names = [("Marek K.","MK"),("Anna N.","AN"),("Jan P.","JP")]
+    texts = [
+        "Najlepsze jedzenie w okolicy! Soczyste kurczaki, chrupkie ziemniaki. Chodzę tu co tydzień.",
+        "Porcje duże, ceny przystępne, obsługa mega miła. Zestaw rodzinny to strzał w dziesiątkę.",
+        "Dobra lokalizacja, szybka obsługa. Kebab zawsze na czas. Polecam każdemu!"
     ]
-    chosen_reviews = random.sample(review_pool, 3)
+    for (nm, ini), txt in zip(names, texts):
+        rev_cards += f'''<div class="bg-gray-50 rounded-xl p-6">
+        <div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div>
+        <p class="text-gray-600 text-sm leading-relaxed mb-4">"{txt}"</p>
+        <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'''
 
-    # ===== LAYOUT 1: SPLIT HERO =====
-    def layout_split():
-        svc_cards = ""
-        for i, (nm, ds, pr) in enumerate(items):
-            ic = [svg['flame'], svg['heart'], svg['star']][i]
-            svc_cards += f'''<div class="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-50">
-            <div class="h-48 overflow-hidden"><img src="{imgs[i]}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></div>
-            <div class="p-6"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background:{accent}12;color:{accent}">{ic}</div><h3 class="text-xl font-bold">{nm}</h3></div>
-            <p class="text-gray-500 text-sm mb-4 leading-relaxed">{ds}</p>
-            <span class="font-bold text-lg" style="color:{accent}">{pr}</span></div></div>'''
+    # Build clean HTML
+    html = f'''<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}
+body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6}}
+.fade-up{{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}}
+.fade-up.visible{{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
 
-        price_rows = "".join(f'<div class="bg-white rounded-2xl p-5 flex justify-between items-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"><span class="font-medium text-gray-700">{n}</span><span class="font-bold text-lg" style="color:{accent}">{p}</span></div>' for n, p in prices)
+<!-- Header -->
+<header class="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100">
+<div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style="background:{accent}">{safe[0]}</div>
+<span class="font-semibold text-sm">{safe}</span></div>
+<nav class="hidden md:flex items-center gap-7 text-sm text-gray-500">
+<a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
+<a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
+<a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
+<a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav>
+<a href="tel:{phone}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}"><i data-lucide="phone" class="w-3.5 h-3.5"></i>Zadzwoń</a></div></header>
 
-        rev_cards = ""
-        for txt, nm, ini in chosen_reviews:
-            rev_cards += f'''<div class="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 hover:shadow-lg transition-all">
-            <div class="flex items-center gap-0.5 text-yellow-400 mb-3">{svg["star"]}{svg["star"]}{svg["star"]}{svg["star"]}{svg["star"]}</div>
-            <p class="text-gray-700 text-sm italic leading-relaxed mb-5">"{txt}"</p>
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs text-white" style="background:linear-gradient(135deg,{accent},{accent}bb)">{ini}</div><div><p class="font-bold text-sm">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'''
+<!-- Hero -->
+<section class="pt-24 pb-16 md:pt-32 md:pb-24">
+<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+<div class="fade-up">
+<div class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-5"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</div>
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{bn}</h1>
+<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{desc}</p>
+<div class="flex flex-wrap gap-3 mb-8">
+<a href="#kontakt" class="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+<a href="#oferta" class="px-5 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors">Zobacz ofertę</a></div>
+<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews} opinii na Google</span></div></div>
+<div class="fade-up relative">
+<div class="aspect-[4/5] rounded-2xl overflow-hidden"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"></div>
+<div class="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 border border-gray-100">
+<div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i></div>
+<div><p class="text-xs font-medium">Otwarte teraz</p><p class="text-xs text-gray-400">Pon-Sob 10:00-22:00</p></div></div></div></div></section>
 
-        return f'''<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{title}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-        <script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={{theme:{{extend:{{fontFamily:{{display:["Playfair Display","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
-        <style>*{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}body{{font-family:'Inter',sans-serif;background:#fafafa;color:#1a1a1a;overflow-x:hidden}}.r{{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.16,1,.3,1)}}.r.v{{opacity:1;transform:translateY(0)}}</style></head><body>
-        <header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-white/20"><div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}bb)">{safe[0:2]}</div><span class="font-bold">{safe}</span></div>
-        <nav class="hidden md:flex gap-8 text-sm font-medium text-gray-600"><a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a><a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a><a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a><a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav>
-        <a href="tel:{phone}" class="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold transition-all hover:scale-105 shadow-lg flex items-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}bb)">{svg["phone"]} Zadzwoń</a></div></header>
-        <section class="min-h-screen flex items-center pt-16" style="background:linear-gradient(135deg,{accent}08,{accent}15,{accent}05)"><div class="max-w-7xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center">
-        <div class="r"><div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-gray-100 text-xs font-semibold mb-8"><span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span><span style="color:{accent}">{niche}</span> · <span>{addr}</span></div>
-        <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] mb-8" style="font-family:'Playfair Display',serif;letter-spacing:-0.03em">{bn}</h1>
-        <p class="text-lg text-gray-600 mb-10 max-w-lg leading-relaxed">{desc}</p>
-        <div class="flex flex-wrap gap-4 mb-10"><a href="#kontakt" class="px-8 py-4 rounded-2xl text-white font-semibold transition-all hover:scale-105 hover:shadow-xl shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}bb)">Skontaktuj się</a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 font-semibold transition-all hover:border-gray-400">Zobacz ofertę</a></div>
-        <div class="flex items-center gap-3">{svg["star"]}<span class="font-bold">{rating}</span><span class="text-gray-400 text-sm">· {reviews} opinii</span></div></div>
-        <div class="r relative"><div class="absolute -inset-4 rounded-3xl opacity-20 blur-xl" style="background:linear-gradient(135deg,{accent}40,transparent)"></div>
-        <div class="relative rounded-3xl overflow-hidden shadow-2xl group"><img src="{hero_img}" alt="{safe}" class="w-full h-[420px] md:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700">
-        <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent"><div class="flex items-center justify-between"><div><p class="text-white/70 text-xs">{addr}</p><p class="text-white font-bold mt-1">{phone}</p></div><span class="px-4 py-2 rounded-full bg-green-500 text-white text-xs font-bold">Otwarte</span></div></div></div></div></div></section>
-        <section id="oferta" class="py-24 px-6 bg-white"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Oferta</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Co mamy dla Ciebie</h2></div><div class="r grid md:grid-cols-3 gap-8">{svc_cards}</div></div></section>
-        <section id="cennik" class="py-24 px-6" style="background:#f8fafc"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Cennik</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Ile to kosztuje</h2></div><div class="r max-w-2xl mx-auto space-y-3">{price_rows}</div></div></section>
-        <section id="opinie" class="py-24 px-6 bg-white"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Opinie</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Co mówią klienci</h2></div><div class="r grid md:grid-cols-3 gap-8">{rev_cards}</div></div></section>
-        <section id="kontakt" class="py-24 px-6" style="background:#f8fafc"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Kontakt</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Porozmawiajmy</h2></div>
-        <div class="r grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
-        <div class="rounded-3xl p-10 text-white relative overflow-hidden" style="background:linear-gradient(135deg,#111,#333)"><div class="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-30" style="background:{accent}"></div>
-        <h3 class="text-2xl font-bold mb-6 relative z-10">Dane kontaktowe</h3>
-        <div class="space-y-5 relative z-10">
-        <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:{accent}30">{svg["pin"]}</div><div><p class="font-medium">{addr}</p><p class="text-white/50 text-sm mt-1">Dojazd: mapa</p></div></div>
-        <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:{accent}30">{svg["phone"]}</div><div><a href="tel:{phone}" class="font-medium hover:underline">{phone}</a><p class="text-white/50 text-sm mt-1">Zadzwoń</p></div></div>
-        <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:{accent}30">{svg["clock"]}</div><div><p class="font-medium">Pon-Sob: 10:00-22:00</p><p class="text-white/50 text-sm mt-1">Niedziela: 12:00-20:00</p></div></div></div></div>
-        <div class="bg-white rounded-3xl p-10 shadow-lg border border-gray-100"><h3 class="text-xl font-bold mb-6">Napisz do nas</h3>
-        <form class="space-y-4"><input type="text" placeholder="Imię" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"><input type="email" placeholder="Email" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"><input type="tel" placeholder="Telefon" class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"><textarea rows="4" placeholder="Wiadomość..." class="w-full px-5 py-3.5 rounded-2xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"></textarea><button type="submit" class="w-full py-4 rounded-2xl text-white font-semibold text-sm transition-all hover:scale-[1.02] hover:shadow-xl shadow-lg flex items-center justify-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}bb)">Wyślij {svg["send"]}</button></form></div></div></div></section>
-        <footer class="border-t border-gray-100 py-10 px-6 bg-white"><div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6"><p class="text-sm text-gray-400">© {year} {safe}</p><div class="flex items-center gap-6 text-sm text-gray-500"><a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a><a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a><a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></div></div></footer>
-        <script>const o=new IntersectionObserver(e=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('v');o.unobserve(x.target)}}}})}},{{threshold:.1}});document.querySelectorAll('.r').forEach(el=>o.observe(el));</script></body></html>'''
+<!-- Oferta -->
+<section id="oferta" class="py-16 md:py-24 bg-gray-50">
+<div class="max-w-6xl mx-auto px-6">
+<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Nasza oferta</h2><p class="text-gray-500 mt-2">Sprawdź co dla Ciebie przygotowaliśmy.</p></div>
+<div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-8">{svc_cards}</div></div></section>
 
-    # ===== LAYOUT 2: FULL-SCREEN DARK =====
-    def layout_dark():
-        svc_cards = ""
-        for i, (nm, ds, pr) in enumerate(items):
-            svc_cards += f'''<div class="group bg-white/5 backdrop-blur rounded-3xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-500 hover:-translate-y-1">
-            <h3 class="text-xl font-bold mb-3 text-white">{nm}</h3><p class="text-white/60 text-sm leading-relaxed mb-4">{ds}</p><span class="font-bold text-lg" style="color:{accent}">{pr}</span></div>'''
+<!-- Cennik -->
+<section id="cennik" class="py-16 md:py-24">
+<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-start">
+<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Cennik</h2><p class="text-gray-500 mt-2 mb-6">Przejrzyste ceny bez ukrytych kosztów.</p>
+<div class="flex items-center gap-3 text-sm text-gray-500"><i data-lucide="phone" class="w-4 h-4" style="color:{accent}"></i><span>Pytaj o wycenę: <a href="tel:{phone}" class="font-medium" style="color:{accent}">{phone}</a></span></div></div>
+<div class="fade-up bg-gray-50 rounded-2xl p-6 md:p-8">{price_rows}</div></div></section>
 
-        rev_cards = ""
-        for txt, nm, ini in chosen_reviews:
-            rev_cards += f'''<div class="bg-white/5 backdrop-blur rounded-3xl p-7 border border-white/10"><div class="flex items-center gap-0.5 text-yellow-400 mb-3">{svg["star"]}{svg["star"]}{svg["star"]}{svg["star"]}{svg["star"]}</div><p class="text-white/80 text-sm italic leading-relaxed mb-5">"{txt}"</p><p class="font-bold text-sm text-white">{nm}</p><p class="text-xs text-white/40">Klient</p></div>'''
+<!-- Opinie -->
+<section id="opinie" class="py-16 md:py-24 bg-gray-50">
+<div class="max-w-6xl mx-auto px-6">
+<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Opinie klientów</h2><p class="text-gray-500 mt-2">Co mówią o nas nasi klienci.</p></div>
+<div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{rev_cards}</div></div></section>
 
-        price_rows = "".join(f'<div class="flex justify-between items-center py-4 border-b border-white/10"><span class="text-white/80">{n}</span><span class="font-bold" style="color:{accent}">{p}</span></div>' for n, p in prices)
+<!-- Kontakt -->
+<section id="kontakt" class="py-16 md:py-24">
+<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
+<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Kontakt</h2><p class="text-gray-500 mb-8">Napisz do nas lub zadzwoń — odpowiadamy tego samego dnia.</p>
+<div class="space-y-5">
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="map-pin" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją</p></div></div>
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="phone" class="w-5 h-5 text-gray-600"></i></div><div><a href="tel:{phone}" class="font-medium text-sm hover:underline" style="color:{accent}">{phone}</a><p class="text-gray-400 text-xs mt-0.5">Pon-Pt 8:00-18:00</p></div></div>
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">Pon-Sob: 10:00 - 22:00</p><p class="text-gray-400 text-xs mt-0.5">Niedziela: 12:00 - 20:00</p></div></div></div></div>
+<div class="fade-up"><form class="bg-gray-50 rounded-2xl p-6 md:p-8 space-y-4">
+<div><label class="block text-xs font-medium text-gray-600 mb-1.5">Imię</label><input type="text" placeholder="Jan Kowalski" class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0" style="--tw-ring-color:{accent}"></div>
+<div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-medium text-gray-600 mb-1.5">Email</label><input type="email" placeholder="jan@firma.pl" class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0" style="--tw-ring-color:{accent}"></div>
+<div><label class="block text-xs font-medium text-gray-600 mb-1.5">Telefon</label><input type="tel" placeholder="+48 123 456 789" class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0" style="--tw-ring-color:{accent}"></div></div>
+<div><label class="block text-xs font-medium text-gray-600 mb-1.5">Wiadomość</label><textarea rows="4" placeholder="W czym możemy pomóc?" class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0" style="--tw-ring-color:{accent}"></textarea></div>
+<button type="submit" class="w-full py-2.5 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}">Wyślij wiadomość</button></form></div></div></section>
 
-        return f'''<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{title}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-        <script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={{theme:{{extend:{{fontFamily:{{display:["Playfair Display","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
-        <style>*{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}body{{font-family:'Inter',sans-serif;background:#0a0a0a;color:#fff;overflow-x:hidden}}.r{{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.16,1,.3,1)}}.r.v{{opacity:1;transform:translateY(0)}}</style></head><body>
-        <header class="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-xl border-b border-white/10"><div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm" style="background:linear-gradient(135deg,{accent},{accent}bb)">{safe[0:2]}</div><span class="font-bold">{safe}</span></div>
-        <nav class="hidden md:flex gap-8 text-sm font-medium text-white/60"><a href="#oferta" class="hover:text-white transition-colors">Oferta</a><a href="#cennik" class="hover:text-white transition-colors">Cennik</a><a href="#kontakt" class="hover:text-white transition-colors">Kontakt</a></nav>
-        <a href="tel:{phone}" class="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold transition-all hover:scale-105 flex items-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}bb)">{svg["phone"]} Zadzwoń</a></div></header>
-        <section class="min-h-screen flex items-center relative overflow-hidden"><img src="{hero_img}" alt="{safe}" class="absolute inset-0 w-full h-full object-cover opacity-30"><div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-[#0a0a0a]"></div>
-        <div class="max-w-7xl mx-auto px-6 py-32 relative z-10 text-center"><div class="r">
-        <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur text-xs font-semibold mb-8 border border-white/10"><span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span><span style="color:{accent}">{niche}</span> · {addr}</div>
-        <h1 class="text-6xl md:text-8xl lg:text-9xl font-bold leading-[0.85] mb-8" style="font-family:'Playfair Display',serif;letter-spacing:-0.03em">{bn}</h1>
-        <p class="text-xl text-white/70 mb-12 max-w-2xl mx-auto leading-relaxed">{desc}</p>
-        <div class="flex flex-wrap gap-4 justify-center mb-12"><a href="#kontakt" class="px-10 py-4 rounded-2xl text-white font-semibold text-lg transition-all hover:scale-105 shadow-2xl" style="background:linear-gradient(135deg,{accent},{accent}bb)">Skontaktuj się</a><a href="#oferta" class="px-10 py-4 rounded-2xl border-2 border-white/20 font-semibold text-lg transition-all hover:bg-white/10">Zobacz ofertę</a></div>
-        <div class="flex items-center gap-3 justify-center">{svg["star"]}<span class="font-bold text-lg">{rating}</span><span class="text-white/50">· {reviews} opinii</span></div></div></div></section>
-        <section id="oferta" class="py-24 px-6"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Oferta</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Co oferujemy</h2></div><div class="r grid md:grid-cols-3 gap-8">{svc_cards}</div></div></section>
-        <section id="cennik" class="py-24 px-6" style="background:#111"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Cennik</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Cennik</h2></div><div class="r max-w-2xl mx-auto">{price_rows}</div></div></section>
-        <section id="opinie" class="py-24 px-6"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Opinie</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Opinie klientów</h2></div><div class="r grid md:grid-cols-3 gap-8">{rev_cards}</div></div></section>
-        <section id="kontakt" class="py-24 px-6" style="background:#111"><div class="max-w-7xl mx-auto"><div class="text-center mb-16 r"><p class="text-xs uppercase tracking-[0.2em] font-bold mb-4" style="color:{accent}">Kontakt</p><h2 class="text-4xl md:text-6xl font-bold" style="font-family:'Playfair Display',serif">Napisz do nas</h2></div>
-        <div class="r max-w-2xl mx-auto"><form class="space-y-4"><input type="text" placeholder="Imię" class="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 placeholder:text-white/30" style="--tw-ring-color:{accent}"><input type="email" placeholder="Email" class="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 placeholder:text-white/30" style="--tw-ring-color:{accent}"><input type="tel" placeholder="Telefon" class="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 placeholder:text-white/30" style="--tw-ring-color:{accent}"><textarea rows="4" placeholder="Wiadomość..." class="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm resize-none focus:outline-none focus:ring-2 placeholder:text-white/30" style="--tw-ring-color:{accent}"></textarea><button type="submit" class="w-full py-4 rounded-2xl text-white font-semibold transition-all hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2" style="background:linear-gradient(135deg,{accent},{accent}bb)">Wyślij {svg["send"]}</button></form></div></div></section>
-        <footer class="border-t border-white/10 py-10 px-6"><div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6"><p class="text-sm text-white/40">© {year} {safe}</p><div class="flex items-center gap-6 text-sm text-white/40"><a href="#oferta" class="hover:text-white transition-colors">Oferta</a><a href="#cennik" class="hover:text-white transition-colors">Cennik</a><a href="#kontakt" class="hover:text-white transition-colors">Kontakt</a></div></div></footer>
-        <script>const o=new IntersectionObserver(e=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('v');o.unobserve(x.target)}}}})}},{{threshold:.1}});document.querySelectorAll('.r').forEach(el=>o.observe(el));</script></body></html>'''
+<!-- Footer -->
+<footer class="border-t border-gray-100 py-8">
+<div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+<p class="text-sm text-gray-400">© {year} {safe}. Wszelkie prawa zastrzeżone.</p>
+<div class="flex items-center gap-5 text-sm text-gray-400">
+<a href="#oferta" class="hover:text-gray-700 transition-colors">Oferta</a>
+<a href="#cennik" class="hover:text-gray-700 transition-colors">Cennik</a>
+<a href="#kontakt" class="hover:text-gray-700 transition-colors">Kontakt</a></div></div></footer>
 
-    # ===== LAYOUT 3: MINIMAL CENTER =====
-    def layout_minimal():
-        svc_cards = ""
-        for i, (nm, ds, pr) in enumerate(items):
-            ic = [svg['flame'], svg['heart'], svg['star']][i]
-            svc_cards += f'''<div class="text-center p-8 r"><div class="w-16 h-16 rounded-full mx-auto mb-5 flex items-center justify-center" style="background:{accent}12;color:{accent}">{ic}</div><h3 class="text-xl font-bold mb-3">{nm}</h3><p class="text-gray-500 text-sm mb-4 max-w-xs mx-auto">{ds}</p><span class="font-bold" style="color:{accent}">{pr}</span></div>'''
-
-        price_rows = "".join(f'<div class="flex justify-between items-center py-5 border-b border-gray-100"><span class="text-gray-700 font-medium">{n}</span><span class="font-bold text-lg" style="color:{accent}">{p}</span></div>' for n, p in prices)
-
-        rev_cards = ""
-        for txt, nm, ini in chosen_reviews:
-            rev_cards += f'''<div class="text-center p-8 r"><div class="flex items-center gap-0.5 text-yellow-400 justify-center mb-4">{svg["star"]}{svg["star"]}{svg["star"]}{svg["star"]}{svg["star"]}</div><p class="text-gray-600 italic text-sm leading-relaxed mb-5 max-w-sm mx-auto">"{txt}"</p><p class="font-bold text-sm">{nm}</p><p class="text-xs text-gray-400">Klient</p></div>'''
-
-        return f'''<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{title}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-        <script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={{theme:{{extend:{{fontFamily:{{display:["Playfair Display","serif"],sans:["Inter","sans-serif"]}}}}}}}}</script>
-        <style>*{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}body{{font-family:'Inter',sans-serif;background:#fff;color:#1a1a1a;overflow-x:hidden}}.r{{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.16,1,.3,1)}}.r.v{{opacity:1;transform:translateY(0)}}</style></head><body>
-        <header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100"><div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-        <span class="font-bold text-lg">{safe}</span>
-        <nav class="flex gap-8 text-sm font-medium text-gray-500"><a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a><a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a><a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav></div></header>
-        <section class="min-h-screen flex items-center justify-center text-center px-6 pt-16"><div class="max-w-3xl r">
-        <p class="text-xs uppercase tracking-[0.3em] font-semibold mb-6" style="color:{accent}">{niche}</p>
-        <h1 class="text-6xl md:text-8xl font-bold leading-[0.9] mb-8" style="font-family:'Playfair Display',serif;letter-spacing:-0.03em">{bn}</h1>
-        <p class="text-xl text-gray-500 mb-12 max-w-xl mx-auto leading-relaxed">{desc}</p>
-        <div class="flex flex-wrap gap-4 justify-center"><a href="#kontakt" class="px-8 py-4 rounded-2xl text-white font-semibold transition-all hover:scale-105 shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}bb)">Skontaktuj się</a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 font-semibold transition-all hover:border-gray-400">Zobacz ofertę</a></div></div></section>
-        <section id="oferta" class="py-32 px-6"><div class="max-w-5xl mx-auto"><div class="text-center mb-20 r"><h2 class="text-4xl md:text-5xl font-bold" style="font-family:'Playfair Display',serif">Co oferujemy</h2></div><div class="grid md:grid-cols-3 gap-12">{svc_cards}</div></div></section>
-        <section id="cennik" class="py-32 px-6 bg-gray-50"><div class="max-w-5xl mx-auto"><div class="text-center mb-20 r"><h2 class="text-4xl md:text-5xl font-bold" style="font-family:'Playfair Display',serif">Cennik</h2></div><div class="r max-w-xl mx-auto">{price_rows}</div></div></section>
-        <section id="opinie" class="py-32 px-6"><div class="max-w-5xl mx-auto"><div class="text-center mb-20 r"><h2 class="text-4xl md:text-5xl font-bold" style="font-family:'Playfair Display',serif">Opinie</h2></div><div class="grid md:grid-cols-3 gap-12">{rev_cards}</div></div></section>
-        <section id="kontakt" class="py-32 px-6 bg-gray-50"><div class="max-w-5xl mx-auto"><div class="text-center mb-16 r"><h2 class="text-4xl md:text-5xl font-bold" style="font-family:'Playfair Display',serif">Kontakt</h2></div>
-        <div class="r max-w-xl mx-auto"><form class="space-y-4"><input type="text" placeholder="Imię" class="w-full px-6 py-4 rounded-2xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"><input type="email" placeholder="Email" class="w-full px-6 py-4 rounded-2xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"><input type="tel" placeholder="Telefon" class="w-full px-6 py-4 rounded-2xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"><textarea rows="4" placeholder="Wiadomość..." class="w-full px-6 py-4 rounded-2xl bg-white border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2" style="--tw-ring-color:{accent}"></textarea><button type="submit" class="w-full py-4 rounded-2xl text-white font-semibold transition-all hover:scale-[1.02] shadow-lg" style="background:linear-gradient(135deg,{accent},{accent}bb)">Wyślij wiadomość</button></form></div>
-        <div class="mt-12 text-center r"><p class="text-gray-500 text-sm">{addr}</p><a href="tel:{phone}" class="font-bold mt-2 inline-flex items-center gap-2" style="color:{accent}">{svg["phone"]} {phone}</a></div></div></section>
-        <footer class="border-t border-gray-100 py-10 px-6 text-center"><p class="text-sm text-gray-400">© {year} {safe}</p></footer>
-        <script>const o=new IntersectionObserver(e=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('v');o.unobserve(x.target)}}}})}},{{threshold:.1}});document.querySelectorAll('.r').forEach(el=>o.observe(el));</script></body></html>'''
-
-    # Pick layout randomly
-    layouts = [layout_split, layout_dark, layout_minimal]
-    html = random.choice(layouts)()
+<script>
+lucide.createIcons();
+const o=new IntersectionObserver(e=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('visible');o.unobserve(x.target)}}}})}},{{threshold:.15}});
+document.querySelectorAll('.fade-up').forEach(el=>o.observe(el));
+</script>
+</body></html>'''
 
     return {"files": {"main/frontend/preview.html": html}, "meta": {"title": title, "headline": bn, "subheadline": desc[:120], "ctaText": "Skontaktuj się"}}
 
