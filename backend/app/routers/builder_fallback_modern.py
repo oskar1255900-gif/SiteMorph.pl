@@ -1,306 +1,407 @@
+"""
+4 radically different visual templates. Wizard choices drive the design.
+"""
 import re
 import time
+import random
 
 
 def fallback_content(data):
-    """Modern 2024 fallback — gradients, glassmorphism, smooth animations."""
-    import random
-
     src = (data.extraPrompt or "") + " " + (data.description or "")
+
     def _extract(pattern, default=None):
         m = re.search(pattern, src, re.I | re.S)
-        if not m: return default
-        try: return (m.group(1) if m.lastindex else m.group(0)).strip()
-        except: return m.group(0).strip()
+        if not m:
+            return default
+        try:
+            return (m.group(1) if m.lastindex else m.group(0)).strip()
+        except:
+            return m.group(0).strip()
 
-    m2 = re.search(r'dla firmy\s*["„"]([^"""]+)[""""]', src, re.I)
-    bn = m2.group(1).strip() if m2 and len(m2.group(1).strip()) > 2 and "Branż" not in m2.group(1) else (data.business_name or "Twoja Firma")
-    if bn.lower() in ("restauracja","kawiarnia","piekarnia","barber","salon","siłownia","warsztat"):
-        ef = (data.extraPrompt or "").split("\n")[0][:60] if data.extraPrompt else ""
-        if ef and len(ef) > 3: bn = ef
+    m2 = re.search(r'dla firmy\s*[""]([^""]+)[""]', src, re.I)
+    if m2 and len(m2.group(1).strip()) > 2:
+        bn = m2.group(1).strip()
+    else:
+        bn = data.business_name or "Twoja Firma"
+        if bn.lower() in ("restauracja", "kawiarnia", "piekarnia", "barber", "salon"):
+            ef = (data.extraPrompt or "").split("\n")[0][:60] if data.extraPrompt else ""
+            if ef and len(ef) > 3:
+                bn = ef
 
-    parsed_addr = _extract(r'(?:ul\.?\s*)?[A-ZĄ-ź][a-zą-ź\s]+\s+\d+[a-z]?[/\s]*\d*-?\d*\s*[Łódź]')
-    if not parsed_addr: parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-ZĄ-ź][a-zą-ź]+')
+    parsed_addr = _extract(r'\d{2}-\d{3}\s+[A-Z][a-z]+')
     parsed_phone = _extract(r'(?:\+?48[\s-]?)?\d{3}[\s-]?\d{3}[\s-]?\d{3}')
-    rating_m = re.search(r'(\d[,\.]\d)\s*\((\d+)\)', src)
-    rating = rating_m.group(1).replace(',','.') if rating_m else "4.8"
+    rating_m = re.search(r'(\d[,.]\d)\s*\((\d+)\)', src)
+    rating = rating_m.group(1).replace(',', '.') if rating_m else "4.8"
     reviews_n = rating_m.group(2) if rating_m else "127"
-    niche = data.niche or "Usługi lokalne"
-    title = f"{bn} - {niche}"
+    niche = data.niche or "Uslugi lokalne"
+    title = bn + " - " + niche
     year = time.strftime("%Y")
     safe = (bn or "Site").strip()[:30] or "Site"
-    addr = parsed_addr or "Adres do uzupełnienia"
+    addr = parsed_addr or "Adres do uzupelnienia"
     phone = parsed_phone or "+48 000 000 000"
 
-    # Use wizard accent if provided, otherwise random
     ACCENT_MAP = {
         "Niebieski #2563eb": "#2563eb", "Ciemny/grafit #111827": "#111827",
         "Zloty #d97706": "#d97706", "Zielony #059669": "#059669",
         "Fioletowy #7c3aed": "#7c3aed", "Czerwony #dc2626": "#dc2626",
     }
-    accent = ACCENT_MAP.get(getattr(data, 'accent_color', None) or '', '') or random.choice(["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3","#ea580c","#0d9488","#6366f1","#e11d48"])
-    # 4 different visual styles
-    # Use wizard font to determine visual style
-    FONT_STYLE_MAP = {
-        "Inter + Playfair Display": "editorial",
-        "Inter + Playfair Display (serif)": "editorial",
-        "Inter (sans-serif only)": "color-block",
-        "DM Sans + Fraunces": "editorial",
-        "Space Grotesk + Lora": "dark-bold",
-        "Manrope + Cormorant": "editorial",
-    }
-    visual_style = FONT_STYLE_MAP.get(getattr(data, 'fonts', None) or '', '') or random.choice(["editorial", "dark-bold", "color-block", "brutalist"])
-    # Override visual_style for dark mode layout
-    if layout == "dark":
-        visual_style = "dark-bold"
-    # Use wizard layout if provided
+    accent = ACCENT_MAP.get(getattr(data, "accent_color", None) or "", "") or random.choice(
+        ["#2563eb", "#111827", "#d97706", "#059669", "#7c3aed", "#dc2626", "#0891b2", "#ea580c"])
+
     LAYOUT_MAP = {
         "Split hero (zdjecie po prawej)": "split",
         "Full-screen hero (zdjecie na caly ekran)": "full",
         "Centered (wszystko wyrodkowane)": "centered",
         "Dark mode (ciemne tlo)": "dark",
     }
-    layout = LAYOUT_MAP.get(getattr(data, 'layout', None) or '', '') or random.choice(["split","centered","full","dark"])
-    anim = random.choice(["morph","float","glow","slide"])
+    layout = LAYOUT_MAP.get(getattr(data, "layout", None) or "", "") or random.choice(["split", "full", "centered", "dark"])
+
+    FONT_MAP = {
+        "Inter + Playfair Display": "serif",
+        "Inter + Playfair Display (serif)": "serif",
+        "Inter (sans-serif only)": "clean",
+        "DM Sans + Fraunces": "serif",
+        "Space Grotesk + Lora": "mono",
+        "Manrope + Cormorant": "serif",
+    }
+    vstyle = FONT_MAP.get(getattr(data, "fonts", None) or "", "") or random.choice(["serif", "clean", "mono", "brutalist"])
+    if layout == "dark":
+        vstyle = "mono"
+
+    show = getattr(data, "sections", None) or ["Hero", "Oferta", "Cennik", "Opinie", "Kontakt"]
+    if isinstance(show, str):
+        show = [s.strip() for s in show.split(",")]
 
     niche_l = (niche or "").lower()
-    is_rest = any(k in niche_l for k in ["restaurac","kebab","kurczaki","ziemniaki","jedzenie","food","pizzeria","bistro","kawiarni","cafe"])
-    is_barber = any(k in niche_l for k in ["barber","fryzjer","strzyż","salon fryzj"])
-    is_beauty = any(k in niche_l for k in ["beauty","kosmetolog","salon urod","spa","manicure","paznokci"])
+    is_rest = any(k in niche_l for k in ["restaurac", "kebab", "kurczaki", "ziemniaki", "jedzenie", "food", "pizzeria", "bistro", "kawiarni", "cafe"])
+    is_barber = any(k in niche_l for k in ["barber", "fryzjer", "strzyz", "salon fryzj"])
+    is_beauty = any(k in niche_l for k in ["beauty", "kosmetolog", "salon urod", "spa", "manicure", "paznokci"])
 
-    # Dynamic content pools
     if is_rest:
-        hero_imgs = ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&q=80","https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&q=80","https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1400&q=80"]
-        food_imgs = ["https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80","https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80","https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80","https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80"]
-        svc_pool = [
-            ("Danie dnia","Świeże, sezonowe składniki. Zmienia się codziennie — zawsze jest w czym wybierać.","od 18 zł","utensils"),
-            ("Kurczaki","Smażone na złoto, z surówką i pieczywem. Porcja, po której nie wstaniesz od stołu.","od 16 zł","flame"),
-            ("Kebab","Klasyczny, w bułce lub na talerzu. Trzy sosy do wyboru — każdy inny, każdy dobry.","od 22 zł","star"),
-            ("Zestaw rodzinny","Cztery dania, surówki, napoje. Rodzinny obiad bez gotowania.","od 79 zł","heart"),
-            ("Desery","Domowe ciasta i lody. Słodkie zakończenie, które zapamiętasz.","od 12 zł","sparkles"),
-        ]
-        price_pool = [("Danie dnia","18-22 zł"),("Kebab w bułce","22 zł"),("Kurczak + frytki","25 zł"),("Zestaw rodzinny","79-99 zł"),("Surówka","5-8 zł"),("Napój","4-6 zł"),("Deser","12-18 zł")]
-        headline_pool = ["Jedzenie, do którego się wraca","Smak, który zapamiętasz","Tu się je inaczej","Prawdziwy smak, prawdziwe ceny","Gdzie apetyt rośnie z każdym kęsem","Kęs, który zmieni Twój dzień","Tu nie ma kompromisów — jest smak"]
-        sub_pool = ["Od 15 lat karmimy mieszkańców. Duże porcje, ceny bez niespodzianek.","Świeże składniki codziennie. Zero mrożonek. Przyjdź i sprawdź.","Duże porcje w cenach, które nie przerażają.","Gotujemy jak w domu, tylko lepiej. Przyjdź głodny, wyjdź szczęśliwy."]
+        cta = random.choice(["Zamow teraz", "Sprawdz menu", "Rezerwuj stolik"])
     elif is_barber:
-        hero_imgs = ["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1400&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1400&q=80"]
-        food_imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"]
-        svc_pool = [("Strzyżenie","Dobierzemy fryzurę do Twojej twarzy i stylu życia. Doradztwo gratis.","od 50 zł","scissors"),("Golenie brzytwą","Gorący ręcznik, balsam, brzytwa. Rytuał, który pokochasz.","od 40 zł","sparkles"),("Trymowanie brody","Każdy włosek na swoim miejscu. Precyzja i styl.","od 30 zł","star"),("Pakiet full","Strzyżenie + golenie + modelowanie. Wyjdziesz nowy człowiek.","od 90 zł","heart")]
-        price_pool = [("Strzyżenie męskie","50-65 zł"),("Golenie brzytwą","40-55 zł"),("Trymowanie brody","30-40 zł"),("Strzyżenie + golenie","80-95 zł"),("Koloryzacja","120-180 zł")]
-        headline_pool = ["Fryzura, która robi wrażenie","Twoja broda zasługuje na mistrza","Tu się strzyże inaczej","Wyjdź nowy człowiek","Styl zaczyna się od włosów","Broda jak z katalogu"]
-        sub_pool = ["Od 12 lat strzyżemy mężczyzn. Znamy się na trendach i na brodach.","Brzytwa, gorący ręcznik i mistrz fachu. Twój barber zna się na rzeczy.","Strzyżenie to nie tylko włosy — to Twój styl."]
+        cta = random.choice(["Umow wizyte", "Rezerwuj termin"])
     elif is_beauty:
-        hero_imgs = ["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1400&q=80","https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=1400&q=80"]
-        food_imgs = ["https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80","https://images.unsplash.com/photo-1457972729786-0411a3b2b626?w=600&q=80","https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80"]
-        svc_pool = [("Manicure hybrydowy","200+ odcieni. Trwałość 3 tygodnie. Twoje dłonie będą mówić same za siebie.","od 80 zł","sparkles"),("Zabieg na twarz","Oczyszczanie, nawilżenie, odmładzanie. Dobieramy pod typ Twojej skóry.","od 150 zł","heart"),("Depilacja woskiem","Szybko, na długo, bez podrażnień.","od 60 zł","star"),("Pakiet SPA","Manicure + pedicure + zabieg na twarz. Dzień tylko dla Ciebie.","od 280 zł","flame")]
-        price_pool = [("Manicure hybrydowy","80-100 zł"),("Manicure + pedicure","140-180 zł"),("Zabieg na twarz","150-250 zł"),("Depilacja nóg","100-150 zł"),("Pakiet SPA","280-400 zł")]
-        headline_pool = ["Twoje dłonie zasługują na piękno","Zadbaj o siebie — my zadbamy o detale","Tu piękno spotyka precyzję","Manicure, który robi wrażenie","Dzień tylko dla Ciebie","Piękno to nie luksus — to norma"]
-        sub_pool = ["Salon urody, w którym jakość spotyka się z dbałością o każdy szczegół.","Ponad 200 odcieni, trwałość 3 tygodnie.","Zabiegi na twarz, dłonie i ciało. Dobieramy pod Twój typ skóry."]
+        cta = random.choice(["Umow wizyte", "Sprawdz oferte"])
     else:
-        hero_imgs = ["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1400&q=80","https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1400&q=80"]
-        food_imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80","https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80","https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"]
-        svc_pool = [("Strategia","Analizujemy rynek i Twoje cele. Plan, który przynosi kasę.","od 3 000 zł","zap"),("Realizacja","Od pomysłu po produkt. Jeden zespół, zero chaosu.","od 8 000 zł","sparkles"),("Wsparcie","Po wdrożeniu nie zostawiamy Cię. Aktualizacje, pomoc 24/7.","od 1 500 zł/mies.","shield"),("Audyt","Sprawdzimy co nie działa i powiemy jak to naprawić.","od 2 000 zł","star")]
-        price_pool = [("Pakiet startowy","3 000-5 000 zł"),("Pakiet business","8 000-15 000 zł"),("Pakiet premium","15 000-30 000 zł"),("Konsultacja","500-1 000 zł"),("Wsparcie miesięczne","1 500-3 000 zł/mies.")]
-        headline_pool = ["Twój biznes zasługuje na więcej","Nie czekaj na klienta — przyciągnij go","Strategia, która przynosi rezultaty","Od pomysłu do pieniędzy","Bądź o krok przed konkurencją","Twój Next Level zaczyna się tutaj"]
-        sub_pool = ["Pomagamy firmom rosnąć. Strategia, projektowanie, realizacja.","Nie daj się konkurencji. Zbudujemy narzędzia, które sprzedają za Ciebie.","Widzimy trendy, zanim staną się mainstreamem."]
+        cta = random.choice(["Skontaktuj sie", "Napisz do nas"])
+
+    # Content pools
+    if is_rest:
+        hero_imgs = ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&q=80",
+                      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&q=80"]
+        svc_imgs = ["https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80",
+                     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80",
+                     "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"]
+        svcs = [("Danie dnia", "Swieze skladniki, zmienia sie codziennie.", "18-22 zl"),
+                ("Kurczaki", "Smazone na zloto, z surowka i pieczywem.", "16-25 zl"),
+                ("Kebab", "Klasyczny, w bulce lub na talerzu.", "22-28 zl"),
+                ("Zestaw rodzinny", "Cztery dania, surowki, napoje.", "79-99 zl")]
+        hls = ["Jedzenie, do ktorego sie wraca", "Smak, ktory zapamietasz", "Tu sie je inaczej"]
+        subs = ["Duze porcje, ceny bez niespodzianek.", "Swieze skladniki codziennie. Zero mrozonek."]
+    elif is_barber:
+        hero_imgs = ["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1400&q=80"]
+        svc_imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80",
+                     "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80",
+                     "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"]
+        svcs = [("Strzyzenie", "Dobierzemy fryzure do Twojej twarzy.", "50-65 zl"),
+                ("Golenie brytwa", "Goracy recznik, balsam, brytwa.", "40-55 zl"),
+                ("Trymowanie brody", "Kazdy wlosek na swoim miejscu.", "30-40 zl")]
+        hls = ["Fryzura, ktora robi wrazenie", "Twoja broda zasluguje na mistrza"]
+        subs = ["Od 12 lat strzyzemy mezczyzn.", "Brytwa, goracy recznik i mistrz fachu."]
+    elif is_beauty:
+        hero_imgs = ["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1400&q=80"]
+        svc_imgs = ["https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80",
+                     "https://images.unsplash.com/photo-1457972729786-0411a3b2b626?w=600&q=80",
+                     "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80"]
+        svcs = [("Manicure hybrydowy", "200+ odcieni. Trwalosc 3 tygodnie.", "80-100 zl"),
+                ("Zabieg na twarz", "Oczyszczanie, nawilzenie.", "150-250 zl"),
+                ("Pakiet SPA", "Manicure + pedicure + zabieg.", "280-400 zl")]
+        hls = ["Twoje dlonie zasluguja na piekno", "Tu piekno spotyka precyzje"]
+        subs = ["Salon urody z dbalocia o kazdy szczegol.", "Ponad 200 odcieni, trwalosc 3 tygodnie."]
+    else:
+        hero_imgs = ["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80"]
+        svc_imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80",
+                     "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80",
+                     "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"]
+        svcs = [("Strategia", "Analizujemy rynek i Twoje cele.", "3 000-5 000 zl"),
+                ("Realizacja", "Od pomyslu po produkt.", "8 000-15 000 zl"),
+                ("Audyt", "Sprawdzimy co nie dziala.", "2 000-4 000 zl")]
+        hls = ["Twoj biznes zasluguje na wiecej", "Od pomyslu do pieniedzy"]
+        subs = ["Pomagamy firmom rosnac.", "Widzimy trendy, zanim stan sie mainstreamem."]
 
     hero_img = random.choice(hero_imgs)
-    headline = random.choice(headline_pool)
-    sub = random.choice(sub_pool)
-    chosen_svc = random.sample(svc_pool, min(3, len(svc_pool)))
-    chosen_prices = random.sample(price_pool, min(4, len(price_pool)))
+    headline = random.choice(hls)
+    sub = random.choice(subs)
+    chosen_svcs = random.sample(svcs, min(3, len(svcs)))
 
-    review_pool = [
-        ("Najlepsze w okolicy! Polecam każdemu.","Marek K.","MK"),("Stały klient. Ceny OK, obsługa super.","Anna N.","AN"),
-        ("Pierwszy raz — wrócę na pewno!","Tomek R.","TR"),("Super atmosfera, szybka obsługa.","Kasia W.","KW"),
-        ("Mój znajomy polecił — i miał rację!","Piotr S.","PS"),("Szukałam czegoś dobrego — znalazłam.","Ola M.","OM"),
-        ("Chodzę co tydzień. Uzależniona!","Tomek L.","TL"),("Żona zabrała mnie — i nie żałuję.","Jakub D.","JD"),
-        ("Duże porcje, małe ceny. Dzieciaki zachwycone.","Marta B.","MB"),("Jakość idzie w parze z ceną.","Arek Z.","AZ"),
-        ("Polecam z czystym sumieniem.","Kasia P.","KP"),("Odkryłam to miesiąc temu. Jestem uzależniona.","Natalia F.","NF"),
+    rev_pool = [
+        ("Najlepsze w okolicy! Polecam kazdemu.", "Marek K."),
+        ("Staly klient. Ceny OK, obsluga super.", "Anna N."),
+        ("Pierwszy raz - i na pewno nie ostatni.", "Tomek R."),
+        ("Super atmosfera, szybka obsluga.", "Kasia W."),
+        ("Polecam z czystym sumieniem.", "Piotr S."),
+        ("Wracam co tydzien. Uzalezniona!", "Ola M."),
     ]
-    chosen_reviews = random.sample(review_pool, 3)
+    chosen_reviews = random.sample(rev_pool, 3)
 
-    # Visual style variables
-    if visual_style == "editorial":
-        font_stack = "'Playfair Display',Georgia,serif"
-        body_color = "#1a1a1a"
-        body_bg = "#faf8f5"
-        header_bg = "rgba(250,248,245,.92)"
-        header_border = "1px solid rgba(0,0,0,.06)"
-        section_bg = "white"
-        section_alt_bg = "#faf8f5"
-        card_text = "#666"
-    elif visual_style == "dark-bold":
-        font_stack = "'Space Grotesk',system-ui,sans-serif"
-        body_color = "#e5e5e5"
-        body_bg = "#0a0a0a"
-        header_bg = "rgba(10,10,10,.85)"
-        header_border = "1px solid #222"
-        section_bg = "#0f0f0f"
-        section_alt_bg = "#141414"
-        card_text = "#aaa"
-    elif visual_style == "color-block":
-        font_stack = "'Outfit',system-ui,sans-serif"
-        body_color = "#1a1a1a"
-        body_bg = "white"
-        header_bg = accent
-        header_border = "none"
-        section_bg = "#f8f8f8"
-        section_alt_bg = accent
-        card_text = "#555"
-    else:  # brutalist
-        font_stack = "'Space Grotesk',system-ui,sans-serif"
-        body_color = "#111"
-        body_bg = "#f5f0e8"
-        header_bg = "#f5f0e8"
-        header_border = "3px solid #111"
-        section_bg = "white"
-        section_alt_bg = "#f5f0e8"
-        card_text = "#444"
+    # Pick template
+    if vstyle == "mono":
+        return _template_dark(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                              hero_img, headline, sub, chosen_svcs, svc_imgs, chosen_reviews, accent, cta, show)
+    elif vstyle == "brutalist":
+        return _template_brutalist(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                                   hero_img, headline, sub, chosen_svcs, svc_imgs, chosen_reviews, accent, cta, show)
+    elif vstyle == "clean":
+        return _template_minimal(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                                 hero_img, headline, sub, chosen_svcs, svc_imgs, chosen_reviews, accent, cta, show)
+    else:
+        return _template_editorial(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                                   hero_img, headline, sub, chosen_svcs, svc_imgs, chosen_reviews, accent, cta, show)
 
-    # Build service cards
-    svc_cards = ""
-    for i, (nm, ds, pr, icon) in enumerate(chosen_svc):
-        img = food_imgs[i % len(food_imgs)]
-        svc_cards += f'<div class="group relative"><div class="aspect-[4/3] rounded-2xl overflow-hidden mb-4"><img src="{img}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"/></div><div class="flex items-center gap-2.5 mb-2"><i data-lucide="{icon}" class="w-5 h-5" style="color:{accent}"></i><h3 class="font-semibold text-[15px]">{nm}</h3></div><p class="text-gray-500 text-sm leading-relaxed mb-2">{ds}</p><span class="text-sm font-semibold" style="color:{accent}">{pr}</span></div>'
 
-    price_rows = "".join(f'<div class="flex justify-between items-center py-4 border-b border-gray-100/60 last:border-0"><span class="text-gray-600 text-[15px]">{n}</span><span class="font-semibold" style="color:{accent}">{p}</span></div>' for n, p in chosen_prices)
+def _mk_svc_cards(svcs, svc_imgs, accent, style):
+    cards = []
+    for i, (nm, ds, pr) in enumerate(svcs):
+        img = svc_imgs[i % len(svc_imgs)]
+        if style == "brutalist":
+            cards.append('<div style="border:3px solid #111;background:white"><div style="aspect-ratio:4/3;overflow:hidden;border-bottom:3px solid #111"><img src="' + img + '" alt="' + nm + '" style="width:100%;height:100%;object-cover"></div><div style="padding:20px"><h3 style="font-size:18px;font-weight:700;margin-bottom:6px">' + nm + '</h3><p style="font-size:14px;color:#555;line-height:1.5;margin-bottom:8px">' + ds + '</p><span style="font-weight:700;color:' + accent + '">' + pr + '</span></div></div>')
+        elif style == "mono":
+            cards.append('<div style="background:#141414;border:1px solid #333;border-radius:12px;padding:24px"><h3 style="font-size:17px;font-weight:600;margin-bottom:6px;color:#e5e5e5">' + nm + '</h3><p style="font-size:14px;color:#888;line-height:1.5;margin-bottom:10px">' + ds + '</p><span style="font-weight:600;color:' + accent + '">' + pr + '</span></div>')
+        else:
+            cards.append('<div style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.04)"><div style="aspect-ratio:4/3;overflow:hidden"><img src="' + img + '" alt="' + nm + '" style="width:100%;height:100%;object-cover"></div><div style="padding:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:6px">' + nm + '</h3><p style="font-size:14px;color:#666;line-height:1.5;margin-bottom:8px">' + ds + '</p><span style="font-weight:600;color:' + accent + '">' + pr + '</span></div></div>')
+    gap = "0" if style == "brutalist" else "20px"
+    return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:' + gap + '">' + "".join(cards) + '</div>'
 
-    rev_cards = ""
-    for txt, nm, ini in chosen_reviews:
-        rev_cards += f'<div class="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100/50"><div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><p class="text-gray-600 text-sm leading-relaxed mb-4 italic">"{txt}"</p><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background:{accent}">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'
 
-    # Animation CSS
-    anim_css = {
-        "morph": "@keyframes morph{0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}} .blob{animation:morph 8s ease-in-out infinite}",
-        "float": "@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}} .float{animation:float 4s ease-in-out infinite}",
-        "glow": f"@keyframes glow{{0%,100%{{box-shadow:0 0 0 0 {accent}30}}50%{{box-shadow:0 0 30px 8px {accent}15}}}} .glow{{animation:glow 3s ease-in-out infinite}}",
-        "slide": "@keyframes slide{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}} .slide{animation:slide .8s ease forwards}",
-    }[anim]
+def _mk_reviews(reviews, accent, dark=False):
+    cards = []
+    tc = "#ccc" if dark else "#555"
+    nc = "#e5e5e5" if dark else "#1a1a1a"
+    for txt, ini in reviews:
+        initials = ini.split()[0][0] + (ini.split()[-1][0] if len(ini.split()) > 1 else "")
+        cards.append('<div style="padding:24px;border-left:3px solid ' + accent + '"><p style="font-size:16px;line-height:1.5;color:' + tc + ';margin-bottom:16px;font-style:italic">"' + txt + '"</p><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:' + accent + ';color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + initials + '</div><div><p style="font-size:14px;font-weight:600;color:' + nc + '">' + ini + '</p><p style="font-size:11px;color:#999">Klient</p></div></div></div>')
+    return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">' + "".join(cards) + '</div>'
 
-    # Hero section based on layout
-    if layout == "dark":
-        hero_section = f'''<section class="relative min-h-[85vh] flex items-center overflow-hidden" style="background:{body_bg}">
-<img src="{hero_img}" alt="{safe}" class="absolute inset-0 w-full h-full object-cover opacity-20"/>
-<div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black"/>
-<div class="max-w-6xl mx-auto px-6 relative z-10 text-center fade-up">
-<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/10 text-xs font-medium text-white/70 mb-8"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>{niche} · {addr}</p>
-<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6" style="color:{body_color}">{headline}</h1>
-<p class="text-lg mb-10 max-w-2xl mx-auto leading-relaxed" style="color:{body_color};opacity:.6">{sub}</p>
-<div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent};color:white">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-white/20 text-lg font-semibold text-white hover:bg-white/10 transition-all">Zobacz ofertę</a></div>
-<div class="flex items-center gap-3 justify-center text-white/70"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-5 h-5 fill-amber-400"></i></div><span class="font-semibold text-white">{rating}</span><span>· {reviews_n} opinii</span></div></div></section>'''
-    elif layout == "centered":
-        hero_section = f'''<section class="pt-28 pb-20 md:pt-36 md:pb-28 bg-gradient-to-b from-gray-50 to-white">
-<div class="max-w-4xl mx-auto px-6 text-center fade-up">
-<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-xs font-medium text-gray-500 mb-8 shadow-sm"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</p>
-<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6">{headline}</h1>
-<p class="text-lg text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">{sub}</p>
-<div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold text-white transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent}">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 text-lg font-semibold text-gray-700 hover:border-gray-400 transition-all">Zobacz ofertę</a></div>
-<div class="flex items-center gap-3 justify-center text-sm text-gray-400"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium text-gray-700">{rating}</span><span>· {reviews_n} opinii na Google</span></div>
-<div class="mt-12 aspect-video rounded-3xl overflow-hidden max-w-3xl mx-auto shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"/></div></div></section>'''
-    else:  # split or split-left
-        hero_section = f'''<section class="pt-28 pb-20 md:pt-36 md:pb-28">
-<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
-<div class="fade-up">
-<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-xs font-medium text-gray-500 mb-6"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</p>
-<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{headline}</h1>
-<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{sub}</p>
-<div class="flex flex-wrap gap-3 mb-8"><a href="#kontakt" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-xl shadow-lg" style="background:{accent}">Skontaktuj się <i data-lucide="arrow-right" class="w-4 h-4"></i></a><a href="#oferta" class="px-6 py-3.5 rounded-2xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-gray-400 transition-all">Zobacz ofertę</a></div>
-<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews_n} opinii</span></div></div>
-<div class="fade-up relative"><div class="absolute -inset-4 rounded-3xl opacity-20 blur-2xl" style="background:linear-gradient(135deg,{accent}30,transparent)"></div><div class="relative rounded-3xl overflow-hidden shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-[420px] md:h-[480px] object-cover"/></div></div></div></section>'''
 
-    # Build complete HTML
-    html = f'''<!DOCTYPE html>
-<html lang="pl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<style>
-*{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}
-body{{font-family:{font_stack};color:{body_color};line-height:1.6;background:{body_bg}}}
-.fade-up{{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}}
-.fade-up.visible{{opacity:1;transform:translateY(0)}}
-.fade-up-d1{{transition-delay:.1s}}.fade-up-d2{{transition-delay:.2s}}.fade-up-d3{{transition-delay:.3s}}
-{anim_css}
-.glass{{background:rgba(255,255,255,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}}
-.shadow-modern{{box-shadow:0 4px 6px -1px rgba(0,0,0,.05),0 10px 15px -3px rgba(0,0,0,.05),0 20px 25px -5px rgba(0,0,0,.03)}}
-.shadow-modern-lg{{box-shadow:0 10px 15px -3px rgba(0,0,0,.08),0 20px 25px -5px rgba(0,0,0,.04)}}
-</style>
-</head>
-<body>
-<header class="fixed top-0 w-full z-50 glass" style="background:{header_bg};border-bottom:{header_border}">
-<div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-modern" style="background:linear-gradient(135deg,{accent},{accent}bb)">{safe[0]}</div>
-<span class="font-bold text-sm">{safe}</span></div>
-<nav class="hidden md:flex items-center gap-8 text-sm" style="color:{card_text}">
-<a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
-<a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
-<a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
-<a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav>
-<a href="tel:{phone}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg" style="background:{accent}"><i data-lucide="phone" class="w-4 h-4"></i>Zadzwoń</a></div></header>
+def _mk_price_rows(svcs, accent, dark=False):
+    rows = []
+    for n, _, pr in svcs:
+        tc = "#aaa" if dark else "#555"
+        rows.append('<div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid ' + ('#333' if dark else '#eee') + '"><span style="font-size:15px;color:' + tc + '">' + n + '</span><span style="font-weight:700;color:' + accent + '">' + pr + '</span></div>')
+    return "".join(rows)
 
-{hero_section}
 
-<!-- MARQUEE TICKER -->
-<div style="overflow:hidden;white-space:nowrap;background:{accent};color:white;padding:12px 0;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">
-<div style="display:inline-block;animation:marquee 25s linear infinite">
-<span style="display:inline-block;padding:0 40px">{safe} &middot; {niche}</span>
-<span style="display:inline-block;padding:0 40px">&#9733; {rating} ({reviews_n} opinii)</span>
-<span style="display:inline-block;padding:0 40px">{safe} &middot; {niche}</span>
-<span style="display:inline-block;padding:0 40px">&#9733; {rating} ({reviews_n} opinii)</span>
-<span style="display:inline-block;padding:0 40px">{safe} &middot; {niche}</span>
-<span style="display:inline-block;padding:0 40px">&#9733; {rating} ({reviews_n} opinii)</span>
-</div></div>
-<style>@keyframes marquee{{0%{{transform:translateX(0)}}100%{{transform:translateX(-50%)}}}}</style>
+def _mk_form(accent, dark=False):
+    bg = "#141414" if dark else "white"
+    bc = "#333" if dark else "#e0e0e0"
+    tc = "#e5e5e5" if dark else "#1a1a1a"
+    return '''<form style="background:''' + bg + ''';border:1px solid ''' + bc + ''';border-radius:16px;padding:32px">
+<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Imie</label><input type="text" placeholder="Jan Kowalski" style="width:100%;padding:12px;background:transparent;border:1px solid ''' + bc + ''';border-radius:10px;font-size:14px;color:''' + tc + ''';outline:none"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+<div><label style="display:block;font-size:12px;font-weight:600;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Email</label><input type="email" placeholder="jan@firma.pl" style="width:100%;padding:12px;background:transparent;border:1px solid ''' + bc + ''';border-radius:10px;font-size:14px;color:''' + tc + ''';outline:none"></div>
+<div><label style="display:block;font-size:12px;font-weight:600;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Telefon</label><input type="tel" placeholder="+48 123 456 789" style="width:100%;padding:12px;background:transparent;border:1px solid ''' + bc + ''';border-radius:10px;font-size:14px;color:''' + tc + ''';outline:none"></div></div>
+<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Wiadomosc</label><textarea rows="4" placeholder="W czym mozemy pomoc?" style="width:100%;padding:12px;background:transparent;border:1px solid ''' + bc + ''';border-radius:10px;font-size:14px;color:''' + tc + ''';outline:none;resize:none"></textarea></div>
+<button type="submit" style="width:100%;padding:14px;background:''' + accent + ''';color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Wyslij wiadomosc</button></form>'''
 
-<section id="oferta" class="py-20 md:py-28" style="background:{section_bg}">
-<div class="max-w-6xl mx-auto px-6">
-<div class="fade-up mb-14"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Oferta</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight">{random.choice(["Co dla Ciebie przygotowaliśmy","Nasza oferta","Co mamy w ofercie","Sprawdź naszą ofertę"])}</h2></div>
-<div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-8">{svc_cards}</div></div></section>
 
-<section id="cennik" class="py-20 md:py-28" style="background:{section_alt_bg}">
-<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-start">
-<div class="fade-up"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Cennik</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">Ile to kosztuje</h2><p class="text-gray-500 mb-6">{random.choice(["Przejrzyste ceny — bez niespodzianek.","Jasny cennik, zero ukrytych kosztów.","Co ile kosztuje? Sprawdź poniżej."])}</p>
-<div class="flex items-center gap-2 text-sm text-gray-500"><i data-lucide="phone" class="w-4 h-4" style="color:{accent}"></i><span>Pytaj: <a href="tel:{phone}" class="font-semibold" style="color:{accent}">{phone}</a></span></div></div>
-<div class="fade-up bg-white rounded-2xl p-6 md:p-8 shadow-modern border border-gray-100">{price_rows}</div></div></section>
+def _mk_contact(addr, phone, accent, dark=False):
+    tc = "#e5e5e5" if dark else "#1a1a1a"
+    return '''<div style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;gap:14px;align-items:start"><div style="width:40px;height:40px;border-radius:10px;background:''' + accent + '''15;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="map-pin" style="width:18px;height:18px;color:''' + accent + '''"></i></div><div><p style="font-weight:600;font-size:14px;color:''' + tc + '''">' + addr + '</p><p style="font-size:12px;color:#888;margin-top:2px">Dojazd</p></div></div>
+<div style="display:flex;gap:14px;align-items:start"><div style="width:40px;height:40px;border-radius:10px;background:''' + accent + '''15;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="phone" style="width:18px;height:18px;color:''' + accent + '''"></i></div><div><a href="tel:' + phone + '" style="font-weight:600;font-size:14px;color:''' + accent + ''';text-decoration:none">' + phone + '</a><p style="font-size:12px;color:#888;margin-top:2px">Pon-Pt 8:00-18:00</p></div></div>
+<div style="display:flex;gap:14px;align-items:start"><div style="width:40px;height:40px;border-radius:10px;background:''' + accent + '''15;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="clock" style="width:18px;height:18px;color:''' + accent + '''"></i></div><div><p style="font-weight:600;font-size:14px;color:''' + tc + '''">Pon-Sob: 10:00 - 22:00</p><p style="font-size:12px;color:#888;margin-top:2px">Niedziela: 12:00 - 20:00</p></div></div></div>'''
 
-<section id="opinie" class="py-20 md:py-28" style="background:{section_bg}"
-<div class="max-w-6xl mx-auto px-6">
-<div class="fade-up mb-14"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Opinie</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight">{random.choice(["Co mówią nasi klienci","Opinie klientów","Klienci polecają nas dalej"])}</h2><p class="text-gray-500 mt-2">{reviews_n} zadowolonych klientów nie kłamie.</p></div>
-<div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{rev_cards}</div></div></section>
 
-<section id="kontakt" class="py-20 md:py-28" style="background:{section_alt_bg}">
-<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
-<div class="fade-up"><p class="text-xs font-semibold tracking-wider uppercase mb-3" style="color:{accent}">Kontakt</p><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Porozmawiajmy</h2><p class="text-gray-500 mb-8">{random.choice(["Napisz lub zadzwoń — odpowiadamy szybko.","Masz pytanie? Dzwoń śmiało.","Czekamy na Ciebie."])}</p>
-<div class="space-y-5">
-<div class="flex items-start gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:{accent}10"><i data-lucide="map-pin" class="w-5 h-5" style="color:{accent}"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją</p></div></div>
-<div class="flex items-start gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:{accent}10"><i data-lucide="phone" class="w-5 h-5" style="color:{accent}"></i></div><div><a href="tel:{phone}" class="font-medium text-sm hover:underline" style="color:{accent}">{phone}</a><p class="text-gray-400 text-xs mt-0.5">Pon-Pt 8:00-18:00</p></div></div>
-<div class="flex items-start gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:{accent}10"><i data-lucide="clock" class="w-5 h-5" style="color:{accent}"></i></div><div><p class="font-medium text-sm">Pon-Sob: 10:00 - 22:00</p><p class="text-gray-400 text-xs mt-0.5">Niedziela: 12:00 - 20:00</p></div></div></div></div>
-<div class="fade-up"><form style="background:{rev_bg};border:{rev_border};border-radius:16px;padding:24px" class="space-y-4">
-<div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Imię</label><input type="text" placeholder="Jan Kowalski" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></div>
-<div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Email</label><input type="email" placeholder="jan@firma.pl" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></div>
-<div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Telefon</label><input type="tel" placeholder="+48 123 456 789" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></div></div>
-<div><label class="block text-xs font-semibold text-gray-600 mb-1.5">Wiadomość</label><textarea rows="4" placeholder="W czym możemy pomóc?" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:border-transparent transition-all" style="--tw-ring-color:{accent}"></textarea></div>
-<button type="submit" class="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all hover:shadow-lg hover:scale-[1.01]" style="background:{accent}">Wyślij wiadomość</button></form></div></div></section>
-
-<footer class="border-t py-10" style="border-color:rgba(128,128,128,.2);background:{section_bg}">
-<div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-<p class="text-sm" style="color:{card_text}">© {year} {safe}</p>
-<div class="flex items-center gap-6 text-sm" style="color:{card_text}">
-<a href="#oferta" class="hover:opacity-100 transition-opacity" style="opacity:.7">Oferta</a>
-<a href="#cennik" class="hover:opacity-100 transition-opacity" style="opacity:.7">Cennik</a>
-<a href="#kontakt" class="hover:opacity-100 transition-opacity" style="opacity:.7">Kontakt</a></div></div></footer>
-
-<script>
+def _mk_reveal_script():
+    return '''<script>
 lucide.createIcons();
-const o=new IntersectionObserver(e=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('visible');o.unobserve(x.target)}}}})}},{{threshold:.15}});
-document.querySelectorAll('.fade-up').forEach(el=>o.observe(el));
-</script>
-</body></html>'''
+var o=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.style.opacity='1';x.target.style.transform='translateY(0)';o.unobserve(x.target)}})},{threshold:.15});
+document.querySelectorAll('[data-reveal]').forEach(function(el){o.observe(el)});
+</script>'''
 
-    return {"files": {"main/frontend/preview.html": html}, "meta": {"title": title, "headline": headline, "subheadline": sub[:120], "ctaText": "Skontaktuj się"}}
+
+def _r(idx):
+    return ' data-reveal style="opacity:0;transform:translateY(20px);transition:all .6s cubic-bezier(.16,1,.3,1);transition-delay:' + str(idx * .08) + 's"'
+
+
+# ============================================================
+# TEMPLATE: EDITORIAL - Playfair Display serif, warm tones
+# ============================================================
+def _template_editorial(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                        hero_img, headline, sub, svcs, svc_imgs, reviews, accent, cta, show):
+    h = []
+    h.append('<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
+    h.append('<title>' + title + '</title>')
+    h.append('<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">')
+    h.append('<script src="https://unpkg.com/lucide@latest"></script>')
+    h.append('<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"DM Sans",sans-serif;color:#1a1a1a;background:#faf8f5;line-height:1.6}a{color:inherit;text-decoration:none}.serif{font-family:"Playfair Display",Georgia,serif}</style></head><body>')
+
+    # Header
+    h.append('<header style="position:fixed;top:0;width:100%;z-index:50;background:rgba(250,248,245,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06)"><div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:' + accent + ';color:white;display:flex;align-items:center;justify-content:center;font-family:Playfair Display;font-weight:700;font-size:15px">' + safe[0] + '</div><span class="serif" style="font-weight:700;font-size:16px">' + safe + '</span></div><nav style="display:flex;gap:28px;font-size:13px;font-weight:500;color:#666"><a href="#oferta">Oferta</a><a href="#cennik">Cennik</a><a href="#opinie">Opinie</a><a href="#kontakt">Kontakt</a></nav><a href="tel:' + phone + '" style="padding:10px 20px;background:' + accent + ';color:white;border-radius:100px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:8px"><i data-lucide="phone" style="width:14px;height:14px"></i>Zadzwon</a></div></header>')
+
+    # Marquee
+    h.append('<div style="overflow:hidden;white-space:nowrap;background:' + accent + ';color:white;padding:12px 0;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase"><div style="display:inline-block;animation:marquee 25s linear infinite"><span style="display:inline-block;padding:0 40px">' + safe + ' &middot; ' + niche + '</span><span style="display:inline-block;padding:0 40px">&#9733; ' + rating + ' (' + reviews_n + ' opinii)</span><span style="display:inline-block;padding:0 40px">' + safe + ' &middot; ' + niche + '</span><span style="display:inline-block;padding:0 40px">&#9733; ' + rating + ' (' + reviews_n + ' opinii)</span><span style="display:inline-block;padding:0 40px">' + safe + ' &middot; ' + niche + '</span><span style="display:inline-block;padding:0 40px">&#9733; ' + rating + ' (' + reviews_n + ' opinii)</span></div></div><style>@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}</style>')
+
+    # Hero
+    if "Hero" in show:
+        h.append('<section style="padding:120px 24px 80px;max-width:1200px;margin:0 auto"><div' + _r(0) + ' style="max-width:900px"><p style="font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:' + accent + ';margin-bottom:20px">' + niche + ' &middot; ' + addr + '</p><h1 class="serif" style="font-size:clamp(48px,8vw,96px);font-weight:900;line-height:.92;letter-spacing:-.03em;margin-bottom:24px">' + headline + '</h1><p style="font-size:18px;color:#666;max-width:540px;line-height:1.6;margin-bottom:36px">' + sub + '</p><div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center"><a href="#kontakt" style="padding:16px 32px;background:' + accent + ';color:white;border-radius:100px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px">' + cta + ' <i data-lucide="arrow-right" style="width:16px;height:16px"></i></a><div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#999"><span style="color:#f59e0b">&#9733;&#9733;&#9733;&#9733;&#9733;</span><span style="font-weight:600;color:#1a1a1a">' + rating + '</span><span>&middot; ' + reviews_n + ' opinii</span></div></div></div><div' + _r(1) + ' style="margin-top:60px;border-radius:16px;overflow:hidden;aspect-ratio:21/9"><img src="' + hero_img + '" alt="' + safe + '" style="width:100%;height:100%;object-cover"></div></section>')
+
+    # Oferta
+    if "Oferta" in show:
+        h.append('<section id="oferta" style="padding:80px 24px;background:white"><div style="max-width:1200px;margin:0 auto"><div' + _r(2) + ' style="margin-bottom:48px"><p style="font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:' + accent + ';margin-bottom:12px">Oferta</p><h2 class="serif" style="font-size:clamp(32px,5vw,56px);font-weight:900">Co przygotowalismy</h2></div><div' + _r(3) + '>' + _mk_svc_cards(svcs, svc_imgs, accent, "serif") + '</div></div></section>')
+
+    # Cennik
+    if "Cennik" in show:
+        h.append('<section id="cennik" style="padding:80px 24px;background:' + accent + ';color:white"><div style="max-width:800px;margin:0 auto"><div' + _r(4) + ' style="margin-bottom:40px"><p style="font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;opacity:.6;margin-bottom:12px">Cennik</p><h2 class="serif" style="font-size:clamp(32px,5vw,48px);font-weight:900">Ile to kosztuje</h2></div><div' + _r(5) + ' style="border-top:1px solid rgba(255,255,255,.2)">' + _mk_price_rows(svcs, "white", False).replace("#eee", "rgba(255,255,255,.2)").replace("#555", "rgba(255,255,255,.7)") + '</div></div></section>')
+
+    # Opinie
+    if "Opinie" in show:
+        h.append('<section id="opinie" style="padding:80px 24px"><div style="max-width:1200px;margin:0 auto"><div' + _r(6) + ' style="margin-bottom:48px"><p style="font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:' + accent + ';margin-bottom:12px">Opinie</p><h2 class="serif" style="font-size:clamp(32px,5vw,56px);font-weight:900">Co mowia klienci</h2></div><div' + _r(7) + '>' + _mk_reviews(reviews, accent) + '</div></div></section>')
+
+    # Kontakt
+    if "Kontakt" in show:
+        h.append('<section id="kontakt" style="padding:80px 24px;background:#faf8f5"><div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px"><div' + _r(8) + '><p style="font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:' + accent + ';margin-bottom:12px">Kontakt</p><h2 class="serif" style="font-size:clamp(32px,4vw,48px);font-weight:900;margin-bottom:28px">Porozmawiajmy</h2>' + _mk_contact(addr, phone, accent) + '</div><div' + _r(9) + '>' + _mk_form(accent) + '</div></div></section>')
+
+    # Footer
+    h.append('<footer style="padding:40px 24px;border-top:1px solid #e5e5e5"><div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center"><p style="font-size:13px;color:#999">&copy; ' + year + ' ' + safe + '</p><div style="display:flex;gap:24px;font-size:13px;color:#999"><a href="#oferta">Oferta</a><a href="#cennik">Cennik</a><a href="#kontakt">Kontakt</a></div></div></footer>')
+    h.append(_mk_reveal_script())
+    h.append('</body></html>')
+
+    return {"files": {"main/frontend/preview.html": "".join(h)}, "meta": {"title": title, "headline": headline, "subheadline": sub[:120], "ctaText": cta}}
+
+
+# ============================================================
+# TEMPLATE: DARK - Space Grotesk mono, dark background, neon accents
+# ============================================================
+def _template_dark(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                   hero_img, headline, sub, svcs, svc_imgs, reviews, accent, cta, show):
+    h = []
+    h.append('<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
+    h.append('<title>' + title + '</title>')
+    h.append('<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">')
+    h.append('<script src="https://unpkg.com/lucide@latest"></script>')
+    h.append('<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Space Grotesk",sans-serif;color:#e5e5e5;background:#0a0a0a;line-height:1.6}a{color:inherit;text-decoration:none}</style></head><body>')
+
+    # Header
+    h.append('<header style="position:fixed;top:0;width:100%;z-index:50;background:rgba(10,10,10,.85);backdrop-filter:blur(16px);border-bottom:1px solid #222"><div style="max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><div style="width:8px;height:8px;border-radius:50%;background:' + accent + ';box-shadow:0 0 12px ' + accent + ',0 0 40px ' + accent + '40"></div><span style="font-weight:700;font-size:15px">' + safe + '</span></div><nav style="display:flex;gap:28px;font-size:13px;color:#666"><a href="#oferta">Oferta</a><a href="#cennik">Cennik</a><a href="#opinie">Opinie</a><a href="#kontakt">Kontakt</a></nav><a href="tel:' + phone + '" style="padding:8px 16px;border:1px solid ' + accent + ';color:' + accent + ';border-radius:8px;font-size:13px;display:inline-flex;align-items:center;gap:6px"><i data-lucide="phone" style="width:14px;height:14px"></i>' + phone + '</a></div></header>')
+
+    # Marquee
+    h.append('<div style="overflow:hidden;white-space:nowrap;border-top:1px solid #222;border-bottom:1px solid #222;padding:12px 0;font-size:12px;color:#555;letter-spacing:.08em"><div style="display:inline-block;animation:marquee 30s linear infinite"><span style="display:inline-block;padding:0 48px">&bull; ' + safe + '</span><span style="display:inline-block;padding:0 48px">' + niche + '</span><span style="display:inline-block;padding:0 48px">&#9733; ' + rating + '</span><span style="display:inline-block;padding:0 48px">&bull; ' + safe + '</span><span style="display:inline-block;padding:0 48px">' + niche + '</span><span style="display:inline-block;padding:0 48px">&#9733; ' + rating + '</span><span style="display:inline-block;padding:0 48px">&bull; ' + safe + '</span><span style="display:inline-block;padding:0 48px">' + niche + '</span></div></div><style>@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}</style>')
+
+    # Hero
+    if "Hero" in show:
+        h.append('<section style="padding:140px 24px 100px;min-height:85vh;display:flex;align-items:center"><div style="max-width:1200px;margin:0 auto;width:100%"><div' + _r(0) + ' style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><div style="width:8px;height:8px;border-radius:50%;background:' + accent + ';box-shadow:0 0 12px ' + accent + '"></div><span style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.1em">' + niche + ' &middot; ' + addr + '</span></div><h1 style="font-size:clamp(52px,9vw,110px);font-weight:700;line-height:.88;letter-spacing:-.04em;margin-bottom:32px"' + _r(1) + '>' + headline + '</h1><p style="font-size:17px;color:#777;max-width:480px;line-height:1.7;margin-bottom:40px"' + _r(2) + '>' + sub + '</p><div' + _r(3) + ' style="display:flex;gap:16px;align-items:center"><a href="#kontakt" style="padding:16px 32px;background:' + accent + ';color:#0a0a0a;border-radius:8px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px">' + cta + ' <i data-lucide="arrow-right" style="width:16px;height:16px"></i></a><div style="display:flex;align-items:center;gap:6px;color:' + accent + ';font-weight:600;font-size:14px"><i data-lucide="star" style="width:16px;height:16px;fill:' + accent + '"></i>' + rating + ' <span style="color:#555;font-weight:400">&middot; ' + reviews_n + '</span></div></div></div></section>')
+
+    # Oferta
+    if "Oferta" in show:
+        h.append('<section id="oferta" style="padding:80px 24px;border-top:1px solid #222"><div style="max-width:1200px;margin:0 auto"><div' + _r(4) + ' style="margin-bottom:40px"><p style="font-size:11px;color:' + accent + ';text-transform:uppercase;letter-spacing:.15em;margin-bottom:10px">01 &mdash; Oferta</p><h2 style="font-size:clamp(28px,4vw,44px);font-weight:700">Co mamy</h2></div><div' + _r(5) + '>' + _mk_svc_cards(svcs, svc_imgs, accent, "mono") + '</div></div></section>')
+
+    # Cennik
+    if "Cennik" in show:
+        h.append('<section id="cennik" style="padding:80px 24px"><div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1.2fr;gap:48px"><div' + _r(6) + '><p style="font-size:11px;color:' + accent + ';text-transform:uppercase;letter-spacing:.15em;margin-bottom:10px">02 &mdash; Cennik</p><h2 style="font-size:clamp(28px,4vw,44px);font-weight:700;margin-bottom:16px">Cennik</h2><p style="color:#666">Przejrzyste ceny.</p></div><div' + _r(7) + ' style="background:#141414;border:1px solid #333;border-radius:12px;padding:28px">' + _mk_price_rows(svcs, accent, True) + '</div></div></section>')
+
+    # Opinie
+    if "Opinie" in show:
+        h.append('<section id="opinie" style="padding:80px 24px;border-top:1px solid #222;border-bottom:1px solid #222"><div style="max-width:1200px;margin:0 auto"><div' + _r(8) + ' style="margin-bottom:40px"><p style="font-size:11px;color:' + accent + ';text-transform:uppercase;letter-spacing:.15em;margin-bottom:10px">03 &mdash; Opinie</p><h2 style="font-size:clamp(28px,4vw,44px);font-weight:700">Klienci mowia</h2></div><div' + _r(9) + '>' + _mk_reviews(reviews, accent, True) + '</div></div></section>')
+
+    # Kontakt
+    if "Kontakt" in show:
+        h.append('<section id="kontakt" style="padding:80px 24px"><div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px"><div' + _r(10) + '><p style="font-size:11px;color:' + accent + ';text-transform:uppercase;letter-spacing:.15em;margin-bottom:10px">04 &mdash; Kontakt</p><h2 style="font-size:clamp(28px,4vw,48px);font-weight:700;margin-bottom:32px">Porozmawiajmy</h2>' + _mk_contact(addr, phone, accent, True) + '</div><div' + _r(11) + '>' + _mk_form(accent, True) + '</div></div></section>')
+
+    # Footer
+    h.append('<footer style="padding:32px 24px;border-top:1px solid #222"><div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:6px;height:6px;border-radius:50%;background:' + accent + ';box-shadow:0 0 8px ' + accent + '"></div><span style="font-size:13px;color:#555">&copy; ' + year + ' ' + safe + '</span></div><div style="display:flex;gap:20px;font-size:12px;color:#444"><a href="#oferta">Oferta</a><a href="#cennik">Cennik</a><a href="#kontakt">Kontakt</a></div></div></footer>')
+    h.append(_mk_reveal_script())
+    h.append('</body></html>')
+
+    return {"files": {"main/frontend/preview.html": "".join(h)}, "meta": {"title": title, "headline": headline, "subheadline": sub[:120], "ctaText": cta}}
+
+
+# ============================================================
+# TEMPLATE: BRUTALIST - Thick borders, offset shadows, raw feel
+# ============================================================
+def _template_brutalist(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                        hero_img, headline, sub, svcs, svc_imgs, reviews, accent, cta, show):
+    h = []
+    h.append('<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
+    h.append('<title>' + title + '</title>')
+    h.append('<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
+    h.append('<script src="https://unpkg.com/lucide@latest"></script>')
+    h.append('<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Space Grotesk",sans-serif;color:#111;background:#f5f0e8;line-height:1.6}a{color:inherit;text-decoration:none}.mono{font-family:"IBM Plex Mono",monospace}</style></head><body>')
+
+    # Header
+    h.append('<header style="position:fixed;top:0;width:100%;z-index:50;background:#f5f0e8;border-bottom:3px solid #111"><div style="max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between"><span style="font-weight:700;font-size:18px;letter-spacing:-.03em">' + safe + '</span><div style="display:flex;gap:20px;align-items:center"><a href="#oferta" class="mono" style="font-size:12px">01 OFERTA</a><a href="#cennik" class="mono" style="font-size:12px">02 CENNIK</a><a href="#kontakt" class="mono" style="font-size:12px">03 KONTAKT</a><a href="tel:' + phone + '" style="padding:8px 16px;border:3px solid #111;background:white;font-size:13px;font-weight:600;box-shadow:4px 4px 0 #111;display:inline-flex;align-items:center;gap:6px"><i data-lucide="phone" style="width:14px;height:14px"></i>' + phone + '</a></div></div></header>')
+
+    # Hero
+    if "Hero" in show:
+        h.append('<section style="padding:120px 24px 60px;min-height:85vh;display:flex;align-items:end"><div style="max-width:1200px;margin:0 auto;width:100%"><div' + _r(0) + ' style="display:inline-block;padding:6px 12px;border:2px solid #111;background:' + accent + ';margin-bottom:20px"><span class="mono" style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase">' + niche + '</span></div><h1 style="font-size:clamp(48px,10vw,120px);font-weight:700;line-height:.85;letter-spacing:-.05em;margin-bottom:24px;max-width:900px"' + _r(1) + '>' + headline + '</h1><div' + _r(2) + ' style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:24px"><a href="#kontakt" style="padding:14px 28px;border:3px solid #111;background:' + accent + ';font-weight:700;font-size:15px;box-shadow:6px 6px 0 #111;display:inline-flex;align-items:center;gap:8px">' + cta + ' <i data-lucide="arrow-right" style="width:16px;height:16px"></i></a></div><div' + _r(3) + ' style="display:flex;gap:24px;align-items:center"><div style="padding:10px 16px;border:3px solid #111;background:white;box-shadow:4px 4px 0 #111;display:flex;align-items:center;gap:8px"><span style="color:' + accent + ';font-weight:700;font-size:18px">&#9733; ' + rating + '</span><span class="mono" style="font-size:12px;color:#666">(' + reviews_n + ')</span></div><span class="mono" style="font-size:12px;color:#666">' + addr + '</span></div><div style="margin-top:48px;border:3px solid #111;box-shadow:8px 8px 0 #111;overflow:hidden;aspect-ratio:21/9;max-height:360px"><img src="' + hero_img + '" alt="' + safe + '" style="width:100%;height:100%;object-cover"></div></div></section>')
+
+    # Oferta
+    if "Oferta" in show:
+        h.append('<section id="oferta" style="padding:80px 24px;border-top:3px solid #111"><div style="max-width:1200px;margin:0 auto"><div' + _r(4) + ' style="display:flex;align-items:baseline;gap:16px;margin-bottom:48px"><span class="mono" style="font-size:13px;color:' + accent + ';font-weight:600">01</span><h2 style="font-size:clamp(28px,5vw,52px);font-weight:700;letter-spacing:-.03em">Oferta</h2></div><div' + _r(5) + '>' + _mk_svc_cards(svcs, svc_imgs, accent, "brutalist") + '</div></div></section>')
+
+    # Cennik
+    if "Cennik" in show:
+        h.append('<section id="cennik" style="padding:80px 24px;border-top:3px solid #111;background:' + accent + '"><div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1.2fr;gap:48px"><div' + _r(6) + '><span class="mono" style="font-size:13px;font-weight:600">02</span><h2 style="font-size:clamp(28px,5vw,52px);font-weight:700;letter-spacing:-.03em;margin-top:8px">Cennik</h2></div><div' + _r(7) + ' style="border:3px solid #111;background:white;padding:0">' + _mk_price_rows(svcs, "#111", False) + '</div></div></section>')
+
+    # Opinie
+    if "Opinie" in show:
+        h.append('<section id="opinie" style="padding:80px 24px;border-top:3px solid #111"><div style="max-width:1200px;margin:0 auto"><div' + _r(8) + ' style="display:flex;align-items:baseline;gap:16px;margin-bottom:48px"><span class="mono" style="font-size:13px;color:' + accent + ';font-weight:600">03</span><h2 style="font-size:clamp(28px,5vw,52px);font-weight:700;letter-spacing:-.03em">Opinie</h2></div><div' + _r(9) + '>' + _mk_reviews(reviews, accent) + '</div></div></section>')
+
+    # Kontakt
+    if "Kontakt" in show:
+        h.append('<section id="kontakt" style="padding:80px 24px;border-top:3px solid #111"><div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:0"><div' + _r(10) + ' style="border:3px solid #111;padding:40px;background:' + accent + '"><span class="mono" style="font-size:13px;font-weight:600">04</span><h2 style="font-size:clamp(28px,4vw,48px);font-weight:700;letter-spacing:-.03em;margin-top:8px;margin-bottom:28px">Kontakt</h2>' + _mk_contact(addr, phone, accent) + '</div><div' + _r(11) + ' style="border:3px solid #111;border-left:0;padding:40px;background:white">' + _mk_form(accent) + '</div></div></section>')
+
+    # Footer
+    h.append('<footer style="padding:24px;border-top:3px solid #111;background:#111;color:#999"><div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center"><span class="mono" style="font-size:12px">&copy; ' + year + ' ' + safe + '</span><div style="display:flex;gap:20px;font-size:12px"><a href="#oferta" style="color:#666">Oferta</a><a href="#cennik" style="color:#666">Cennik</a><a href="#kontakt" style="color:#666">Kontakt</a></div></div></footer>')
+    h.append(_mk_reveal_script())
+    h.append('</body></html>')
+
+    return {"files": {"main/frontend/preview.html": "".join(h)}, "meta": {"title": title, "headline": headline, "subheadline": sub[:120], "ctaText": cta}}
+
+
+# ============================================================
+# TEMPLATE: MINIMAL - Inter only, lots of whitespace, subtle
+# ============================================================
+def _template_minimal(bn, safe, niche, addr, phone, rating, reviews_n, title, year,
+                      hero_img, headline, sub, svcs, svc_imgs, reviews, accent, cta, show):
+    h = []
+    h.append('<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
+    h.append('<title>' + title + '</title>')
+    h.append('<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">')
+    h.append('<script src="https://unpkg.com/lucide@latest"></script>')
+    h.append('<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;color:#111;background:white;line-height:1.6}a{color:inherit;text-decoration:none}</style></head><body>')
+
+    # Header - minimal
+    h.append('<header style="position:fixed;top:0;width:100%;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);border-bottom:1px solid #f0f0f0"><div style="max-width:900px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between"><span style="font-weight:600;font-size:14px;letter-spacing:-.02em">' + safe + '</span><div style="display:flex;gap:24px;align-items:center;font-size:13px;color:#888"><a href="#oferta">Oferta</a><a href="#cennik">Cennik</a><a href="#kontakt">Kontakt</a><a href="tel:' + phone + '" style="padding:8px 16px;background:#111;color:white;border-radius:8px;font-size:13px;font-weight:500"><i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px"></i> Zadzwon</a></div></div></header>')
+
+    # Hero - centered, large type
+    if "Hero" in show:
+        h.append('<section style="padding:160px 24px 100px;max-width:800px;margin:0 auto;text-align:center"><div' + _r(0) + '><p style="font-size:13px;font-weight:500;color:' + accent + ';margin-bottom:16px">' + niche + '</p><h1 style="font-size:clamp(40px,7vw,72px);font-weight:700;line-height:1;letter-spacing:-.03em;margin-bottom:20px">' + headline + '</h1><p style="font-size:17px;color:#888;max-width:500px;margin:0 auto 40px;line-height:1.6">' + sub + '</p><a href="#kontakt" style="padding:14px 28px;background:#111;color:white;border-radius:10px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px">' + cta + ' <i data-lucide="arrow-right" style="width:16px;height:16px"></i></a><div style="margin-top:24px;font-size:14px;color:#bbb"><span style="color:#f59e0b">&#9733;</span> ' + rating + ' (' + reviews_n + ' opinii)</div></div></section>')
+
+    # Hero image - full width
+    if "Hero" in show:
+        h.append('<div' + _r(1) + ' style="max-width:1100px;margin:0 auto 80px;padding:0 24px"><div style="border-radius:20px;overflow:hidden;aspect-ratio:2/1"><img src="' + hero_img + '" alt="' + safe + '" style="width:100%;height:100%;object-cover"></div></div>')
+
+    # Oferta
+    if "Oferta" in show:
+        h.append('<section id="oferta" style="padding:0 24px 80px;max-width:900px;margin:0 auto"><div' + _r(2) + ' style="margin-bottom:40px"><h2 style="font-size:28px;font-weight:700">Oferta</h2></div><div' + _r(3) + '>' + _mk_svc_cards(svcs, svc_imgs, accent, "clean") + '</div></section>')
+
+    # Cennik
+    if "Cennik" in show:
+        h.append('<section id="cennik" style="padding:80px 24px;background:#fafafa"><div style="max-width:900px;margin:0 auto"><div' + _r(4) + ' style="margin-bottom:32px"><h2 style="font-size:28px;font-weight:700">Cennik</h2><p style="color:#888;margin-top:8px">Jasne ceny, zero niespodzianek.</p></div><div' + _r(5) + ' style="background:white;border-radius:16px;padding:28px;border:1px solid #f0f0f0">' + _mk_price_rows(svcs, accent) + '</div></div></section>')
+
+    # Opinie
+    if "Opinie" in show:
+        h.append('<section id="opinie" style="padding:80px 24px"><div style="max-width:900px;margin:0 auto"><div' + _r(6) + ' style="margin-bottom:40px"><h2 style="font-size:28px;font-weight:700">Opinie</h2></div><div' + _r(7) + '>' + _mk_reviews(reviews, accent) + '</div></div></section>')
+
+    # Kontakt
+    if "Kontakt" in show:
+        h.append('<section id="kontakt" style="padding:80px 24px;background:#fafafa"><div style="max-width:900px;margin:0 auto"><div' + _r(8) + ' style="margin-bottom:32px"><h2 style="font-size:28px;font-weight:700">Kontakt</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:40px"><div' + _r(9) + '>' + _mk_contact(addr, phone, accent) + '</div><div' + _r(10) + '>' + _mk_form(accent) + '</div></div></div></section>')
+
+    # Footer
+    h.append('<footer style="padding:40px 24px;border-top:1px solid #f0f0f0"><div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center"><p style="font-size:13px;color:#bbb">&copy; ' + year + ' ' + safe + '</p><div style="display:flex;gap:20px;font-size:13px;color:#bbb"><a href="#oferta">Oferta</a><a href="#cennik">Cennik</a><a href="#kontakt">Kontakt</a></div></div></footer>')
+    h.append(_mk_reveal_script())
+    h.append('</body></html>')
+
+    return {"files": {"main/frontend/preview.html": "".join(h)}, "meta": {"title": title, "headline": headline, "subheadline": sub[:120], "ctaText": cta}}

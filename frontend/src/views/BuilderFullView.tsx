@@ -270,12 +270,9 @@ export const BuilderFullView = ({
   // Wizard kroki — pomijaj jeśli już wiadomo
   const WIZARD_STEPS = [
     ...(detectedBusiness ? [] : [{ title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'], stateKey: 'q1' }]),
-    { title: 'Jaki klimat?', options: ['Nowoczesny, minimalistyczny', 'Ciepły, rustykalny', 'Elegancki, premium', 'Odważny, industrialny'], stateKey: 'q2' },
     { title: 'Jaki akcent kolorystyczny?', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626'], stateKey: 'qAccent' },
-    { title: 'Jakie fonty?', options: ['Inter + Playfair Display (serif)', 'Inter (sans-serif only)', 'DM Sans + Fraunces', 'Space Grotesk + Lora', 'Manrope + Cormorant'], stateKey: 'qFont' },
-    { title: 'Jaki layout?', options: ['Split hero (zdjęcie po prawej)', 'Full-screen hero (zdjęcie na cały ekran)', 'Centered (wszystko wyśrodkowane)', 'Dark mode (ciemne tło)'], stateKey: 'qLayout' },
-    { title: 'Styl zdjęć?', options: ['Prawdziwe zdjęcia z Unsplash', 'Ilustracje wektorowe', 'Abstrakcyjne gradienty', 'Mieszane (zdjęcia + grafiki)'], stateKey: 'qImages' },
-    { title: 'Które sekcje dodać?', options: ['Hero', 'Oferta', 'Cennik', 'Galeria', 'Opinie', 'Kontakt', 'Rezerwacja', 'FAQ'], multi: true, stateKey: 'qSections' },
+    { title: 'Jaki styl strony?', options: ['Nowoczesny (serif + duze liter)', 'Ciemny (dark mode + neon)', 'Brutalisty (grube ramki)', 'Minimalistyczny (Inter + duzo bialego)'], stateKey: 'qLayout' },
+    { title: 'Które sekcje?', options: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt'], multi: true, stateKey: 'qSections' },
   ];
 
   const buildPrompt = (override?: string) => {
@@ -396,11 +393,14 @@ export const BuilderFullView = ({
     } else {
       const pick = opts[Math.floor(Math.random() * opts.length)];
       if (step.stateKey === 'q1') setQ1(pick);
-      else if (step.stateKey === 'q2') setQ2(pick);
       else if (step.stateKey === 'qAccent') setQAccent(pick);
-      else if (step.stateKey === 'qFont') setQFont(pick);
-      else if (step.stateKey === 'qLayout') setQLayout(pick);
-      else if (step.stateKey === 'qImages') setQImages(pick);
+      else if (step.stateKey === 'qLayout') {
+        // Map style names to layout + font
+        if (pick.startsWith('Ciemny')) { setQLayout('Dark mode (ciemne tło)'); setQFont('Space Grotesk + Lora'); }
+        else if (pick.startsWith('Brutalist')) { setQLayout('Split hero (zdjęcie po prawej)'); setQFont('Space Grotesk + Lora'); }
+        else if (pick.startsWith('Minimal')) { setQLayout('Centered (wszystko wyśrodkowane)'); setQFont('Inter (sans-serif only)'); }
+        else { setQLayout('Split hero (zdjęcie po prawej)'); setQFont('Inter + Playfair Display (serif)'); }
+      }
     }
     // auto next
     setTimeout(() => handleWizardNext(), 280);

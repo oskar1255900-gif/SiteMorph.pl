@@ -322,7 +322,7 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
                 if has_preview or has_react:
                     if has_preview:
                         ph = ofiles.get("main/frontend/preview.html", "")
-                        if len(ph) < 2000:
+                        if len(ph) < 1500:
                             warning = f"AI za krotki ({len(ph)} chars) - fallback"
                         else:
                             parsed_files = ofiles
@@ -350,7 +350,7 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
                     if has_preview or has_react:
                         if has_preview:
                             ph = pfiles.get("main/frontend/preview.html", "")
-                            if len(ph) < 2000:
+                            if len(ph) < 1500:
                                 warning = f"Gemini za krotki ({len(ph)} chars) - fallback"
                             else:
                                 parsed_files = pfiles
