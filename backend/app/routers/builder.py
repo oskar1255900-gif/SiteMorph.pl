@@ -185,103 +185,59 @@ def pick_template(business_name: str) -> dict:
     return TEMPLATES[h % len(TEMPLATES)]
 
 
-SYSTEM_PROMPT = """Jesteś SiteMorph AI — generator premium stron dla lokalnych firm.
+SYSTEM_PROMPT = """JESTES SiteMorph AI - generator stron dla lokalnych firm.
 
-ZADANIE: Wygeneruj JEDEN plik HTML (standalone, z Tailwind CDN) dla podanej firmy.
-To jest strona podglądu — musi wyglądać GOTOWO i PIĘKNIE jak profesjonalna strona.
+ZADANIE: Wygeneruj JEDEN plik HTML (standalone, z Tailwind CDN).
+To jest strona podgladu - musi wygladac GOTOWO jak profesjonalna strona.
 
-FORMAT ODPOWIEDZI — TYLKO POPRAWNY JSON, zero markdown:
+JSON FORMAT:
 {
   "files": {
-    "main/frontend/preview.html": "TUTAJ PEŁNY KOD HTML"
+    "main/frontend/preview.html": "TUTAJ PELNY KOD HTML"
   },
   "meta": {
-    "title": "Nazwa Firmy — tytuł SEO",
-    "headline": "Główny nagłówek hero",
-    "subheadline": "Podtytuł hero",
+    "title": "Nazwa Firmy",
+    "headline": "Glowny naglowek",
+    "subheadline": "Podtytul",
     "ctaText": "Tekst CTA"
   }
 }
 
-KLUCZOWE ZASADY DLA preview.html:
+ZASADY:
+1. HTML z <script src="https://cdn.tailwindcss.com"> + Google Fonts (Inter)
+2. Uzyj Lucide Icons: <script src="https://unpkg.com/lucide@latest"> potem <i data-lucide="nazwa"></i>
+3. Sekcje: sticky header, hero z duzym naglowkiem, oferta (3-6 kart), cennik, opinie (3 sztuki z gwiazdkami), kontakt z formularzem, stopka
+4. Animacje: .reveal {opacity:0;transform:translateY(20px);transition:all .5s} .reveal.visible {opacity:1;transform:translateY(0)} + IntersectionObserver
+5. Kolory: jesli podano - uzyj. Jesli nie - #2563eb
+6. Font: H1 48-72px bold, body 16px
+7. Zdjecia: Unsplash src z frazami pasujacymi do branzy
+8. DANE KLIENTA: wyciagnij z opisu - nazwa, telefon, adres, ceny, opinie, godziny
+9. Ceny REALISTYCZNE (nie 3zl, tylko 3000zl dla uslug, 25zl dla jedzenia)
+10. Teksty CHWYTLIWE - nie "Profesjonalne uslugi" tylko konkretne, emocjonalne
+11. RESPONSIVE: mobile-first
+12. MINIMUM 200 linii HTML - nie skracaj
+13. PO POLSKU, jak czlowiek nie jak marketingowiec
+14. NIE zadawaj pytan. Nie pisz "...".
 
-0. TWÓJ GŁÓWNY OBOWIĄZEK: WYMYŚL KREATYWNE, UNIKALNE TEKSTY! 
-   - KAŻDA strona musi mieć INNY headline, INNE opisy, INNE teksty CTA
-   - NIE używaj fraz typu "Profesjonalne usługi" "Kompleksowe rozwiązania" "Najlepsza jakość"
-   - ZAMIAST tego: chwytliwe, konkretne, emocjonalne teksty pasujące do branży
-   - Przykłady dobrych headline: "Jemy piątki w trzy minuty" (kebab), "Twoja broda zasługuje na mistrza" (barber), "Tu się nie czeka — tu się żyje" (restauracja)
-   - Podtytuł: konkretny benefit, nie buzzword. Np. "30 lat doświadczenia w jednym kęsie" a nie "Najwyższa jakość"
-   - Opisy usług: opisz CO klient dostaje, nie CO oferujesz. "Soczysty kurczak z frytkami i surówką" a nie "Oferujemy usługi gastronomiczne"
-   - CTA: "Zamów teraz" "Rezerwuj stolik" "Zadzwoń — odbierzemy" zamiast "Skontaktuj się"
+ZAMIAST: "Profesjonalne uslugi" -> "Od 15 lat karmimy mieszkancow"
+ZAMIAST: "Najwyzsza jakosc" -> "Kurczak soczysty, frytki chrupkie"
+ZAMIAST: "Skontaktuj sie" -> "Zamow teraz" "Rezerwuj stolik"
 
-1. JEDEN PLIK HTML z wbudowanym <style> i Tailwind CDN + Google Fonts (Inter + Instrument Serif).
-   Absolutnie MINIMUM 200 linii kodu HTML. Nie skracaj. Pełna strona.
+LUCIDE IKONY (uzyj w HTML):
+- phone, map-pin, clock, star, arrow-right, check-circle, send
+- utensils (restauracja), scissors (barber), heart, sparkles, zap, shield
 
-2. STRUKTURA strony (kolejność sekcji):
-   - Sticky header z logo firmy, nawigacją i przyciskiem CTA
-   - Hero: DUŻY nagłówek (Instrument Serif, 56-80px), podtytuł,2 przyciski CTA, zdjęcie z Unsplash
-   - Oferta: 3-6 kart z usługami (ikony Lucide lub emoji, nagłówki, opisy)
-   - Cennik: tabela lub karty z cenami (jeśli podano ceny w danych)
-   - Opinie: 2-3 opinie klientów z imionami i gwiazdkami
-   - Kontakt: adres, telefon (klikalny tel:), mapa, formularz kontaktowy
-   - Stopka:© rok, nazwa firmy, linki
+PRZYKLAD DOBREGO HERO:
+<h1>Jedzenie, do ktorego sie wraca</h1>
+<p>Od 15 lat karmimy. Duze porcje, ceny bez niespodzianek.</p>
+<a>Zamow teraz</a>
 
-3. ANIMACJE (wbudowane w <style>):
-   - Scroll reveal: elements start opacity:0 + translateY(30px), animate to visible on scroll
-   - Hover na kartach: translateY(-6px) + shadow
-   - Hover na przyciskach: scale(1.02) + ciemniejszy kolor
-   - Płynne scrollowanie (smooth scroll)
-   - Gradient animations w hero (subtelne)
-   Użyj IntersectionObserver w <script> do scroll reveal
-
-4. TYPOGRAFIA:
-   - Nagłówki: font-family: 'Instrument Serif', serif (lub 'Playfair Display')
-   - Body: font-family: 'Inter', sans-serif
-   - H1: 56-80px, letter-spacing: -0.02em, line-height: 0.95
-   - H2: 36-48px, letter-spacing: -0.01em
-
-5. KOLORY i DESIGN:
-   - Jeśli podano kolory → użyj ich jako accent
-   - Jeśli nie → niebieski #2563eb jako główny akcent
-   - Białe tło, dużo przestrzeni, rounded-2xl na kartach
-   - Gradient w hero (np. accent→white)
-   - Cienie: 0 4px 24px rgba(0,0,0,0.08)
-
-6. ZDJĘCIA: Unsplash src z konkretnymi frazami branżowymi:
-   - Restauracja: "cozy restaurant interior", "gourmet food plating"
-   - Barber: "barber shop interior", "men haircut"
-   - Kwiaciarnia: "flower shop interior", "bouquet"
-   - Itd. — dobieraj pod branżę
-
-7. DANE KLIENTA: Wyciągnij WSZYSTKO z opisu:
-   - Nazwa firmy → header, hero, footer
-   - Telefon → klikalny tel: w hero i kontakcie
-   - Adres → sekcja kontakt
-   - Godziny → sekcja kontakt
-   - Ceny → cennik
-   - Opinie → sekcja opinie
-   - Menu/oferty → sekcja oferta
-   - Ocena → badge social proof w hero
-
-8. RESPONSYWNOŚĆ: mobile-first. Na mobile: stacked layout, smaller fonts, full-width cards.
-
-9. MINIMALNA DŁUGOŚĆ: preview.html MUSI mieć MINIMUM 200 linii kodu. Nie rób "placeholderów".
-   Każda sekcja musi mieć REALNĄ treść (nazwa firmy, konkretne usługi, ceny, adres, telefon).
-
-10. JĘZYK: po polsku. Pisz jak człowiek, nie jak marketingowiec.
-    ZAKAZ: "profesjonalny", "kompleksowy", "innowacyjny", "premium", "ekspert", "lider"
-    ZAMIAST: konkretne opisy, lata doświadczenia, nazwy ulic, imiona klientów
-
-11. NIGDY nie zadawaj pytań. Nie pisz "...". Nie skracaj. Pełny kod HTML.
-
-12. SCROLL REVEAL IMPLEMENTACJA — dodaj w <script>:
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
-    }, {threshold: 0.1});
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    W <style>: .reveal { opacity: 0; transform: translateY(30px); transition: all 0.6s cubic-bezier(0.16,1,0.3,1); }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
+PRZYKLAD ZLEGO HERO:
+<h1>Profesjonalne uslugi gastronomiczne</h1>
+<p>Oferujemy kompleksowe rozwiazania w branzy gastronomicznej.</p>
+<a>Skontaktuj sie</a>
 """
+
 
 
 def fallback_content(data: BuilderInput):
@@ -683,6 +639,21 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
             provider = "fallback"
             if warning is None:
                 warning = "Brak dostÄ™pnego dostawcy AI â€” pokazujÄ™ szablon awaryjny"
+
+        # Auto-generuj React pliki z preview.html jeśli ich nie ma
+        if parsed_files and 'main/frontend/preview.html' in parsed_files:
+            ph = parsed_files['main/frontend/preview.html']
+            if 'main/frontend/src/App.tsx' not in parsed_files:
+                # Konwertuj HTML → React App.tsx
+                title = meta.get('title', 'Strona')
+                headline = meta.get('headline', title)
+                parsed_files['main/frontend/index.html'] = '<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>' + title + '</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>'
+                parsed_files['main/frontend/src/main.tsx'] = "import React from 'react'\nimport ReactDOM from 'react-dom/client'\nimport App from './App'\nimport './index.css'\nReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)"
+                parsed_files['main/frontend/src/index.css'] = '@tailwind base;\n@tailwind components;\n@tailwind utilities;'
+                parsed_files['main/frontend/package.json'] = '{"name":"firma-site","private":true,"type":"module","scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0","lucide-react":"^0.300.0"},"devDependencies":{"@types/react":"^18.2.0","@vitejs/plugin-react":"^4.2.0","autoprefixer":"^10.4.0","postcss":"^8.4.0","tailwindcss":"^3.4.0","typescript":"^5.3.0","vite":"^5.0.0"}}'
+                # App.tsx — wrapper ktory wrzuca preview.html do iframe
+                parsed_files['main/frontend/src/App.tsx'] = "import { useEffect, useRef } from 'react'\n\nexport default function App() {\n  const ref = useRef<HTMLIFrameElement>(null)\n  useEffect(() => {\n    fetch('/preview.html').then(r => r.text()).then(html => {\n      if (ref.current) ref.current.srcdoc = html\n    })\n  }, [])\n  return (\n    <div style={{width:'100vw',height:'100vh'}}>\n      <iframe ref={ref} style={{width:'100%',height:'100%',border:'none'}} title='Strona' />\n    </div>\n  )\n}"
+                parsed_files['main/frontend/preview.html'] = ph
 
         meta = parsed_meta or fb["meta"]
         hero = {"title": meta.get("headline", data.business_name), "subtitle": meta.get("subheadline", data.description), "cta_text": meta.get("ctaText", "Kontakt")}
