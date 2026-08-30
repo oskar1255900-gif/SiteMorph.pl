@@ -134,19 +134,43 @@ export const BuilderFullView = ({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = (type: 'html' | 'react') => {
     if (!generatedSite) return;
-    const html = generatedSite.files['main/frontend/preview.html'] || '';
-    if (!html) { alert('Brak pliku do pobrania'); return; }
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(generatedSite.title || 'strona').replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const safeName = (generatedSite.title || 'strona').replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '_');
+    if (type === 'html') {
+      const html = generatedSite.files['main/frontend/preview.html'] || '';
+      if (!html) { alert('Brak pliku HTML'); return; }
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${safeName}.html`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    } else {
+      // Download React project as multiple files
+      const files: Record<string, string> = {};
+      for (const [k, v] of Object.entries(generatedSite.files)) {
+        if (k.startsWith('main/frontend/') && k !== 'main/frontend/preview.html') {
+          files[k.replace('main/frontend/', '')] = v;
+        }
+      }
+      if (Object.keys(files).length === 0) { alert('Brak plików React do pobrania'); return; }
+      // Download App.tsx as the main file
+      const appTsx = files['src/App.tsx'] || '';
+      if (appTsx) {
+        const blob = new Blob([appTsx], { type: 'text/typescript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'App.tsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      }
+      // Also download other files
+      for (const [fname, content] of Object.entries(files)) {
+        if (fname !== 'src/App.tsx' && content) {
+          const blob = new Blob([content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = fname.split('/').pop() || fname;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+      }
+    }
   };
 
   const commitTitle = async () => {
@@ -645,7 +669,8 @@ export const BuilderFullView = ({
                       <div className="text-[10px] font-black opacity-60">Link do podglądu</div>
                       <div className="text-[11px] font-mono truncate bg-[#F7F6F3] dark:bg-zinc-900 p-2 rounded-lg border border-[#EAEAEA] dark:border-white/[0.08]">{generatedSite.domain}</div>
                       <button onClick={handleSaveProject} className="w-full py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5"><Save size={12}/> {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}</button>
-                      <button onClick={handleDownload} className="w-full py-2 rounded-xl border border-[#EAEAEA] dark:border-white/[0.08] text-xs font-black flex items-center justify-center gap-1.5 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors"><Download size={12}/> Pobierz HTML</button>
+                      <button onClick={() => handleDownload('react')} className="w-full py-2 rounded-xl bg-[#111111] dark:bg-white text-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"><Download size={12}/> Pobierz React</button>
+                      <button onClick={() => handleDownload('html')} className="w-full py-2 rounded-xl border border-[#EAEAEA] dark:border-white/[0.08] text-xs font-black flex items-center justify-center gap-1.5 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors"><Download size={12}/> Pobierz HTML</button>
                       {saveMsg && <p className="text-[10px] font-black text-emerald-500">{saveMsg}</p>}
                     </div>
                     <div className="pt-3 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-2">
