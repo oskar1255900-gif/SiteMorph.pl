@@ -64,7 +64,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
           <HelpCircle size={22} />
         </div>
         <div>
-          <h1 className="text-2xl font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Centrum Pomocy</h1>
+          <h1 className="text-2xl font-black" style={{ fontFamily: "'Inter', sans-serif" }}>Centrum Pomocy</h1>
           <p className="text-xs font-bold opacity-80">Masz pytanie? Odpowiadamy zazwyczaj w 24h.</p>
         </div>
       </motion.div>
@@ -77,7 +77,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
             <a href="mailto:support@sitemorph.ai" className="text-xs font-black text-emerald-400 hover:underline">support@sitemorph.ai</a>
           </motion.div>
           <div className="flex justify-center pt-1">
-            <button onClick={() => setShowAdminLogin(true)} className="text-[9px] font-bold tracking-widest uppercase opacity-[0.18] hover:opacity-60 transition-opacity cursor-pointer bg-transparent border-none select-none" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+            <button onClick={() => setShowAdminLogin(true)} className="text-[9px] font-bold tracking-widest uppercase opacity-[0.18] hover:opacity-60 transition-opacity cursor-pointer bg-transparent border-none select-none" style={{ fontFamily: "'Inter', sans-serif" }}>
               Panel
             </button>
           </div>
@@ -149,7 +149,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
               className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl p-6 space-y-4"
             >
               <div className="relative flex items-center justify-between">
-                <h3 className="text-base font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Panel administratora</h3>
+                <h3 className="text-base font-black" style={{ fontFamily: "'Inter', sans-serif" }}>Panel administratora</h3>
                 <button onClick={() => { setShowAdminLogin(false); setAdminErr(''); }} className="w-7 h-7 rounded-full grid place-items-center bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
                   <X size={12} />
                 </button>

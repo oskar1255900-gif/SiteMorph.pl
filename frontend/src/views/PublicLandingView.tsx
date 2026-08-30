@@ -154,7 +154,7 @@ export const PublicLandingView = ({
     <div className="min-h-screen bg-white dark:bg-black text-[#2563eb] dark:text-white transition-colors overflow-x-hidden landing-scale">
       <div className="h-2" />
       {/* Hero — minimalistyczny layout SF Pro z jednym morphingiem i adaptacyjnym kolorem nagłówka */}
-      <section className="relative overflow-hidden bg-white text-[#2563eb] transition-colors dark:bg-black dark:text-white">
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-white to-blue-50/30 text-[#2563eb] transition-colors dark:from-black dark:via-black dark:to-blue-950/10 dark:text-white">
         <div className="mx-auto flex min-h-[100dvh] max-w-[1240px] flex-col px-6 lg:px-10">
           <div className="flex items-center justify-between border-b border-[#EAEAEA] py-5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#2563eb] dark:border-white/15 dark:text-white">
             <span>SiteMorph / AI website studio</span>
@@ -173,7 +173,7 @@ export const PublicLandingView = ({
                 animate={{ opacity: 1, letterSpacing: '-0.08em', y: 0 }}
                 transition={{ duration: 0.85, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
                 className="max-w-[980px] text-[clamp(4.5rem,12vw,11rem)] font-bold leading-[0.82]"
-                style={{ fontFamily: "'SF Pro Display', sans-serif", color: theme === 'dark' ? '#ffffff' : '#2563eb' }}
+                style={{ fontFamily: "'Inter', sans-serif", color: theme === 'dark' ? '#ffffff' : '#2563eb' }}
               >
                 Buduj strony.<br />
                 Zarabiaj.
@@ -182,7 +182,7 @@ export const PublicLandingView = ({
                 Jedno zdanie → gotowa strona dla lokalnej firmy. Ty znajdujesz klienta, SiteMorph robi resztę.
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-6">
-                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-4 rounded-2xl bg-[#2563eb] px-8 py-4 text-[15px] font-bold text-white shadow-[0_12px_40px_rgba(37,99,235,0.35)] transition-all hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(37,99,235,0.45)] hover:bg-[#1d4ed8] dark:bg-white dark:text-[#2563eb] dark:shadow-[0_12px_40px_rgba(255,255,255,0.15)]">
+                <button type="button" onClick={() => onEnterApp('dashboard')} className="group inline-flex items-center gap-4 rounded-2xl bg-[#2563eb] px-8 py-4 text-[15px] font-bold text-white shadow-[0_12px_40px_rgba(37,99,235,0.35)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(37,99,235,0.5)] hover:bg-[#1d4ed8] dark:bg-white dark:text-[#2563eb] dark:shadow-[0_12px_40px_rgba(255,255,255,0.15)]">
                   Zacznij zarabiać <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/20 group-hover:bg-white/30 transition-colors dark:bg-[#2563eb]/10"><ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></span>
                 </button>
                 <button type="button" onClick={() => onEnterApp('pricing')} className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-[#2563eb] transition-colors hover:bg-[#F7F6F3] dark:text-white dark:hover:bg-white/10">
@@ -200,7 +200,7 @@ export const PublicLandingView = ({
               aria-label="Animacja morphing SiteMorph"
             >
               <motion.div
-                className="h-40 w-40 rounded-[34%] border-2 border-[#2563eb] dark:border-white sm:h-52 sm:w-52"
+                className="h-40 w-40 rounded-[34%] border-2 border-[#2563eb] dark:border-white sm:h-52 sm:w-52 shadow-[0_0_60px_rgba(37,99,235,0.15)] dark:shadow-[0_0_60px_rgba(255,255,255,0.1)]"
                 animate={{ borderRadius: ['34%', '50%', '34%'], rotate: [0, 90, 180], scale: [1, 1.1, 1] }}
                 transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
               />
@@ -228,10 +228,10 @@ export const PublicLandingView = ({
           viewport={{ once: true, margin: '-80px' }}
           className="text-center space-y-5 relative"
         >
-          <h2 className="relative text-5xl sm:text-6xl lg:text-[64px] font-bold tracking-[-0.04em] leading-[0.9]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <h2 className="relative text-5xl sm:text-6xl lg:text-[64px] font-bold tracking-[-0.04em] leading-[0.9]" style={{ fontFamily: "'Inter', sans-serif" }}>
             Od jednego zdania<br />do działającej strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
-          <p className="relative text-[18px] font-medium text-[#2563eb]/70 dark:text-white/60 max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <p className="relative text-[18px] font-medium text-[#2563eb]/70 dark:text-white/60 max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
             Napisz, czego potrzebujesz. Oglądaj, jak powstaje projekt. Poprawiaj jednym zdaniem.
           </p>
         </motion.div>
@@ -249,17 +249,17 @@ export const PublicLandingView = ({
               key={s.num}
               variants={cineChild}
               whileHover={{ y: -4 }}
-              className="rounded-2xl border overflow-hidden flex flex-col bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 shadow-sm hover:shadow-xl transition-shadow"
+              className="rounded-2xl border overflow-hidden flex flex-col bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all"
 
             >
               <div className="h-60 flex items-center justify-center px-6 border-b bg-gradient-to-b from-blue-50/50 to-transparent dark:from-neutral-950/60 dark:to-transparent border-[#EAEAEA] dark:border-neutral-900">{s.mockup}</div>
               <div className="p-7 space-y-2.5 flex-1">
-                <div className="flex items-center gap-3 text-[10px] font-black opacity-60" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+                <div className="flex items-center gap-3 text-[10px] font-black opacity-60" style={{ fontFamily: "'Inter', sans-serif" }}>
                   <span>{s.num}</span>
                   <span className="flex-1 h-px bg-blue-100 dark:bg-neutral-800" />
                 </div>
-                <h3 className="text-lg font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{s.title}</h3>
-                <p className="text-sm font-bold opacity-75 leading-relaxed" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{s.desc}</p>
+                <h3 className="text-lg font-black" style={{ fontFamily: "'Inter', sans-serif" }}>{s.title}</h3>
+                <p className="text-sm font-bold opacity-75 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{s.desc}</p>
               </div>
             </motion.div>
           ))}
@@ -281,7 +281,7 @@ export const PublicLandingView = ({
           viewport={{ once: true }}
           className="text-center space-y-4 relative"
         >
-          <h2 className="relative text-5xl sm:text-6xl lg:text-[56px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <h2 className="relative text-5xl sm:text-6xl lg:text-[56px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter', sans-serif" }}>
             Wszystko, czego potrzebujesz,<br />żeby sprzedawać strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
         </motion.div>
@@ -299,8 +299,8 @@ export const PublicLandingView = ({
               <button
                 key={f.label}
                 onClick={() => setActiveFeature(idx)}
-                className={`px-5 py-2 rounded-full text-xs font-black border transition-colors cursor-pointer ${isActive ? 'bg-[#2563eb] dark:bg-white text-white dark:text-[#2563eb] border-transparent shadow-[0_8px_32px_rgba(37,99,235,0.18)]' : 'bg-transparent border-[#EAEAEA] dark:border-neutral-800 hover:border-[#2563eb]/40'}`}
-                style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+                className={`px-5 py-2 rounded-full text-xs font-black border transition-all cursor-pointer ${isActive ? 'bg-[#2563eb] dark:bg-white text-white dark:text-[#2563eb] border-transparent shadow-[0_8px_32px_rgba(37,99,235,0.25)] scale-105' : 'bg-transparent border-[#EAEAEA] dark:border-neutral-800 hover:border-[#2563eb]/40 hover:scale-105'}`}
+                style={{ fontFamily: "'Inter', sans-serif" }}
               >
                 {f.label}
               </button>
@@ -315,24 +315,24 @@ export const PublicLandingView = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.98 }}
             transition={{ type: 'spring' as const, stiffness: 140, damping: 20 }}
-            className="rounded-2xl border p-8 lg:p-10 grid lg:grid-cols-2 gap-10 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 shadow-xl"
+            className="rounded-2xl border p-8 lg:p-10 grid lg:grid-cols-2 gap-10 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
             style={{ perspective: 1200 }}
           >
             <div className="space-y-5">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#111111] dark:bg-white text-white dark:text-black shadow-md">
                 {(() => { const Icon = LANDING_FEATURE_TABS[activeFeature].icon; return <Icon size={22} />; })()}
               </div>
-              <h3 className="text-3xl font-black tracking-tight leading-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].title}</h3>
-              <p className="text-sm font-bold leading-relaxed opacity-80 max-w-md" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].desc}</p>
+              <h3 className="text-3xl font-black tracking-tight leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].title}</h3>
+              <p className="text-sm font-bold leading-relaxed opacity-80 max-w-md" style={{ fontFamily: "'Inter', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].desc}</p>
               <div className="flex items-baseline gap-8 pt-2">
                 <div>
-                  <div className="text-xl font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].statBig}</div>
-                  <div className="text-[10px] font-bold opacity-60 uppercase tracking-wider" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].statSmall}</div>
+                  <div className="text-xl font-black" style={{ fontFamily: "'Inter', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].statBig}</div>
+                  <div className="text-[10px] font-bold opacity-60 uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>{LANDING_FEATURE_TABS[activeFeature].statSmall}</div>
                 </div>
                 <div className="text-sm font-black opacity-40">/</div>
                 <div>
-                  <div className="text-sm font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Bez logowania</div>
-                  <div className="text-[10px] font-bold opacity-60" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>dla klienta</div>
+                  <div className="text-sm font-black" style={{ fontFamily: "'Inter', sans-serif" }}>Bez logowania</div>
+                  <div className="text-[10px] font-bold opacity-60" style={{ fontFamily: "'Inter', sans-serif" }}>dla klienta</div>
                 </div>
               </div>
             </div>
@@ -341,7 +341,7 @@ export const PublicLandingView = ({
               {activeFeature === 0 && (
                 <div className="w-full space-y-3">
                   <div className="rounded-2xl border p-4 space-y-3 bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
-                    <div className="text-[9px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1.5" style={{ fontFamily: "'SF Pro Display', sans-serif" }}><Globe size={10} /> Udostępnij podgląd</div>
+                    <div className="text-[9px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1.5" style={{ fontFamily: "'Inter', sans-serif" }}><Globe size={10} /> Udostępnij podgląd</div>
                     <div className="flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800">
                       <span className="text-[10px] font-mono truncate">podglad.sitemorph.pl/morph-8421</span>
                       <span className="text-[9px] font-black px-2.5 py-1 rounded-full bg-[#111111] dark:bg-white text-white dark:text-black shrink-0">Kopiuj</span>
@@ -423,10 +423,10 @@ export const PublicLandingView = ({
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 text-[11px] font-black tracking-widest uppercase w-fit">
             <Search size={12} /> Lead Finder
           </div>
-          <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter', sans-serif" }}>
             Twoi klienci już gdzieś są.<br />Znajdziesz ich w minutę<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
-          <p className="text-sm font-bold leading-relaxed opacity-80" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <p className="text-sm font-bold leading-relaxed opacity-80" style={{ fontFamily: "'Inter', sans-serif" }}>
             W każdym planie dostajesz dostęp do lokalnych firm z Google. Telefon, adres, e-mail - a filtr „brak strony” podświetla najlepsze okazje.
           </p>
           <ul className="space-y-3 text-sm font-bold">
@@ -441,7 +441,7 @@ export const PublicLandingView = ({
               </li>
             ))}
           </ul>
-          <button onClick={() => onEnterApp('leadfinder')} className="inline-flex items-center gap-2 text-sm font-black hover:text-emerald-500 transition-colors cursor-pointer bg-transparent border-none p-0" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <button onClick={() => onEnterApp('leadfinder')} className="inline-flex items-center gap-2 text-sm font-black hover:text-emerald-500 transition-colors cursor-pointer bg-transparent border-none p-0" style={{ fontFamily: "'Inter', sans-serif" }}>
             Otwórz Lead Finder <ArrowRight size={15} />
           </button>
         </motion.div>
@@ -544,10 +544,10 @@ export const PublicLandingView = ({
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 text-[11px] font-black tracking-widest uppercase w-fit">
             <Receipt size={12} /> Rozliczenia
           </div>
-          <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter', sans-serif" }}>
             Strona gotowa.<br />Czas na przelew<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
-          <p className="text-sm font-bold leading-relaxed opacity-80 max-w-md" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <p className="text-sm font-bold leading-relaxed opacity-80 max-w-md" style={{ fontFamily: "'Inter', sans-serif" }}>
             Wbudowane faktury bez prowizji. Wystawiasz dokument, wysyłasz PDF i pilnujesz płatności - wszystko w jednym miejscu.
           </p>
           <div className="grid grid-cols-3 gap-6 pt-2 border-t border-[#EAEAEA] dark:border-neutral-900">
@@ -557,8 +557,8 @@ export const PublicLandingView = ({
               ['Od ręki', 'eksport do PDF']
             ].map(([big, small]) => (
               <div key={big}>
-                <div className="text-lg font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{big}</div>
-                <div className="text-[10px] font-bold opacity-60 leading-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{small}</div>
+                <div className="text-lg font-black" style={{ fontFamily: "'Inter', sans-serif" }}>{big}</div>
+                <div className="text-[10px] font-bold opacity-60 leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{small}</div>
               </div>
             ))}
           </div>
@@ -572,12 +572,12 @@ export const PublicLandingView = ({
           whileInView={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
           viewport={{ once: true, margin: '-60px' }}
           transition={{ type: 'spring' as const, stiffness: 95, damping: 19 }}
-          className="relative rounded-[28px] border p-10 sm:p-12 text-center space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 shadow-xl overflow-hidden"
+          className="relative rounded-[28px] border p-10 sm:p-12 text-center space-y-5 bg-gradient-to-b from-white to-blue-50/30 dark:from-black dark:to-blue-950/10 border-[#EAEAEA] dark:border-neutral-800 shadow-[0_20px_60px_rgba(0,0,0,0.08)] overflow-hidden"
         >
-          <h2 className="relative text-4xl sm:text-5xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+          <h2 className="relative text-4xl sm:text-5xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter', sans-serif" }}>
             Jedno zdanie.<br />Gotowa strona.<br /><span className="text-[#2563eb] dark:text-white">Dzisiaj.</span>
           </h2>
-          <p className="relative text-sm font-bold opacity-70 max-w-md mx-auto" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Zrób pierwszy projekt za darmo i pokaż go klientowi jeszcze dziś.</p>
+          <p className="relative text-sm font-bold opacity-70 max-w-md mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>Zrób pierwszy projekt za darmo i pokaż go klientowi jeszcze dziś.</p>
           <div className="relative flex flex-wrap justify-center gap-3 pt-2">
             <Button variant="primary" size="lg" onClick={() => onEnterApp('dashboard')} className="font-black">Zbuduj pierwszą stronę</Button>
             <Button variant="outline" size="lg" onClick={() => onEnterApp('pricing')} className="font-black"><Play size={14} className="fill-current" /> Zobacz demo 90 s</Button>
@@ -586,7 +586,7 @@ export const PublicLandingView = ({
       </section>
 
       <footer className="border-t border-[#EAEAEA] dark:border-neutral-900 py-10 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-bold" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-bold" style={{ fontFamily: "'Inter', sans-serif" }}>
           <div className="flex items-center gap-2 opacity-60">
             <span className="w-7 h-7 rounded-full bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center font-black"><Zap size={12} className="fill-current" /></span>
             <span>© {new Date().getFullYear()} SiteMorph · Stworzone dla lokalnych firm.</span>
@@ -634,8 +634,8 @@ export const PublicLandingView = ({
 
               <div className="relative flex items-center justify-between p-6 border-b border-[#EAEAEA] dark:border-neutral-900 bg-white/80 dark:bg-neutral-950/80 backdrop-blur sticky top-0">
                 <div>
-                  <h3 className="text-lg font-black tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{LEGAL_DOCS[legalDoc].title}</h3>
-                  <p className="text-[10px] font-bold opacity-60 mt-0.5" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{LEGAL_DOCS[legalDoc].updated}</p>
+                  <h3 className="text-lg font-black tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{LEGAL_DOCS[legalDoc].title}</h3>
+                  <p className="text-[10px] font-bold opacity-60 mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>{LEGAL_DOCS[legalDoc].updated}</p>
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.08, rotate: 90 }}
@@ -647,7 +647,7 @@ export const PublicLandingView = ({
                 </motion.button>
               </div>
 
-              <div className="relative overflow-y-auto p-6 space-y-5 no-scrollbar" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+              <div className="relative overflow-y-auto p-6 space-y-5 no-scrollbar" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {LEGAL_DOCS[legalDoc].sections.map((s) => (
                   <div key={s.h} className="space-y-1.5">
                     <h4 className="text-sm font-black tracking-tight">{s.h}</h4>

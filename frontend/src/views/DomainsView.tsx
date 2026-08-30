@@ -147,7 +147,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
           <Globe size={22} />
         </div>
         <div>
-          <h1 className="text-2xl font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Własne domeny</h1>
+          <h1 className="text-2xl font-black" style={{ fontFamily: "'Inter', sans-serif" }}>Własne domeny</h1>
           <p className="text-xs font-bold opacity-80">Podłącz domenę swojej firmy i publikuj strony bez linku demo.</p>
         </div>
       </motion.div>

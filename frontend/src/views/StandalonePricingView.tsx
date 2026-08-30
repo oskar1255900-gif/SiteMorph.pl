@@ -19,7 +19,7 @@ export const StandalonePricingView = () => {
     >
       <motion.div variants={cineSoft} className="text-center space-y-3 relative">
         <div className="relative text-emerald-500 dark:text-emerald-400 font-black text-xs tracking-[0.2em] uppercase">Cennik i Plany</div>
-        <h2 className="relative text-5xl sm:text-6xl font-black tracking-tighter leading-[0.9]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+        <h2 className="relative text-5xl sm:text-6xl font-black tracking-tighter leading-[0.9]" style={{ fontFamily: "'Inter', sans-serif" }}>
           Wybierz swój <span className="text-gradient-lime-soft font-story-script text-6xl sm:text-7xl px-1">Plan</span>
         </h2>
         <p className="relative text-sm font-bold max-w-xl mx-auto opacity-80 leading-relaxed">
@@ -64,7 +64,7 @@ export const StandalonePricingView = () => {
               )}
 
               <div>
-                <h3 className="text-xl font-black mb-1" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{plan.name}</h3>
+                <h3 className="text-xl font-black mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>{plan.name}</h3>
 
                 <div className="flex items-baseline gap-1 my-4">
                   <span className="text-4xl font-black tracking-tighter">{finalPrice} zł</span>

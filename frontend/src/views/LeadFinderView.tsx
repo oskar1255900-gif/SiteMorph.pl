@@ -339,7 +339,7 @@ export const LeadFinderView = ({
       style={{ perspective: 1200, fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
       <div className="text-center space-y-3">
-        <h2 className="text-[32px] sm:text-[36px] font-black tracking-tighter text-center" style={{ fontFamily: "'SF Pro Display', sans-serif", letterSpacing: '-0.03em' }}>LEAD FINDER</h2>
+        <h2 className="text-[32px] sm:text-[36px] font-black tracking-tighter text-center" style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '-0.03em' }}>LEAD FINDER</h2>
         <p className="text-[13px] font-semibold opacity-60 max-w-md mx-auto">Wybierz kraj, miasto i branżę - wyszukamy prawdziwe firmy z OSM. Bez mocków.</p>
         <div className="flex justify-center px-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-[10px] font-bold text-amber-800 dark:text-amber-300 text-left">
@@ -348,7 +348,7 @@ export const LeadFinderView = ({
           </span>
         </div>
       </div>
-      <motion.div variants={cineChild} className="p-6 sm:p-7 rounded-2xl border shadow-[0_8px_32px_rgba(37,99,235,0.08)] space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08]">
+      <motion.div variants={cineChild} className="p-6 sm:p-7 rounded-2xl border shadow-[0_2px_12px_rgba(0,0,0,0.06)] space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08]">
         <div className="space-y-1.5">
           <label className="text-[11px] font-black uppercase tracking-widest opacity-60">Kraj</label>
           <div className="relative">
@@ -356,7 +356,7 @@ export const LeadFinderView = ({
               value={country}
               onChange={(e) => setCountry(e.target.value)}
               className="w-full appearance-none pl-4 pr-10 py-[13px] rounded-2xl text-[14px] font-semibold outline-none border bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-700 cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition"
-              style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+              style={{ fontFamily: "'Inter', sans-serif" }}
             >
               <option value="" disabled>Wybierz kraj...</option>
               {(LEAD_COUNTRIES as unknown as string[]).map((c) => (
@@ -373,7 +373,7 @@ export const LeadFinderView = ({
               type="button"
               onClick={() => setCityOpen(!cityOpen)}
               className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-2xl text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
-              style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+              style={{ fontFamily: "'Inter', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
                 <Search size={16} className="opacity-40 shrink-0" />
@@ -437,7 +437,7 @@ export const LeadFinderView = ({
               type="button"
               onClick={() => setIndustryOpen(!industryOpen)}
               className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-2xl text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
-              style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+              style={{ fontFamily: "'Inter', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
                 <Search size={16} className="opacity-40 shrink-0" />
@@ -492,7 +492,7 @@ export const LeadFinderView = ({
           onClick={handleFind}
           disabled={isSearching || !country || !citySelected || !industry}
           className="w-full py-[14px] rounded-lg bg-[#111111] dark:bg-white text-white dark:text-black font-black text-[15px] shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+          style={{ fontFamily: "'Inter', sans-serif" }}
         >
           {isSearching ? <><span className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> Szukam...</> : 'Szukaj leadów'}
         </button>
