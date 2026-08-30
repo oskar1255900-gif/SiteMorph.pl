@@ -798,45 +798,141 @@ export const BuilderFullView = ({
               exit={{ scale: 0.96, y: 8, opacity: 0 }}
               transition={{ type: 'spring' as const, stiffness: 320, damping: 24 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl overflow-hidden"
+              className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-                <div className="flex items-center gap-2 text-white font-black text-sm"><Sparkles size={14} className="text-emerald-400" /> Agent ma pytania</div>
-                <button onClick={() => setShowWizard(false)} className="text-neutral-400 hover:text-white cursor-pointer bg-transparent border-none"><X size={14} /></button>
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-neutral-800">
+                <div>
+                  <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white">
+                    <Sparkles size={16} className="text-emerald-500" /> Konfiguracja strony
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">Dostosuj wygląd przed generowaniem</p>
+                </div>
+                <button onClick={() => setShowWizard(false)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer bg-transparent border-none text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                  <X size={16} />
+                </button>
               </div>
-              <div className="p-5 space-y-3">
-                <h3 className="font-black text-white text-sm">{WIZARD_STEPS[wizardStep].title}</h3>
-                <div className="space-y-2">
+
+              {/* Progress bar */}
+              <div className="px-5 pt-4">
+                <div className="flex gap-1.5">
+                  {WIZARD_STEPS.map((_, i) => (
+                    <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= wizardStep ? 'bg-[#2563eb]' : 'bg-gray-100 dark:bg-neutral-800'}`} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 min-h-[280px]">
+                <h3 className="font-bold text-base text-gray-900 dark:text-white mb-1">{WIZARD_STEPS[wizardStep].title}</h3>
+                <p className="text-xs text-gray-400 mb-4">Wybierz jedną opcję</p>
+
+                <div className="space-y-2.5">
                   {WIZARD_STEPS[wizardStep].options.map((opt) => {
                     const sk = WIZARD_STEPS[wizardStep].stateKey;
                     const isChecked = sk === 'q1' ? q1 === opt : sk === 'q2' ? q2 === opt : sk === 'qAccent' ? qAccent === opt : sk === 'qFont' ? qFont === opt : sk === 'qLayout' ? qLayout === opt : sk === 'qImages' ? qImages === opt : q4.includes(opt);
+
+                    // Color swatches
+                    if (sk === 'qAccent') {
+                      const colorMap: Record<string, string> = {
+                        'Niebieski #2563eb': '#2563eb', 'Ciemny/grafit #111827': '#111827',
+                        'Złoty #d97706': '#d97706', 'Zielony #059669': '#059669',
+                        'Fioletowy #7c3aed': '#7c3aed', 'Czerwony #dc2626': '#dc2626',
+                      };
+                      const hex = colorMap[opt] || '#2563eb';
+                      return (
+                        <label key={opt} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
+                          <input type="radio" checked={isChecked} onChange={() => setQAccent(opt)} className="sr-only" />
+                          <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-neutral-700 shrink-0" style={{ background: hex }} />
+                          <div>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{opt.split('#')[0].trim()}</span>
+                            <span className="text-xs text-gray-400 ml-2 font-mono">{hex}</span>
+                          </div>
+                          {isChecked && <div className="ml-auto w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-white dark:bg-black" /></div>}
+                        </label>
+                      );
+                    }
+
+                    // Font previews
+                    if (sk === 'qFont') {
+                      const fontMap: Record<string, string> = {
+                        'Inter + Playfair Display (serif)': "'Inter', sans-serif",
+                        'Inter (sans-serif only)': "'Inter', sans-serif",
+                        'DM Sans + Fraunces': "'DM Sans', sans-serif",
+                        'Space Grotesk + Lora': "'Space Grotesk', sans-serif",
+                        'Manrope + Cormorant': "'Manrope', sans-serif",
+                      };
+                      const displayFontMap: Record<string, string> = {
+                        'Inter + Playfair Display (serif)': "'Playfair Display', serif",
+                        'Inter (sans-serif only)': "'Inter', sans-serif",
+                        'DM Sans + Fraunces': "'Fraunces', serif",
+                        'Space Grotesk + Lora': "'Lora', serif",
+                        'Manrope + Cormorant': "'Cormorant', serif",
+                      };
+                      return (
+                        <label key={opt} className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
+                          <input type="radio" checked={isChecked} onChange={() => setQFont(opt)} className="sr-only" />
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-xl font-bold text-gray-900 dark:text-white mb-1" style={{ fontFamily: displayFontMap[opt] }}>Nagłówek</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: fontMap[opt] }}>Tekst ciała strony wygląda tak</p>
+                            </div>
+                            {isChecked && <div className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center shrink-0 mt-1"><div className="w-2 h-2 rounded-full bg-white dark:bg-black" /></div>}
+                          </div>
+                        </label>
+                      );
+                    }
+
+                    // Layout previews
+                    if (sk === 'qLayout') {
+                      const layoutVisuals: Record<string, JSX.Element> = {
+                        'Split hero (zdjęcie po prawej)': (
+                          <div className="flex gap-2 h-16"><div className="flex-1 bg-gray-200 dark:bg-neutral-700 rounded-lg p-2"><div className="w-3/4 h-2 bg-gray-300 dark:bg-neutral-600 rounded mb-1" /><div className="w-1/2 h-1.5 bg-gray-300 dark:bg-neutral-600 rounded" /></div><div className="w-1/2 bg-blue-100 dark:bg-blue-900/30 rounded-lg" /></div>
+                        ),
+                        'Full-screen hero (zdjęcie na cały ekran)': (
+                          <div className="h-16 bg-gray-300 dark:bg-neutral-600 rounded-lg relative overflow-hidden"><div className="absolute inset-0 bg-black/40" /><div className="absolute inset-0 flex items-center justify-center"><div className="w-1/2 h-2 bg-white/60 rounded" /></div></div>
+                        ),
+                        'Centered (wszystko wyśrodkowane)': (
+                          <div className="h-16 bg-gray-50 dark:bg-neutral-800 rounded-lg flex flex-col items-center justify-center gap-1 p-2"><div className="w-1/2 h-2 bg-gray-300 dark:bg-neutral-600 rounded" /><div className="w-1/3 h-1.5 bg-gray-200 dark:bg-neutral-700 rounded" /></div>
+                        ),
+                        'Dark mode (ciemne tło)': (
+                          <div className="h-16 bg-gray-900 dark:bg-black rounded-lg flex flex-col items-center justify-center gap-1 p-2 border border-gray-700"><div className="w-1/2 h-2 bg-gray-600 rounded" /><div className="w-1/3 h-1.5 bg-gray-700 rounded" /></div>
+                        ),
+                      };
+                      return (
+                        <label key={opt} className={`block p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
+                          <input type="radio" checked={isChecked} onChange={() => setQLayout(opt)} className="sr-only" />
+                          {layoutVisuals[opt]}
+                          <p className="text-xs font-semibold text-gray-900 dark:text-white mt-2">{opt.split('(')[0].trim()}</p>
+                        </label>
+                      );
+                    }
+
+                    // Default option card
                     return (
-                      <label key={opt} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-white text-black border-white' : 'bg-neutral-800 text-white border-neutral-700 hover:border-neutral-600'}`}>
-                        <input
-                          type={WIZARD_STEPS[wizardStep].multi ? 'checkbox' : 'radio'}
-                          checked={isChecked}
-                          onChange={() => {
-                            if (sk === 'q1') setQ1(opt);
-                            else if (sk === 'q2') setQ2(opt);
-                            else if (sk === 'qAccent') setQAccent(opt);
-                            else if (sk === 'qFont') setQFont(opt);
-                            else if (sk === 'qLayout') setQLayout(opt);
-                            else if (sk === 'qImages') setQImages(opt);
-                            else toggleQ4(opt);
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-xs font-bold leading-tight">{opt}</span>
+                      <label key={opt} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
+                        <input type={WIZARD_STEPS[wizardStep].multi ? 'checkbox' : 'radio'} checked={isChecked} onChange={() => {
+                          if (sk === 'q1') setQ1(opt);
+                          else if (sk === 'q2') setQ2(opt);
+                          else if (sk === 'qImages') setQImages(opt);
+                          else toggleQ4(opt);
+                        }} className="sr-only" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{opt}</span>
+                        {isChecked && <div className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center shrink-0"><div className="w-2 h-2 rounded-full bg-white dark:bg-black" /></div>}
                       </label>
                     );
                   })}
                 </div>
               </div>
-              <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-800 bg-neutral-950">
-                <span className="text-[11px] font-bold text-neutral-400">Pytanie {wizardStep + 1} z {WIZARD_STEPS.length} · koszt {cost} kr.</span>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-950">
+                <span className="text-xs text-gray-400">Krok {wizardStep + 1} z {WIZARD_STEPS.length}</span>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={handleWizardAuto} className="bg-neutral-800 text-white hover:bg-neutral-700">Auto</Button>
-                  <Button variant="primary" size="sm" onClick={handleWizardNext} className="font-black">{wizardStep === 3 ? 'Generuj' : 'Dalej'}</Button>
+                  <button onClick={handleWizardAuto} className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors bg-transparent border-none cursor-pointer">Auto</button>
+                  <button onClick={handleWizardNext} className="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all hover:shadow-lg" style={{ background: '#2563eb' }}>
+                    {wizardStep === WIZARD_STEPS.length - 1 ? 'Generuj →' : 'Dalej →'}
+                  </button>
                 </div>
               </div>
             </motion.div>
