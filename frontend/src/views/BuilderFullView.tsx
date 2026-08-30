@@ -255,8 +255,21 @@ export const BuilderFullView = ({
     };
   }, [isDraggingSplit]);
 
-  const WIZARD_DATA: Array<{ title: string; options: string[]; multi?: boolean; stateKey?: string }> = [
-    { title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'], stateKey: 'q1' },
+  // Auto-wykrywaj biznes z promptu
+  const detectBusiness = (text: string): string => {
+    const t = text.toLowerCase();
+    if (t.includes('restaurac') || t.includes('kebab') || t.includes('kurczak') || t.includes('jedzenie') || t.includes('food') || t.includes('pizzeria') || t.includes('bistro')) return 'Restauracja';
+    if (t.includes('barber') || t.includes('fryzjer') || t.includes('strzyż') || t.includes('salon fryzj')) return 'Barber';
+    if (t.includes('beauty') || t.includes('salon urod') || t.includes('manicure') || t.includes('paznokci') || t.includes('spa')) return 'Salon beauty';
+    if (t.includes('siłowni') || t.includes('fitness') || t.includes('gym')) return 'Siłownia';
+    if (t.includes('warsztat') || t.includes('mechanik') || t.includes('napraw')) return 'Warsztat';
+    if (t.includes('kwiaciarni') || t.includes('kwiat')) return 'Kwiaciarnia';
+    return '';
+  };
+  const detectedBusiness = detectBusiness(builderPrompt);
+  // Wizard kroki — pomijaj jeśli już wiadomo
+  const WIZARD_STEPS = [
+    ...(detectedBusiness ? [] : [{ title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'], stateKey: 'q1' }]),
     { title: 'Jaki klimat?', options: ['Nowoczesny, minimalistyczny', 'Ciepły, rustykalny', 'Elegancki, premium', 'Odważny, industrialny'], stateKey: 'q2' },
     { title: 'Jaki akcent kolorystyczny?', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626'], stateKey: 'qAccent' },
     { title: 'Jakie fonty?', options: ['Inter + Playfair Display (serif)', 'Inter (sans-serif only)', 'DM Sans + Fraunces', 'Space Grotesk + Lora', 'Manrope + Cormorant'], stateKey: 'qFont' },
@@ -363,7 +376,7 @@ export const BuilderFullView = ({
   };
 
   const handleWizardNext = () => {
-    if (wizardStep < WIZARD_DATA.length - 1) {
+    if (wizardStep < WIZARD_STEPS.length - 1) {
       setWizardStep((s) => s + 1);
     } else {
       handleGenerate();
@@ -371,7 +384,7 @@ export const BuilderFullView = ({
   };
 
   const handleWizardAuto = () => {
-    const step = WIZARD_DATA[wizardStep];
+    const step = WIZARD_STEPS[wizardStep];
     const opts = step.options;
     if (step.multi) {
       const shuffled = [...opts].sort(() => 0.5 - Math.random()).slice(0, 2 + Math.floor(Math.random() * 2));
@@ -501,7 +514,7 @@ export const BuilderFullView = ({
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     // ZAWSZE pokazuj wizard przed generowaniem
-                    setWizardStep(0); setShowWizard(true);
+                    setWizardStep(0); setShowWizard(true); if (detectedBusiness) setQ1(detectedBusiness);
                   }
                 }}
                 placeholder="Wklej dane z Google Maps albo opisz firmę (Enter = generuj)..."
@@ -517,7 +530,7 @@ export const BuilderFullView = ({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => {
                     // ZAWSZE pokazuj wizard przed generowaniem
-                    setWizardStep(0); setShowWizard(true);
+                    setWizardStep(0); setShowWizard(true); if (detectedBusiness) setQ1(detectedBusiness);
                   }}
                   className="w-7 h-7 bg-[#111111] dark:bg-white text-white dark:text-black rounded-lg flex items-center justify-center cursor-pointer border-none font-black shadow-md"
                   title={builderPrompt.trim() ? `Generuj - ${cost} kredytów` : 'Otwórz kreator pytań'}
@@ -792,15 +805,15 @@ export const BuilderFullView = ({
                 <button onClick={() => setShowWizard(false)} className="text-neutral-400 hover:text-white cursor-pointer bg-transparent border-none"><X size={14} /></button>
               </div>
               <div className="p-5 space-y-3">
-                <h3 className="font-black text-white text-sm">{WIZARD_DATA[wizardStep].title}</h3>
+                <h3 className="font-black text-white text-sm">{WIZARD_STEPS[wizardStep].title}</h3>
                 <div className="space-y-2">
-                  {WIZARD_DATA[wizardStep].options.map((opt) => {
-                    const sk = WIZARD_DATA[wizardStep].stateKey;
+                  {WIZARD_STEPS[wizardStep].options.map((opt) => {
+                    const sk = WIZARD_STEPS[wizardStep].stateKey;
                     const isChecked = sk === 'q1' ? q1 === opt : sk === 'q2' ? q2 === opt : sk === 'qAccent' ? qAccent === opt : sk === 'qFont' ? qFont === opt : sk === 'qLayout' ? qLayout === opt : sk === 'qImages' ? qImages === opt : q4.includes(opt);
                     return (
                       <label key={opt} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-white text-black border-white' : 'bg-neutral-800 text-white border-neutral-700 hover:border-neutral-600'}`}>
                         <input
-                          type={WIZARD_DATA[wizardStep].multi ? 'checkbox' : 'radio'}
+                          type={WIZARD_STEPS[wizardStep].multi ? 'checkbox' : 'radio'}
                           checked={isChecked}
                           onChange={() => {
                             if (sk === 'q1') setQ1(opt);
@@ -820,7 +833,7 @@ export const BuilderFullView = ({
                 </div>
               </div>
               <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-800 bg-neutral-950">
-                <span className="text-[11px] font-bold text-neutral-400">Pytanie {wizardStep + 1} z {WIZARD_DATA.length} · koszt {cost} kr.</span>
+                <span className="text-[11px] font-bold text-neutral-400">Pytanie {wizardStep + 1} z {WIZARD_STEPS.length} · koszt {cost} kr.</span>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={handleWizardAuto} className="bg-neutral-800 text-white hover:bg-neutral-700">Auto</Button>
                   <Button variant="primary" size="sm" onClick={handleWizardNext} className="font-black">{wizardStep === 3 ? 'Generuj' : 'Dalej'}</Button>
