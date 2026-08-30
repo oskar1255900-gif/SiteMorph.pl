@@ -144,6 +144,10 @@ class BuilderInput(BaseModel):
     extraPrompt: Optional[str] = ""
     package: Optional[str] = "starter"
     credits: Optional[int] = 10
+    accent_color: Optional[str] = None
+    layout: Optional[str] = None
+    fonts: Optional[str] = None
+    photo_style: Optional[str] = None
 
 from app.routers.builder_fallback_modern import fallback_content
 
@@ -220,6 +224,9 @@ ZASADY:
 12. MINIMUM 200 linii HTML - nie skracaj
 13. PO POLSKU, jak czlowiek nie jak marketingowiec
 14. NIE zadawaj pytan. Nie pisz "...".
+15. UZYJ podanego ACCENT COLOR zamiast domyslnego
+16. UZYJ podanego LAYOUT (split/full/centered/dark)
+17. UZYJ podanych FONTOW zamiast Inter
 
 ZAMIAST: "Profesjonalne uslugi" -> "Od 15 lat karmimy mieszkancow"
 ZAMIAST: "Najwyzsza jakosc" -> "Kurczak soczysty, frytki chrupkie"

@@ -326,6 +326,10 @@ export const BuilderFullView = ({
           colors: q3,
           sections: q4,
           extraPrompt: extra,
+          accent_color: qAccent,
+          layout: qLayout,
+          fonts: qFont,
+          photo_style: qImages,
         }),
       } as any);
       if (!res.ok) {

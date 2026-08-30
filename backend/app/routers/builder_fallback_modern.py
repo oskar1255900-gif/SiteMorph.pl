@@ -32,10 +32,35 @@ def fallback_content(data):
     addr = parsed_addr or "Adres do uzupełnienia"
     phone = parsed_phone or "+48 000 000 000"
 
-    accent = random.choice(["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3","#ea580c","#0d9488","#6366f1","#e11d48"])
+    # Use wizard accent if provided, otherwise random
+    ACCENT_MAP = {
+        "Niebieski #2563eb": "#2563eb", "Ciemny/grafit #111827": "#111827",
+        "Zloty #d97706": "#d97706", "Zielony #059669": "#059669",
+        "Fioletowy #7c3aed": "#7c3aed", "Czerwony #dc2626": "#dc2626",
+    }
+    accent = ACCENT_MAP.get(getattr(data, 'accent_color', None) or '', '') or random.choice(["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3","#ea580c","#0d9488","#6366f1","#e11d48"])
     # 4 different visual styles
-    visual_style = random.choice(["editorial", "dark-bold", "color-block", "brutalist"])
-    layout = random.choice(["split","centered","full","dark"])
+    # Use wizard font to determine visual style
+    FONT_STYLE_MAP = {
+        "Inter + Playfair Display": "editorial",
+        "Inter + Playfair Display (serif)": "editorial",
+        "Inter (sans-serif only)": "color-block",
+        "DM Sans + Fraunces": "editorial",
+        "Space Grotesk + Lora": "dark-bold",
+        "Manrope + Cormorant": "editorial",
+    }
+    visual_style = FONT_STYLE_MAP.get(getattr(data, 'fonts', None) or '', '') or random.choice(["editorial", "dark-bold", "color-block", "brutalist"])
+    # Override visual_style for dark mode layout
+    if layout == "dark":
+        visual_style = "dark-bold"
+    # Use wizard layout if provided
+    LAYOUT_MAP = {
+        "Split hero (zdjecie po prawej)": "split",
+        "Full-screen hero (zdjecie na caly ekran)": "full",
+        "Centered (wszystko wyrodkowane)": "centered",
+        "Dark mode (ciemne tlo)": "dark",
+    }
+    layout = LAYOUT_MAP.get(getattr(data, 'layout', None) or '', '') or random.choice(["split","centered","full","dark"])
     anim = random.choice(["morph","float","glow","slide"])
 
     niche_l = (niche or "").lower()
@@ -196,7 +221,7 @@ def fallback_content(data):
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
 *{{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth}}
-body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6;background:#fafafa}}
+body{{font-family:{font_stack};color:{body_color};line-height:1.6;background:{body_bg}}}
 .fade-up{{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}}
 .fade-up.visible{{opacity:1;transform:translateY(0)}}
 .fade-up-d1{{transition-delay:.1s}}.fade-up-d2{{transition-delay:.2s}}.fade-up-d3{{transition-delay:.3s}}
@@ -212,7 +237,7 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6;bac
 <div class="flex items-center gap-3">
 <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-modern" style="background:linear-gradient(135deg,{accent},{accent}bb)">{safe[0]}</div>
 <span class="font-bold text-sm">{safe}</span></div>
-<nav class="hidden md:flex items-center gap-8 text-sm text-gray-500">
+<nav class="hidden md:flex items-center gap-8 text-sm" style="color:{card_text}">
 <a href="#oferta" class="hover:text-gray-900 transition-colors">Oferta</a>
 <a href="#cennik" class="hover:text-gray-900 transition-colors">Cennik</a>
 <a href="#opinie" class="hover:text-gray-900 transition-colors">Opinie</a>
@@ -220,6 +245,18 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6;bac
 <a href="tel:{phone}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg" style="background:{accent}"><i data-lucide="phone" class="w-4 h-4"></i>Zadzwoń</a></div></header>
 
 {hero_section}
+
+<!-- MARQUEE TICKER -->
+<div style="overflow:hidden;white-space:nowrap;background:{accent};color:white;padding:12px 0;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">
+<div style="display:inline-block;animation:marquee 25s linear infinite">
+<span style="display:inline-block;padding:0 40px">{safe} &middot; {niche}</span>
+<span style="display:inline-block;padding:0 40px">&#9733; {rating} ({reviews_n} opinii)</span>
+<span style="display:inline-block;padding:0 40px">{safe} &middot; {niche}</span>
+<span style="display:inline-block;padding:0 40px">&#9733; {rating} ({reviews_n} opinii)</span>
+<span style="display:inline-block;padding:0 40px">{safe} &middot; {niche}</span>
+<span style="display:inline-block;padding:0 40px">&#9733; {rating} ({reviews_n} opinii)</span>
+</div></div>
+<style>@keyframes marquee{{0%{{transform:translateX(0)}}100%{{transform:translateX(-50%)}}}}</style>
 
 <section id="oferta" class="py-20 md:py-28" style="background:{section_bg}">
 <div class="max-w-6xl mx-auto px-6">
@@ -255,9 +292,9 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6;bac
 <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
 <p class="text-sm" style="color:{card_text}">© {year} {safe}</p>
 <div class="flex items-center gap-6 text-sm" style="color:{card_text}">
-<a href="#oferta" class="hover:text-gray-700 transition-colors">Oferta</a>
-<a href="#cennik" class="hover:text-gray-700 transition-colors">Cennik</a>
-<a href="#kontakt" class="hover:text-gray-700 transition-colors">Kontakt</a></div></div></footer>
+<a href="#oferta" class="hover:opacity-100 transition-opacity" style="opacity:.7">Oferta</a>
+<a href="#cennik" class="hover:opacity-100 transition-opacity" style="opacity:.7">Cennik</a>
+<a href="#kontakt" class="hover:opacity-100 transition-opacity" style="opacity:.7">Kontakt</a></div></div></footer>
 
 <script>
 lucide.createIcons();
