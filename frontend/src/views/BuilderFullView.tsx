@@ -73,6 +73,11 @@ export const BuilderFullView = ({
   const [q2, setQ2] = useState('Nowoczesny, minimalistyczny');
   const [q3, setQ3] = useState('Niebieski #2563eb + biały + czarny');
   const [q4, setQ4] = useState<string[]>(['Hero', 'Oferta', 'Cennik', 'Kontakt']);
+  const [qAccent, setQAccent] = useState('Niebieski #2563eb');
+  const [qFont, setQFont] = useState('Inter + Playfair Display');
+  const [qLayout, setQLayout] = useState('Split hero (zdjęcie po prawej)');
+  const [qImages, setQImages] = useState('Prawdziwe zdjęcia z Unsplash');
+  const [qSections, setQSections] = useState<string[]>(['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt']);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -210,17 +215,20 @@ export const BuilderFullView = ({
     };
   }, [isDraggingSplit]);
 
-  const WIZARD_DATA: Array<{ title: string; options: string[]; multi?: boolean }> = [
-    { title: 'Jaki klimat ma mieć strona?', options: ['Ciepła, rustykalna piekarnia (beże, brązy, drewno)', 'Elegancka bistro / bistro-żydowska tradycja (ciemna, szlachetna)', 'Nowoczesna, minimalistyczna', 'Inne - wpiszę w prompt'] },
-    { title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'] },
-    { title: 'Jakie kolory lubisz?', options: ['Limonkowy + czarny', 'Niebieski + biały', 'Beż + brąz', 'Czarny + złoty', 'Fiolet + róż', 'Dowolne - AI dobierze'] },
-    { title: 'Które sekcje dodać?', options: ['Hero', 'Oferta', 'Cennik', 'Galeria', 'Opinie', 'Kontakt', 'Rezerwacja', 'FAQ'], multi: true },
+  const WIZARD_DATA: Array<{ title: string; options: string[]; multi?: boolean; stateKey?: string }> = [
+    { title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'], stateKey: 'q1' },
+    { title: 'Jaki klimat?', options: ['Nowoczesny, minimalistyczny', 'Ciepły, rustykalny', 'Elegancki, premium', 'Odważny, industrialny'], stateKey: 'q2' },
+    { title: 'Jaki akcent kolorystyczny?', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626'], stateKey: 'qAccent' },
+    { title: 'Jakie fonty?', options: ['Inter + Playfair Display (serif)', 'Inter (sans-serif only)', 'DM Sans + Fraunces', 'Space Grotesk + Lora', 'Manrope + Cormorant'], stateKey: 'qFont' },
+    { title: 'Jaki layout?', options: ['Split hero (zdjęcie po prawej)', 'Full-screen hero (zdjęcie na cały ekran)', 'Centered (wszystko wyśrodkowane)', 'Dark mode (ciemne tło)'], stateKey: 'qLayout' },
+    { title: 'Styl zdjęć?', options: ['Prawdziwe zdjęcia z Unsplash', 'Ilustracje wektorowe', 'Abstrakcyjne gradienty', 'Mieszane (zdjęcia + grafiki)'], stateKey: 'qImages' },
+    { title: 'Które sekcje dodać?', options: ['Hero', 'Oferta', 'Cennik', 'Galeria', 'Opinie', 'Kontakt', 'Rezerwacja', 'FAQ'], multi: true, stateKey: 'qSections' },
   ];
 
   const buildPrompt = (override?: string) => {
     const extra = override || builderPrompt;
-    const sections = q4.join(', ');
-    return `Branża: ${q1}. Styl: ${q2}. Kolory: ${q3}. Sekcje: ${sections}. ${extra ? `Dodatkowy opis: ${extra}.` : ''} Tryb: ${isProMode ? 'PRO premium z animacjami' : 'standard'} - Zbuduj premium stronę Vite+React+Tailwind.`;
+    const sections = qSections.join(', ');
+    return `Branża: ${q1}. Styl: ${q2}. Akcent kolorystyczny: ${qAccent}. Fonty: ${qFont}. Layout: ${qLayout}. Zdjęcia: ${qImages}. Sekcje: ${sections}. ${extra ? `Dodatkowy opis: ${extra}.` : ''} Zbuduj nowoczesną, profesjonalną stronę.`;
   };
 
   const starterIdeas = [
@@ -323,18 +331,19 @@ export const BuilderFullView = ({
   };
 
   const handleWizardAuto = () => {
-    const opts = WIZARD_DATA[wizardStep].options;
-    if (WIZARD_DATA[wizardStep].multi) {
+    const step = WIZARD_DATA[wizardStep];
+    const opts = step.options;
+    if (step.multi) {
       const shuffled = [...opts].sort(() => 0.5 - Math.random()).slice(0, 2 + Math.floor(Math.random() * 2));
-      shuffled.forEach((o) => {
-        if (wizardStep === 3) toggleQ4(o);
-      });
-      if (wizardStep === 3 && q4.length === 0) setQ4(['Hero', 'Kontakt']);
+      shuffled.forEach((o) => toggleQ4(o));
     } else {
       const pick = opts[Math.floor(Math.random() * opts.length)];
-      if (wizardStep === 0) setQ2(pick);
-      if (wizardStep === 1) setQ1(pick);
-      if (wizardStep === 2) setQ3(pick);
+      if (step.stateKey === 'q1') setQ1(pick);
+      else if (step.stateKey === 'q2') setQ2(pick);
+      else if (step.stateKey === 'qAccent') setQAccent(pick);
+      else if (step.stateKey === 'qFont') setQFont(pick);
+      else if (step.stateKey === 'qLayout') setQLayout(pick);
+      else if (step.stateKey === 'qImages') setQImages(pick);
     }
     // auto next
     setTimeout(() => handleWizardNext(), 280);
@@ -745,16 +754,20 @@ export const BuilderFullView = ({
                 <h3 className="font-black text-white text-sm">{WIZARD_DATA[wizardStep].title}</h3>
                 <div className="space-y-2">
                   {WIZARD_DATA[wizardStep].options.map((opt) => {
-                    const isChecked = wizardStep === 0 ? q2 === opt : wizardStep === 1 ? q1 === opt : wizardStep === 2 ? q3 === opt : q4.includes(opt);
+                    const sk = WIZARD_DATA[wizardStep].stateKey;
+                    const isChecked = sk === 'q1' ? q1 === opt : sk === 'q2' ? q2 === opt : sk === 'qAccent' ? qAccent === opt : sk === 'qFont' ? qFont === opt : sk === 'qLayout' ? qLayout === opt : sk === 'qImages' ? qImages === opt : q4.includes(opt);
                     return (
                       <label key={opt} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-white text-black border-white' : 'bg-neutral-800 text-white border-neutral-700 hover:border-neutral-600'}`}>
                         <input
                           type={WIZARD_DATA[wizardStep].multi ? 'checkbox' : 'radio'}
                           checked={isChecked}
                           onChange={() => {
-                            if (wizardStep === 0) setQ2(opt);
-                            else if (wizardStep === 1) setQ1(opt);
-                            else if (wizardStep === 2) setQ3(opt);
+                            if (sk === 'q1') setQ1(opt);
+                            else if (sk === 'q2') setQ2(opt);
+                            else if (sk === 'qAccent') setQAccent(opt);
+                            else if (sk === 'qFont') setQFont(opt);
+                            else if (sk === 'qLayout') setQLayout(opt);
+                            else if (sk === 'qImages') setQImages(opt);
                             else toggleQ4(opt);
                           }}
                           className="w-4 h-4"
@@ -766,7 +779,7 @@ export const BuilderFullView = ({
                 </div>
               </div>
               <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-800 bg-neutral-950">
-                <span className="text-[11px] font-bold text-neutral-400">Pytanie {wizardStep + 1} z 4 · koszt {cost} kr.</span>
+                <span className="text-[11px] font-bold text-neutral-400">Pytanie {wizardStep + 1} z {WIZARD_DATA.length} · koszt {cost} kr.</span>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={handleWizardAuto} className="bg-neutral-800 text-white hover:bg-neutral-700">Auto</Button>
                   <Button variant="primary" size="sm" onClick={handleWizardNext} className="font-black">{wizardStep === 3 ? 'Generuj' : 'Dalej'}</Button>
