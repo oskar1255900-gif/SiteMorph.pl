@@ -95,57 +95,6 @@ def fallback_content(data):
     ]
     chosen_reviews = random.sample(review_pool, 3)
 
-    # Build service cards
-    svc_cards = ""
-    for i, (nm, ds, pr, icon) in enumerate(chosen_svc):
-        img = food_imgs[i % len(food_imgs)]
-        svc_cards += f'<div class="group relative"><div class="aspect-[4/3] rounded-2xl overflow-hidden mb-4"><img src="{img}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"/></div><div class="flex items-center gap-2.5 mb-2"><i data-lucide="{icon}" class="w-5 h-5" style="color:{accent}"></i><h3 class="font-semibold text-[15px]">{nm}</h3></div><p class="text-gray-500 text-sm leading-relaxed mb-2">{ds}</p><span class="text-sm font-semibold" style="color:{accent}">{pr}</span></div>'
-
-    price_rows = "".join(f'<div class="flex justify-between items-center py-4 border-b border-gray-100/60 last:border-0"><span class="text-gray-600 text-[15px]">{n}</span><span class="font-semibold" style="color:{accent}">{p}</span></div>' for n, p in chosen_prices)
-
-    rev_cards = ""
-    for txt, nm, ini in chosen_reviews:
-        rev_cards += f'<div class="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100/50"><div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><p class="text-gray-600 text-sm leading-relaxed mb-4 italic">"{txt}"</p><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background:{accent}">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'
-
-    # Animation CSS
-    anim_css = {
-        "morph": "@keyframes morph{0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}} .blob{animation:morph 8s ease-in-out infinite}",
-        "float": "@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}} .float{animation:float 4s ease-in-out infinite}",
-        "glow": f"@keyframes glow{{0%,100%{{box-shadow:0 0 0 0 {accent}30}}50%{{box-shadow:0 0 30px 8px {accent}15}}}} .glow{{animation:glow 3s ease-in-out infinite}}",
-        "slide": "@keyframes slide{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}} .slide{animation:slide .8s ease forwards}",
-    }[anim]
-
-    # Hero section based on layout
-    if layout == "dark":
-        hero_section = f'''<section class="relative min-h-[85vh] flex items-center overflow-hidden style="background:{body_bg}">
-<img src="{hero_img}" alt="{safe}" class="absolute inset-0 w-full h-full object-cover opacity-20"/>
-<div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black"/>
-<div class="max-w-6xl mx-auto px-6 relative z-10 text-center fade-up">
-<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/10 text-xs font-medium text-white/70 mb-8"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>{niche} · {addr}</p>
-<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6" style="color:{body_color}">{headline}</h1>
-<p class="text-lg mb-10 max-w-2xl mx-auto leading-relaxed" style="color:{body_color};opacity:.6">{sub}</p>
-<div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent};color:white">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-white/20 text-lg font-semibold text-white hover:bg-white/10 transition-all">Zobacz ofertę</a></div>
-<div class="flex items-center gap-3 justify-center text-white/70"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-5 h-5 fill-amber-400"></i></div><span class="font-semibold text-white">{rating}</span><span>· {reviews_n} opinii</span></div></div></section>'''
-    elif layout == "centered":
-        hero_section = f'''<section class="pt-28 pb-20 md:pt-36 md:pb-28 bg-gradient-to-b from-gray-50 to-white">
-<div class="max-w-4xl mx-auto px-6 text-center fade-up">
-<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-xs font-medium text-gray-500 mb-8 shadow-sm"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</p>
-<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6">{headline}</h1>
-<p class="text-lg text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">{sub}</p>
-<div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold text-white transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent}">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 text-lg font-semibold text-gray-700 hover:border-gray-400 transition-all">Zobacz ofertę</a></div>
-<div class="flex items-center gap-3 justify-center text-sm text-gray-400"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium text-gray-700">{rating}</span><span>· {reviews_n} opinii na Google</span></div>
-<div class="mt-12 aspect-video rounded-3xl overflow-hidden max-w-3xl mx-auto shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"/></div></div></section>'''
-    else:  # split or split-left
-        hero_section = f'''<section class="pt-28 pb-20 md:pt-36 md:pb-28">
-<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
-<div class="fade-up">
-<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-xs font-medium text-gray-500 mb-6"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</p>
-<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{headline}</h1>
-<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{sub}</p>
-<div class="flex flex-wrap gap-3 mb-8"><a href="#kontakt" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-xl shadow-lg" style="background:{accent}">Skontaktuj się <i data-lucide="arrow-right" class="w-4 h-4"></i></a><a href="#oferta" class="px-6 py-3.5 rounded-2xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-gray-400 transition-all">Zobacz ofertę</a></div>
-<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews_n} opinii</span></div></div>
-<div class="fade-up relative"><div class="absolute -inset-4 rounded-3xl opacity-20 blur-2xl" style="background:linear-gradient(135deg,{accent}30,transparent)"></div><div class="relative rounded-3xl overflow-hidden shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-[420px] md:h-[480px] object-cover"/></div></div></div></section>'''
-
     # Visual style variables
     if visual_style == "editorial":
         font_stack = "'Playfair Display',Georgia,serif"
@@ -183,6 +132,57 @@ def fallback_content(data):
         section_bg = "white"
         section_alt_bg = "#f5f0e8"
         card_text = "#444"
+
+    # Build service cards
+    svc_cards = ""
+    for i, (nm, ds, pr, icon) in enumerate(chosen_svc):
+        img = food_imgs[i % len(food_imgs)]
+        svc_cards += f'<div class="group relative"><div class="aspect-[4/3] rounded-2xl overflow-hidden mb-4"><img src="{img}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"/></div><div class="flex items-center gap-2.5 mb-2"><i data-lucide="{icon}" class="w-5 h-5" style="color:{accent}"></i><h3 class="font-semibold text-[15px]">{nm}</h3></div><p class="text-gray-500 text-sm leading-relaxed mb-2">{ds}</p><span class="text-sm font-semibold" style="color:{accent}">{pr}</span></div>'
+
+    price_rows = "".join(f'<div class="flex justify-between items-center py-4 border-b border-gray-100/60 last:border-0"><span class="text-gray-600 text-[15px]">{n}</span><span class="font-semibold" style="color:{accent}">{p}</span></div>' for n, p in chosen_prices)
+
+    rev_cards = ""
+    for txt, nm, ini in chosen_reviews:
+        rev_cards += f'<div class="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100/50"><div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><p class="text-gray-600 text-sm leading-relaxed mb-4 italic">"{txt}"</p><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background:{accent}">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'
+
+    # Animation CSS
+    anim_css = {
+        "morph": "@keyframes morph{0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}} .blob{animation:morph 8s ease-in-out infinite}",
+        "float": "@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}} .float{animation:float 4s ease-in-out infinite}",
+        "glow": f"@keyframes glow{{0%,100%{{box-shadow:0 0 0 0 {accent}30}}50%{{box-shadow:0 0 30px 8px {accent}15}}}} .glow{{animation:glow 3s ease-in-out infinite}}",
+        "slide": "@keyframes slide{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}} .slide{animation:slide .8s ease forwards}",
+    }[anim]
+
+    # Hero section based on layout
+    if layout == "dark":
+        hero_section = f'''<section class="relative min-h-[85vh] flex items-center overflow-hidden" style="background:{body_bg}">
+<img src="{hero_img}" alt="{safe}" class="absolute inset-0 w-full h-full object-cover opacity-20"/>
+<div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black"/>
+<div class="max-w-6xl mx-auto px-6 relative z-10 text-center fade-up">
+<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/10 text-xs font-medium text-white/70 mb-8"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>{niche} · {addr}</p>
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6" style="color:{body_color}">{headline}</h1>
+<p class="text-lg mb-10 max-w-2xl mx-auto leading-relaxed" style="color:{body_color};opacity:.6">{sub}</p>
+<div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent};color:white">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-white/20 text-lg font-semibold text-white hover:bg-white/10 transition-all">Zobacz ofertę</a></div>
+<div class="flex items-center gap-3 justify-center text-white/70"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-5 h-5 fill-amber-400"></i></div><span class="font-semibold text-white">{rating}</span><span>· {reviews_n} opinii</span></div></div></section>'''
+    elif layout == "centered":
+        hero_section = f'''<section class="pt-28 pb-20 md:pt-36 md:pb-28 bg-gradient-to-b from-gray-50 to-white">
+<div class="max-w-4xl mx-auto px-6 text-center fade-up">
+<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-xs font-medium text-gray-500 mb-8 shadow-sm"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</p>
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-6">{headline}</h1>
+<p class="text-lg text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">{sub}</p>
+<div class="flex flex-wrap gap-4 justify-center mb-10"><a href="#kontakt" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold text-white transition-all hover:scale-105 hover:shadow-2xl shadow-lg" style="background:{accent}">Skontaktuj się <i data-lucide="arrow-right" class="w-5 h-5"></i></a><a href="#oferta" class="px-8 py-4 rounded-2xl border-2 border-gray-200 text-lg font-semibold text-gray-700 hover:border-gray-400 transition-all">Zobacz ofertę</a></div>
+<div class="flex items-center gap-3 justify-center text-sm text-gray-400"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium text-gray-700">{rating}</span><span>· {reviews_n} opinii na Google</span></div>
+<div class="mt-12 aspect-video rounded-3xl overflow-hidden max-w-3xl mx-auto shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"/></div></div></section>'''
+    else:  # split or split-left
+        hero_section = f'''<section class="pt-28 pb-20 md:pt-36 md:pb-28">
+<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+<div class="fade-up">
+<p class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-xs font-medium text-gray-500 mb-6"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</p>
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{headline}</h1>
+<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{sub}</p>
+<div class="flex flex-wrap gap-3 mb-8"><a href="#kontakt" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-xl shadow-lg" style="background:{accent}">Skontaktuj się <i data-lucide="arrow-right" class="w-4 h-4"></i></a><a href="#oferta" class="px-6 py-3.5 rounded-2xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-gray-400 transition-all">Zobacz ofertę</a></div>
+<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews_n} opinii</span></div></div>
+<div class="fade-up relative"><div class="absolute -inset-4 rounded-3xl opacity-20 blur-2xl" style="background:linear-gradient(135deg,{accent}30,transparent)"></div><div class="relative rounded-3xl overflow-hidden shadow-2xl"><img src="{hero_img}" alt="{safe}" class="w-full h-[420px] md:h-[480px] object-cover"/></div></div></div></section>'''
 
     # Build complete HTML
     html = f'''<!DOCTYPE html>
