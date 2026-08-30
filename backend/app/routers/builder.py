@@ -689,10 +689,21 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
                 content_text = resp.json()["choices"][0]["message"]["content"]
                 parsed = extract_json(content_text)
                 ofiles = parsed.get("files") or {}
-                if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in ofiles):
-                    parsed_files = ofiles
-                    parsed_meta = parsed.get("meta", {})
-                    provider = "openrouter"
+                has_preview = any("preview.html" in k for k in ofiles)
+                has_react = any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in ofiles)
+                if has_preview or has_react:
+                    if has_preview:
+                        ph = ofiles.get("main/frontend/preview.html", "")
+                        if len(ph) < 5000:
+                            warning = f"AI za krotki ({len(ph)} chars) - fallback"
+                        else:
+                            parsed_files = ofiles
+                            parsed_meta = parsed.get("meta", {})
+                            provider = "openrouter"
+                    else:
+                        parsed_files = ofiles
+                        parsed_meta = parsed.get("meta", {})
+                        provider = "openrouter"
                 else:
                     warning = "Laguna nie zwrĂłciĹ‚a plikĂłw â€” prĂłbujÄ™ Gemini"
             except Exception as e:
@@ -706,10 +717,21 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
                 try:
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
-                    if any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles):
-                        parsed_files = pfiles
-                        parsed_meta = parsed.get("meta", {})
-                        provider = "gemini"
+                    has_preview = any("preview.html" in k for k in pfiles)
+                    has_react = any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in pfiles)
+                    if has_preview or has_react:
+                        if has_preview:
+                            ph = pfiles.get("main/frontend/preview.html", "")
+                            if len(ph) < 5000:
+                                warning = f"Gemini za krotki ({len(ph)} chars) - fallback"
+                            else:
+                                parsed_files = pfiles
+                                parsed_meta = parsed.get("meta", {})
+                                provider = "gemini"
+                        else:
+                            parsed_files = pfiles
+                            parsed_meta = parsed.get("meta", {})
+                            provider = "gemini"
                     else:
                         warning = "Gemini nie zwrĂłciĹ‚ plikĂłw â€” prĂłbuje fallback"
                 except Exception as e:
