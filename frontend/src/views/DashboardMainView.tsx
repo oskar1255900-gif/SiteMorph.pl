@@ -102,8 +102,8 @@ export const DashboardMainView = ({
             onClick={() => setActiveTab(a.tab)}
             className={`text-left p-6 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] shadow-[0_8px_32px_rgba(37,99,235,0.08)] hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition-all cursor-pointer ${i===0 ? 'md:col-span-2 rounded-2xl' : 'rounded-2xl'}`}
           >
-            <div className="w-8 h-8 rounded-[8px] bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center">
-              <a.icon size={14} />
+            <div className="w-8 h-8 rounded-[8px] bg-white border border-[#EAEAEA] dark:border-transparent text-[#2563eb] grid place-items-center shadow-sm">
+              <a.icon size={14} className="text-[#2563eb]" />
             </div>
             <div className="mt-4">
               <div className="text-[17px] font-[600] tracking-[-0.02em] leading-none">{a.label}</div>

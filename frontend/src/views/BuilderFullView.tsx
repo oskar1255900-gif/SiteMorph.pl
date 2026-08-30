@@ -51,11 +51,11 @@ export const BuilderFullView = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [genStep, setGenStep] = useState(0);
-  const GEN_MSGS = ['Analizuję brief i dane z Google…', 'Projektuję układ i dobieram zdjęcia…', 'Piszę treści i styluję sekcje…', 'Składam podgląd na żywo…'];
+  const GEN_MSGS = ['Analizuję brief i dane z Google…', 'Projektuję układ i dobieram zdjęcia…', 'Piszę treści i styluję sekcje…', 'Składam pełny projekt React + Vite…'];
 
   useEffect(() => {
     if (!isGenerating) return;
-    const id = setInterval(() => setGenStep((s) => (s + 1) % GEN_MSGS.length), 6200);
+    const id = setInterval(() => setGenStep((s) => (s + 1) % GEN_MSGS.length), 1800);
     return () => clearInterval(id);
   }, [isGenerating]);
 
@@ -248,7 +248,7 @@ export const BuilderFullView = ({
     setSelectedFile('src/App.tsx');
     setShowWizard(false);
     const start = Date.now();
-    const MIN_MS = 26000;
+    const MIN_MS = 3200;
     let fetchResult: any = null;
     let fetchError: any = null;
     try {
