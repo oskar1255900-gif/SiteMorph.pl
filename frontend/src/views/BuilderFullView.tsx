@@ -23,6 +23,7 @@ import {
   Pencil,
   Trash2,
   FolderOpen,
+  Download,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { springTransition } from '../lib/shared';
@@ -131,6 +132,21 @@ export const BuilderFullView = ({
     } catch (e: any) {
       setSaveMsg(e.message || 'Zapis wymaga zalogowania');
     }
+  };
+
+  const handleDownload = () => {
+    if (!generatedSite) return;
+    const html = generatedSite.files['main/frontend/preview.html'] || '';
+    if (!html) { alert('Brak pliku do pobrania'); return; }
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(generatedSite.title || 'strona').replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const commitTitle = async () => {
@@ -630,6 +646,7 @@ export const BuilderFullView = ({
                       <div className="text-[10px] font-black opacity-60">Link do podglądu</div>
                       <div className="text-[11px] font-mono truncate bg-[#F7F6F3] dark:bg-zinc-900 p-2 rounded-lg border border-[#EAEAEA] dark:border-white/[0.08]">{generatedSite.domain}</div>
                       <button onClick={handleSaveProject} className="w-full py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5"><Save size={12}/> {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}</button>
+                      <button onClick={handleDownload} className="w-full py-2 rounded-xl border border-[#EAEAEA] dark:border-white/[0.08] text-xs font-black flex items-center justify-center gap-1.5 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors"><Download size={12}/> Pobierz HTML</button>
                       {saveMsg && <p className="text-[10px] font-black text-emerald-500">{saveMsg}</p>}
                     </div>
                     <div className="pt-3 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-2">
