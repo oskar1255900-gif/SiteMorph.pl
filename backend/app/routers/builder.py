@@ -205,6 +205,15 @@ FORMAT ODPOWIEDZI — TYLKO POPRAWNY JSON, zero markdown:
 
 KLUCZOWE ZASADY DLA preview.html:
 
+0. TWÓJ GŁÓWNY OBOWIĄZEK: WYMYŚL KREATYWNE, UNIKALNE TEKSTY! 
+   - KAŻDA strona musi mieć INNY headline, INNE opisy, INNE teksty CTA
+   - NIE używaj fraz typu "Profesjonalne usługi" "Kompleksowe rozwiązania" "Najlepsza jakość"
+   - ZAMIAST tego: chwytliwe, konkretne, emocjonalne teksty pasujące do branży
+   - Przykłady dobrych headline: "Jemy piątki w trzy minuty" (kebab), "Twoja broda zasługuje na mistrza" (barber), "Tu się nie czeka — tu się żyje" (restauracja)
+   - Podtytuł: konkretny benefit, nie buzzword. Np. "30 lat doświadczenia w jednym kęsie" a nie "Najwyższa jakość"
+   - Opisy usług: opisz CO klient dostaje, nie CO oferujesz. "Soczysty kurczak z frytkami i surówką" a nie "Oferujemy usługi gastronomiczne"
+   - CTA: "Zamów teraz" "Rezerwuj stolik" "Zadzwoń — odbierzemy" zamiast "Skontaktuj się"
+
 1. JEDEN PLIK HTML z wbudowanym <style> i Tailwind CDN + Google Fonts (Inter + Instrument Serif).
    Absolutnie MINIMUM 200 linii kodu HTML. Nie skracaj. Pełna strona.
 
@@ -325,8 +334,10 @@ def fallback_content(data: BuilderInput):
             ("Kebab","Klasyczny kebab w bułce z świeżym mięsem, surówką i三种 sosami do wyboru.","od 22 zł",imgs[2],"star"),
         ]
         prices = [("Kurczak smażony + frytki","25 zł"),("Kebab w bułce z surówką","22 zł"),("Kurczak grillowany + sałatka","28 zł"),("Zestaw rodzinny (4 os.)","89 zł"),("Ziemniaki pieczone + sos","15 zł"),("Napój / Surówka","5-8 zł")]
-        hero_headline = "Jedzenie, do którego się wraca"
-        hero_sub = "Od 15 lat karmimy mieszkańców Łodzi. Prawdziwe smaki, duże porcje, ceny bez niespodzianek."
+        hero_headlines = ["Jedzenie, do którego się wraca", "Smak, który zapamiętasz", "Tu się je inaczej", "Kęs po kęsie — sameosaurs", "Prawdziwy smak, prawdziwe ceny", "Gdzie apetyt rośnie z każdym kęsem"]
+        hero_subs = ["Od 15 lat karmimy mieszkańców Łodzi. Prawdziwe smaki, duże porcje, ceny bez niespodzianek.", "Kurczaki z grilla, kebab z surówką, ziemniaki jak u mamy. Przyjdź i sprawdź.", "Świeże składniki codziennie. Zero mrożonek. Stawiamy na smak, nie na marketing.", "Duże porcje w cenach, które nie przerażają. Rodzina znajdzie tu coś dla siebie."]
+        hero_headline = random.choice(hero_headlines)
+        hero_sub = random.choice(hero_subs)
     elif is_barber:
         hero_img = random.choice(["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"]
@@ -336,8 +347,10 @@ def fallback_content(data: BuilderInput):
             ("Pakiet VIP","Strzyżenie + golenie + modelowanie + balsam. Wyjdziesz nowy człowiek.","od 90 zł",imgs[2],"star"),
         ]
         prices = [("Strzyżenie męskie","50 zł"),("Golenie brzytwą","40 zł"),("Strzyżenie + golenie","80 zł"),("Trymowanie brody","30 zł"),("Pakiet VIP","90 zł")]
-        hero_headline = "Fryzura, która robi wrażenie"
-        hero_sub = "Od 12 lat strzyżemy mężczyzn z Łodzi. Znamy się na trendach i na brodach."
+        hero_headlines = ["Fryzura, która robi wrażenie", "Twoja broda zasługuje na mistrza", "Tu się strzyże inaczej", "Wyjdź nowy człowiek", "Broda jak z katalogu w 30 minut"]
+        hero_subs = ["Od 12 lat strzyżemy mężczyzn z Łodzi. Znamy się na trendach i na brodach.", "Brzytwa, gorący ręcznik i mistrz fachu. Twój barber zna się na rzeczy.", "Strzyżenie to nie tylko włosy — to Twój styl. Dobierzemy coś idealnego."]
+        hero_headline = random.choice(hero_headlines)
+        hero_sub = random.choice(hero_subs)
     elif is_beauty:
         hero_img = random.choice(["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80","https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80","https://images.unsplash.com/photo-1457972729786-0411a3b2b626?w=600&q=80","https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80"]
@@ -347,8 +360,10 @@ def fallback_content(data: BuilderInput):
             ("Depilacja","Szybko, bezboleśnie, na długo. Stosujemy wosk premium.","od 60 zł",imgs[2],"star"),
         ]
         prices = [("Manicure hybrydowy","80 zł"),("Manicure + pedicure","140 zł"),("Zabieg na twarz","150 zł"),("Depilacja nóg","120 zł"),("Pakiet SPA","280 zł")]
-        hero_headline = "Twoje dłonie zasługują na piękno"
-        hero_sub = "Salon urody, w którym jakość spotyka się z dbałością o każdy szczegół."
+        hero_headlines = ["Twoje dłonie zasługują na piękno", "Zadbaj o siebie — my zadbamy o detale", "Tu piękno spotyka precyzję", "Manicure, który robi wrażenie"]
+        hero_subs = ["Salon urody, w którym jakość spotyka się z dbałością o każdy szczegół.", "Ponad 200 odcieni, trwałość 3 tygodnie. Hybrydy, które nie odpryskują.", "Zabiegi na twarz, dłonie i ciało. Dobieramy pod Twój typ skóry."]
+        hero_headline = random.choice(hero_headlines)
+        hero_sub = random.choice(hero_subs)
     else:
         hero_img = random.choice(["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80","https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80","https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"]
@@ -358,8 +373,10 @@ def fallback_content(data: BuilderInput):
             ("Wsparcie i rozwój","Po wdrożeniu nie zostawiamy Cię samego. Aktualizacje, optymalizacja, wsparcie 24/7.","od 1 500 zł/mies.",imgs[2],"shield"),
         ]
         prices = [("Pakiet startowy","3 000 zł"),("Pakiet business","8 000 zł"),("Pakiet premium","15 000 zł"),("Konsultacja strategiczna","500 zł"),("Wsparcie miesięczne","1 500 zł/mies.")]
-        hero_headline = "Twój biznes zasługuje na więcej"
-        hero_sub = "Pomagamy firmom rosnąć. Strategia, projektowanie, realizacja — wszystko pod jednym dachem."
+        hero_headlines = ["Twój biznes zasługuje na więcej", "Nie czekaj na klienta — przyciągnij go", "Strategia, która przynosi rezultaty", "Od pomysłu do pieniędzy"]
+        hero_subs = ["Pomagamy firmom rosnąć. Strategia, projektowanie, realizacja — wszystko pod jednym dachem.", "Nie daj się konkurencji. Zbudujemy narzędzia, które sprzedają za Ciebie.", "Widzimy trendy, zanim staną się mainstreamem. Twój biznes też może być do przodu."]
+        hero_headline = random.choice(hero_headlines)
+        hero_sub = random.choice(hero_subs)
 
     svc_cards = ""
     for nm, ds, pr, img, icon in svc:
