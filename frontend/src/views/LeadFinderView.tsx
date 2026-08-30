@@ -348,14 +348,14 @@ export const LeadFinderView = ({
           </span>
         </div>
       </div>
-      <motion.div variants={cineChild} className="p-6 sm:p-7 rounded-lg border shadow-xl space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08]">
+      <motion.div variants={cineChild} className="p-6 sm:p-7 rounded-2xl border shadow-[0_8px_32px_rgba(37,99,235,0.08)] space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-white/[0.08]">
         <div className="space-y-1.5">
           <label className="text-[11px] font-black uppercase tracking-widest opacity-60">Kraj</label>
           <div className="relative">
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full appearance-none pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold outline-none border bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-700 cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition"
+              className="w-full appearance-none pl-4 pr-10 py-[13px] rounded-2xl text-[14px] font-semibold outline-none border bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-700 cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition"
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <option value="" disabled>Wybierz kraj...</option>
@@ -372,7 +372,7 @@ export const LeadFinderView = ({
             <button
               type="button"
               onClick={() => setCityOpen(!cityOpen)}
-              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
+              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-2xl text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cityOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} ${!citySelected ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
@@ -436,7 +436,7 @@ export const LeadFinderView = ({
             <button
               type="button"
               onClick={() => setIndustryOpen(!industryOpen)}
-              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-lg text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
+              className={`w-full flex items-center justify-between pl-4 pr-10 py-[13px] rounded-2xl text-[14px] font-semibold border bg-white dark:bg-neutral-950 shadow-sm text-left transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${industryOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'} ${!industry ? 'text-neutral-400' : 'text-[#2563eb] dark:text-white'}`}
               style={{ fontFamily: "'SF Pro Display', sans-serif" }}
             >
               <span className="flex items-center gap-2 truncate">
@@ -526,7 +526,7 @@ export const LeadFinderView = ({
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex rounded-lg border overflow-hidden bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-white/[0.08] p-1 gap-1">
                   {(['all','no-website','has-website'] as const).map(f => (
-                    <button key={f} onClick={() => setWebsiteFilter(f)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black transition ${websiteFilter===f ? 'bg-[#111111] text-white dark:bg-white dark:text-black shadow-sm' : 'hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'}`}>
+                    <button key={f} onClick={() => setWebsiteFilter(f)} className={`px-3 py-1.5 rounded-2xl text-[12px] font-black transition ${websiteFilter===f ? 'bg-[#111111] text-white dark:bg-white dark:text-black shadow-sm' : 'hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'}`}>
                       {f==='all' ? 'Wszystkie' : f==='no-website' ? 'Bez strony' : 'Ze stroną'}
                     </button>
                   ))}
@@ -577,13 +577,13 @@ export const LeadFinderView = ({
                             <div className="flex items-center gap-1.5 opacity-80"><Globe size={12} className="shrink-0" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="underline text-[#2563eb] dark:text-white truncate max-w-[220px]">{website}</a> : <span className="opacity-60">Brak strony</span>}</div>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-50 dark:border-neutral-900">
-                            <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>
-                            <button onClick={() => copyLeadInfo(l)} className={`px-3 py-1.5 rounded-lg text-[12px] font-black border transition inline-flex items-center gap-1.5 ${copiedId===String(l.id) ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800'}`}>
+                            <button onClick={() => handleSave(l)} disabled={!!savingId || isSaved} className={`px-3 py-1.5 rounded-2xl text-[12px] font-black border transition ${isSaved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent hover:opacity-90 disabled:opacity-50'}`}>{isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie...' : 'Zapisz lead'}</button>
+                            <button onClick={() => copyLeadInfo(l)} className={`px-3 py-1.5 rounded-2xl text-[12px] font-black border transition inline-flex items-center gap-1.5 ${copiedId===String(l.id) ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800'}`}>
                               <CopyIcon size={12} className="shrink-0" />
                               {copiedId===String(l.id) ? '✓ Skopiowano' : 'Kopiuj dane'}
                             </button>
-                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-[12px] font-black border bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800">Otwórz w mapach</a>
-                            <button onClick={() => onGenerateSiteForLead(l)} className="px-3 py-1.5 rounded-lg text-[12px] font-black border bg-lime-300 text-black border-lime-400 hover:bg-lime-400">Stwórz stronę</button>
+                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-2xl text-[12px] font-black border bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 hover:bg-[#F7F6F3] dark:hover:bg-neutral-800">Otwórz w mapach</a>
+                            <button onClick={() => onGenerateSiteForLead(l)} className="px-3 py-1.5 rounded-2xl text-[12px] font-black border bg-lime-300 text-black border-lime-400 hover:bg-lime-400">Stwórz stronę</button>
                           </div>
                           <p className="text-[10px] font-semibold opacity-50 leading-snug -mt-1">
                             Wskazówka: przed budowaniem strony otwórz firmę w Google Maps i skopiuj dodatkowe dane (pełny adres, godziny otwarcia, ceny, zdjęcia do galerii) - przycisk „Kopiuj dane" zapisuje wszystko, co już mamy.

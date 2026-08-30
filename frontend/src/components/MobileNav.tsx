@@ -33,7 +33,7 @@ export const MobileNav = ({
   useEffect(() => { setOpen(false) }, [activeTab])
   return (
     <>
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/90 dark:bg-black/90  border-b border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white">
         <button onClick={onExit} className="flex items-center gap-2 cursor-pointer bg-transparent border-none text-inherit p-1.5 rounded-lg active:scale-95 transition-transform">
             <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
             <span className="font-black text-sm tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
@@ -56,14 +56,14 @@ export const MobileNav = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              className="lg:hidden fixed inset-0 z-40 bg-black/40"
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring' as const, stiffness: 380, damping: 34 }}
-              className="lg:hidden fixed top-0 bottom-0 left-0 w-[272px] z-50 flex flex-col justify-between bg-white dark:bg-black border-r border-[#EAEAEA] dark:border-neutral-900 shadow-2xl text-[#2563eb] dark:text-white select-none"
+              className="lg:hidden fixed top-0 bottom-0 left-0 w-[272px] z-50 flex flex-col justify-between bg-white dark:bg-black border-r border-[#EAEAEA] dark:border-neutral-900 shadow-[0_16px_48px_rgba(37,99,235,0.12)] text-[#2563eb] dark:text-white select-none"
             >
               <div>
                 <div className="h-14 flex items-center justify-between px-4 border-b border-[#EAEAEA] dark:border-neutral-900">
@@ -80,12 +80,12 @@ export const MobileNav = ({
                           whileTap={{ scale: 0.97 }}
                           key={item.id}
                           onClick={() => setActiveTab(item.id)}
-                          className={`w-full relative flex items-center justify-between px-3 py-3 rounded-xl text-xs font-black transition-colors cursor-pointer border-none ${
+                          className={`w-full relative flex items-center justify-between px-3 py-3 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
                             isActive ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
                           }`}
                         >
                           {isActive && (
-                            <motion.div layoutId="mobileActivePill" transition={springTransition} className="absolute inset-0 bg-[#111111] dark:bg-white rounded-xl shadow-md" />
+                            <motion.div layoutId="mobileActivePill" transition={springTransition} className="absolute inset-0 bg-[#111111] dark:bg-white rounded-2xl shadow-md" />
                           )}
                           <div className="flex items-center gap-2.5 relative z-10">
                             <item.icon size={16} className={isActive ? 'text-white dark:text-black' : ''} />
@@ -99,7 +99,7 @@ export const MobileNav = ({
                     })}
                     <button
                       onClick={() => setActiveTab('settings')}
-                      className={`w-full relative flex items-center gap-2.5 px-3 py-3 mt-2 rounded-xl text-xs font-black transition-colors cursor-pointer border-none ${
+                      className={`w-full relative flex items-center gap-2.5 px-3 py-3 mt-2 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
                         activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
                       }`}
                     >
@@ -120,7 +120,7 @@ export const MobileNav = ({
                   </div>
                   <button onClick={() => setActiveTab('pricing')} className="text-[11px] font-black text-emerald-500 dark:text-emerald-400 hover:underline cursor-pointer bg-transparent border-none">Doładuj</button>
                 </div>
-                <div className="p-2 flex items-center justify-between rounded-xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
+                <div className="p-2 flex items-center justify-between rounded-2xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">O</div>
                     <div className="min-w-0">

@@ -18,7 +18,6 @@ export const StandalonePricingView = () => {
       style={{ perspective: 1600 }}
     >
       <motion.div variants={cineSoft} className="text-center space-y-3 relative">
-        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[240px] morph-blob bg-gradient-to-tr from-lime-100 via-emerald-50 to-blue-50 dark:from-lime-500/10 dark:via-emerald-400/5 dark:to-blue-400/5 blur-3xl opacity-70" />
         <div className="relative text-emerald-500 dark:text-emerald-400 font-black text-xs tracking-[0.2em] uppercase">Cennik i Plany</div>
         <h2 className="relative text-5xl sm:text-6xl font-black tracking-tighter leading-[0.9]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
           Wybierz swój <span className="text-gradient-lime-soft font-story-script text-6xl sm:text-7xl px-1">Plan</span>
@@ -52,7 +51,7 @@ export const StandalonePricingView = () => {
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
               key={idx}
-              className={`rounded-3xl p-7 lg:p-8 flex flex-col justify-between border transition-all relative shadow-xl ${
+              className={`rounded-2xl p-7 lg:p-8 flex flex-col justify-between border transition-all relative shadow-xl ${
                 plan.popular
                   ? 'border-blue-600 dark:border-white ring-2 ring-blue-600/20 dark:ring-white/20'
                   : 'bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900'
@@ -107,7 +106,7 @@ export const StandalonePricingView = () => {
       </motion.div>
 
       {/* Sklep kredytów - zakup pojedynczy bez pakietu */}
-      <motion.div variants={cineSoft} className="rounded-3xl border p-6 lg:p-8 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 space-y-4">
+      <motion.div variants={cineSoft} className="rounded-2xl border p-6 lg:p-8 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 space-y-4">
         <div className="flex items-center gap-2">
           <Coins size={18} className="text-emerald-500" />
           <h3 className="text-lg font-black">Dokup kredyty jednorazowo</h3>

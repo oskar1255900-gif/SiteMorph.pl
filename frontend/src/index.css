@@ -9,7 +9,7 @@
   --border: #EAEAEA;
   --surface: #FFFFFF;
   --surface-subtle: #F7F6F3;
-  --text: #111111;
+  --text: #2563eb;
   --text-secondary: #787774;
 }
 
@@ -18,7 +18,7 @@ body {
   font-size: 17px;
   line-height: 1.5;
   background-color: #FFFFFF;
-  color: #111111;
+  color: #2563eb;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }

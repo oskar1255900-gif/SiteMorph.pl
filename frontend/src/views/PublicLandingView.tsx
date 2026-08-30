@@ -227,10 +227,6 @@ export const PublicLandingView = ({
           viewport={{ once: true, margin: '-80px' }}
           className="text-center space-y-4 relative"
         >
-          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[220px] morph-blob bg-gradient-to-tr from-lime-100 via-emerald-50 to-lime-100 dark:from-lime-500/10 dark:via-emerald-400/5 dark:to-lime-400/10 blur-3xl opacity-70" />
-          <div className="relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[11px] font-black tracking-widest uppercase bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
-            <Sparkles size={13} /> Jak to działa
-          </div>
           <h2 className="relative text-5xl sm:text-6xl lg:text-[58px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             Od jednego zdania<br />do działającej strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
@@ -245,15 +241,15 @@ export const PublicLandingView = ({
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          style={{ perspective: 1400 }}
+
         >
           {LANDING_HOW_STEPS.map((s, i) => (
             <motion.div
               key={s.num}
               variants={cineChild}
-              whileHover={{ y: -8, rotateX: 4, scale: 1.02 }}
-              className="rounded-3xl border overflow-hidden flex flex-col bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 shadow-sm hover:shadow-xl transition-shadow"
-              style={{ transformStyle: 'preserve-3d' }}
+              whileHover={{ y: -4 }}
+              className="rounded-2xl border overflow-hidden flex flex-col bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 shadow-sm hover:shadow-xl transition-shadow"
+
             >
               <div className="h-60 flex items-center justify-center px-6 border-b bg-gradient-to-b from-blue-50/50 to-transparent dark:from-neutral-950/60 dark:to-transparent border-[#EAEAEA] dark:border-neutral-900">{s.mockup}</div>
               <div className="p-7 space-y-2.5 flex-1">
@@ -284,10 +280,6 @@ export const PublicLandingView = ({
           viewport={{ once: true }}
           className="text-center space-y-4 relative"
         >
-          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[220px] morph-blob bg-gradient-to-tr from-blue-100 via-lime-100 to-emerald-50 dark:from-blue-500/10 dark:via-lime-400/5 dark:to-emerald-400/10 blur-3xl opacity-60" />
-          <div className="relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[11px] font-black tracking-widest uppercase bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
-            <LayoutDashboard size={13} /> Funkcje
-          </div>
           <h2 className="relative text-5xl sm:text-6xl lg:text-[56px] font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             Wszystko, czego potrzebujesz,<br />żeby sprzedawać strony<span className="text-[#2563eb] dark:text-white">.</span>
           </h2>
@@ -306,7 +298,7 @@ export const PublicLandingView = ({
               <button
                 key={f.label}
                 onClick={() => setActiveFeature(idx)}
-                className={`px-5 py-2 rounded-full text-xs font-black border transition-colors cursor-pointer ${isActive ? 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'bg-transparent border-[#EAEAEA] dark:border-neutral-800 hover:border-emerald-400'}`}
+                className={`px-5 py-2 rounded-full text-xs font-black border transition-colors cursor-pointer ${isActive ? 'bg-[#2563eb] dark:bg-white text-white dark:text-[#2563eb] border-transparent shadow-[0_8px_32px_rgba(37,99,235,0.18)]' : 'bg-transparent border-[#EAEAEA] dark:border-neutral-800 hover:border-[#2563eb]/40'}`}
                 style={{ fontFamily: "'SF Pro Display', sans-serif" }}
               >
                 {f.label}
@@ -318,11 +310,11 @@ export const PublicLandingView = ({
         <AnimatePresence mode="wait">
           <motion.div
             key={activeFeature}
-            initial={{ opacity: 0, y: 30, scale: 0.97, rotateX: -8, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -24, scale: 0.97, rotateX: 8, filter: 'blur(8px)' }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
             transition={{ type: 'spring' as const, stiffness: 140, damping: 20 }}
-            className="rounded-[28px] border p-8 lg:p-10 grid lg:grid-cols-2 gap-10 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900 shadow-xl"
+            className="rounded-2xl border p-8 lg:p-10 grid lg:grid-cols-2 gap-10 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 shadow-xl"
             style={{ perspective: 1200 }}
           >
             <div className="space-y-5">
@@ -581,7 +573,6 @@ export const PublicLandingView = ({
           transition={{ type: 'spring' as const, stiffness: 95, damping: 19 }}
           className="relative rounded-[28px] border p-10 sm:p-12 text-center space-y-5 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 shadow-xl overflow-hidden"
         >
-          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[420px] h-[280px] morph-blob bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-100 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl opacity-70" />
           <h2 className="relative text-4xl sm:text-5xl font-black tracking-tighter leading-[0.95]" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
             Jedno zdanie.<br />Gotowa strona.<br /><span className="text-[#2563eb] dark:text-white">Dzisiaj.</span>
           </h2>
@@ -639,8 +630,6 @@ export const PublicLandingView = ({
               className="relative w-full max-w-2xl max-h-[86vh] overflow-hidden rounded-3xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl flex flex-col"
             >
               {/* morphing tło */}
-              <div className="pointer-events-none absolute -top-24 -right-24 w-[340px] h-[340px] bg-gradient-to-tr from-lime-200 via-emerald-200 to-lime-100 opacity-30 blur-2xl legal-blob" />
-              <div className="pointer-events-none absolute -bottom-20 -left-20 w-[280px] h-[280px] bg-gradient-to-tr from-blue-100 via-sky-100 to-lime-100 opacity-25 blur-2xl legal-blob" style={{ animationDelay: '1.2s' }} />
 
               <div className="relative flex items-center justify-between p-6 border-b border-[#EAEAEA] dark:border-neutral-900 bg-white/80 dark:bg-neutral-950/80 backdrop-blur sticky top-0">
                 <div>

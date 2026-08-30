@@ -86,7 +86,7 @@ export const DashboardSidebar = ({
                   whileTap={{ scale: 0.97 }}
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black transition-colors cursor-pointer border-none ${
+                  className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
                     isActive ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
                   }`}
                 >
@@ -94,7 +94,7 @@ export const DashboardSidebar = ({
                     <motion.div
                       layoutId="sidebarActivePill"
                       transition={springTransition}
-                      className="absolute inset-0 bg-[#111111] dark:bg-white rounded-xl shadow-md"
+                      className="absolute inset-0 bg-[#111111] dark:bg-white rounded-2xl shadow-md"
                     />
                   )}
                   <div className="flex items-center gap-2.5 relative z-10">
@@ -120,7 +120,7 @@ export const DashboardSidebar = ({
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setActiveTab('settings')}
-              className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-black transition-colors cursor-pointer border-none ${
+              className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
                 activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
               }`}
             >
@@ -128,7 +128,7 @@ export const DashboardSidebar = ({
                 <motion.div
                   layoutId="sidebarActivePill"
                   transition={springTransition}
-                  className="absolute inset-0 bg-[#111111] dark:bg-white rounded-xl shadow-md"
+                  className="absolute inset-0 bg-[#111111] dark:bg-white rounded-2xl shadow-md"
                 />
               )}
               <Settings size={16} className={`relative z-10 ${activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white'}`} />
@@ -157,7 +157,7 @@ export const DashboardSidebar = ({
           </button>
         </motion.div>
 
-        <div className="p-2 flex items-center justify-between rounded-xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
+        <div className="p-2 flex items-center justify-between rounded-2xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">
               O

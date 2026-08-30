@@ -95,7 +95,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
                     "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
                     "generationConfig": {
                         "temperature": temperature,
-                        "maxOutputTokens": min(max_tokens, 14000),
+                        "maxOutputTokens": min(max_tokens, 8000 if os.getenv("VERCEL") else 14000),
                         "responseMimeType": "application/json",
                     },
                 },
@@ -141,33 +141,33 @@ class BuilderInput(BaseModel):
     package: Optional[str] = "starter"
     credits: Optional[int] = 10
 
-EDITORIAL_RULES = """JesteĹ› senior editorial designerem (poziom Linear, Stripe Docs, Relay) â€” Twoje strony wyglÄ…dajÄ… jak z papierowego atelier, nie jak z generatora AI.
+EDITORIAL_RULES = """Jesteś senior product designerem (poziom Linear, Stripe, 21st.dev) — Twoje strony wyglądają jak dopracowany system, nie jak generator AI.
 
-ZASADY PAPIEROWEGO ATELIER:
-- Papier #fcfcF9, tusz #131412, szaĹ‚wia #d8e4bc tylko jako cienka linia/podkreĹ›lenie, glina #e8ddd3 na ciepĹ‚e tĹ‚a. ZAKAZ niebieskiego #3b82f6, fioletĂłw i tÄ™czowych gradientĂłw.
-- Typografia: Instrument Serif 400 dla H1/H2 (nie kursywa, chyba ĹĽe <em>), SF Pro 400/500 dla body. H1 48-72px, H2 28-36px, body 15px, mono 11px uppercase dla mety. Jeden ciÄ™ĹĽar, nie font-black wszÄ™dzie.
-- PromieĹ„: 10-12px dla kart, 8px dla inputĂłw, brak peĹ‚nych piguĹ‚ek (poza mini tagami). Cienie max 0 1px 2px rgba(0,0,0,0.04) lub brak + 1px border #e7e5e0.
-- UkĹ‚ad: asymetryczna siatka 12 kolumn (np. 7/5, 8/4), hojne biaĹ‚e przestrzenie 80-120px miÄ™dzy sekcjami, wyrĂłwnanie do lewej, dozwolone nachodzenie. Zakaz centrowania wszystkiego.
-- Ikony: cienki stroke 1.2px, 14-16px, NIGDY w wypeĹ‚nionych kĂłĹ‚kach. Numery 01 mono, nie ikonki.
-- Motion: tylko opacity + y 12px, 150-300ms ease, bez blur/rotate/scale. Brak infinite pulse.
-- TreĹ›Ä‡: prawdziwe teksty z danych klienta, zero lorem, uĹĽyj opinii z imionami.
-- Brzydkie AI-tells do usuniÄ™cia: zaokrÄ…glone 2xl wszÄ™dzie, fioletowe cienie, backdrop-blur, gradientowe tytuĹ‚y, Lucide w kĂłĹ‚eczkach, glassmorphism, karuzele logo, glow na przyciskach, 3 kafelki w rzÄ™dzie.
+ZASADY MINIMAL BLUE SYSTEM (SiteMorph — pinned brief wygrywa):
+- Paleta: białe tło light (#ffffff) / czarne dark (#000000), akcent niebieski #2563eb (30% powierzchni w light, biały w dark), linia #EAEAEA / white/15, grafit tylko dla statusów (emerald/amber). Brak limonki jako dekoracji.
+- Typografia: SF Pro Display 400/500/700 wszędzie (nagłówki i body w jednej rodzinie, tracking -0.03em, leading 0.96 dla display). H1 64-96px clamp, H2 36-56px, body 16-17px/1.5, meta mono 11px uppercase tracking 0.14em.
+- Promień: 16px (rounded-2xl) dla kart i przycisków, 12px dla inputów. Cień: 0 8px 32px rgba(37,99,235,0.08) z offsetem + blur, 1px border #EAEAEA. Zakaz gradientowych tytułów i szklanych blurów jako dekoracji.
+- Układ: 12 kolumn, 1240px max, asymetria tam gdzie treść tego wymaga, hojne 80-120px między sekcjami, wyrównanie lewe. Jedna morph geometria (34%%->50%%, 2.8s) jako jedyny authored motion na pierwszym ekranie.
+- Ikony: Lucide 16px stroke 1.5, spójny zestaw, nie w kolorowych kółkach (poza status). Numery 01 mono tylko gdy sekwencja znaczy.
+- Motion: jedno morphowanie + reszta 150-250ms ease [0.22,1,0.36,1] dla stanu. Content widoczny domyślnie, reduce-motion zachowuje opacity.
+- Treść: prawdziwe dane klienta (Google Maps), zero lorem, opinie z imionami, CTA zawsze niebieski outline w light / biały w dark (rounded-2xl).
+- Unikaj: kicker/eyebrow nad nagłówkiem (ban), 3 identyczne karty (vary), fiolet/lime jako akcent, border-left >1px, hard shadows bez blur.
 """
 
 IMPECCABLE_DESIGN_RULES = EDITORIAL_RULES
 
 # 10 losowych templatĂłw â€” kaĹĽdy inny kolor/zdjÄ™cia/ukĹ‚ad, losowany per generacja
 TEMPLATES = [
-    {"id": 1, "name": "Papier Atelier", "palette": "papier #fcfcf9 + tusz #131412 + szaĹ‚wia #d8e4bc", "accent": "#d8e4bc", "images": "cozy cafe interior, paper texture, warm light", "layout": "asymetria 7/5, duĹĽo bieli, numeracja 01 mono"},
-    {"id": 2, "name": "Midnight Navy", "palette": "granat #0f172a + ecru #fefce8 + limonka #bef264", "accent": "#bef264", "images": "dark premium barber, midnight city, neon sign", "layout": "hero full-screen z nakĹ‚adkÄ…, tabela cennika, zespĂłĹ‚ 3 kolumny"},
-    {"id": 3, "name": "Terracotta Clay", "palette": "glina #e8ddd3 + tusz #1c1917 + terakota #c2410c", "accent": "#c2410c", "images": "restaurant clay pottery, warm terracotta interior", "layout": "galeria masonry, menu karty z cenÄ… po prawej"},
-    {"id": 4, "name": "Forest Sage", "palette": "leĹ›na zieleĹ„ #14532d + krem #fef7cd + szaĹ‚wia #a3e635", "accent": "#a3e635", "images": "forest spa, natural wood, green plants", "layout": "hero split 5/7 z portretem, oferta listÄ… z ikonkami"},
-    {"id": 5, "name": "Slate Minimal", "palette": "grafit #27272a + biel #ffffff + niebieski #3b82f6", "accent": "#3b82f6", "images": "minimal office, slate architecture, tech startup", "layout": "centered hero, 3 filary, cennik tabela"},
-    {"id": 6, "name": "Amber Glow", "palette": "bursztyn #f59e0b + ecru #fffbeb + grafit #1f2937", "accent": "#f59e0b", "images": "bakery amber light, croissant, warm bread", "layout": "hero z obrazem na pĂłĹ‚, oferta kartami, opinie carousel"},
-    {"id": 7, "name": "Ocean Slate", "palette": "ocean #0e7490 + mgĹ‚a #f1f5f9 + koral #f97316", "accent": "#0e7490", "images": "hotel ocean view, slate coast, yacht", "layout": "hero panorama, pokoje kartami, atrakcje listÄ…"},
-    {"id": 8, "name": "Blush Rose", "palette": "rĂłĹĽ #fce7f3 + grafit #1f2937 + rĂłĹĽ #ec4899", "accent": "#ec4899", "images": "beauty salon pink, rose spa, makeup", "layout": "hero z portretem, zespĂłĹ‚, galeria 2x2"},
-    {"id": 9, "name": "Charcoal Graphite", "palette": "wÄ™giel #18181b + popiĂłĹ‚ #e4e4e7 + limonka #84cc16", "accent": "#84cc16", "images": "gym industrial, charcoal workout, fitness", "layout": "hero video background, cennik tabela, team"},
-    {"id": 10, "name": "Cream Olive", "palette": "Ĺ›mietanka #fef3c7 + oliwka #365314 + koĹ›Ä‡ #fff7ed", "accent": "#365314", "images": "furniture wood, olive cream interior, scandinavian", "layout": "galeria grid, kategorie kafelki, promocje"},
+    {"id": 1, "name": "Blue Atelier", "palette": "biel #ffffff + niebieski #2563eb + linia #EAEAEA", "accent": "#2563eb", "images": "minimal office, blue wireframe, clean desk", "layout": "hero asymetria 8/4 z morph ringiem, 3 filary varied"},
+    {"id": 2, "name": "Ink Paper", "palette": "papier #fcfcf9 + atrament #131412 + błękit #dbeafe", "accent": "#2563eb", "images": "paper texture, ink pen, architectural plan", "layout": "hero 7/5 z obrazem, oferta listą"},
+    {"id": 3, "name": "Stripe Flux", "palette": "biel #ffffff + grafit #0f172a + niebieski #2563eb", "accent": "#2563eb", "images": "stripe dashboard, flux table, linear board", "layout": "centered hero 65ch, tabela cennika, FAQ"},
+    {"id": 4, "name": "Paczkomat Grid", "palette": "szarość #f8fafc + stal #e2e8f0 + niebieski #2563eb", "accent": "#2563eb", "images": "locker grid, code, industrial", "layout": "bento 8/4, locker-like cards, numeracja 01"},
+    {"id": 5, "name": "Map Card", "palette": "map #f1f5f9 + pine #1e293b + niebieski #2563eb", "accent": "#2563eb", "images": "google maps pin, street view, storefront", "layout": "map-first hero, lead list, filtr rail"},
+    {"id": 6, "name": "Leaflet Price", "palette": "biel #ffffff + akcent #2563eb + szary #64748b", "accent": "#2563eb", "images": "price tag, leaflet grid, catalogue", "layout": "price-forward hero, oferta kartami z ceną po prawej"},
+    {"id": 7, "name": "Canvas Promo", "palette": "canvas #ffffff + tusz #111111 + niebieski #2563eb", "accent": "#2563eb", "images": "instagram promo, canva frame, phone preview", "layout": "phone preview hero, galeria 2x2, cennik pill"},
+    {"id": 8, "name": "Linear Board", "palette": "notion #ffffff + slate #0f172a + niebieski #2563eb", "accent": "#2563eb", "images": "linear board, task list, keyboard hint", "layout": "board top bar, dense table, command palette"},
+    {"id": 9, "name": "Facture Tabular", "palette": "faktura #ffffff + linia #EAEAEA + niebieski #2563eb", "accent": "#2563eb", "images": "invoice table, tabular data", "layout": "tabular hero, faktura split, timeline"},
+    {"id": 10, "name": "Atelier Warm", "palette": "ciepły #fefce8 + grafit #1f2937 + niebieski #2563eb", "accent": "#2563eb", "images": "warm wood, cafe interior, soft light", "layout": "hero z obrazem na pół, oferta kartami"},
 ]
 def pick_template(business_name: str) -> dict:
     import hashlib, random
@@ -470,7 +470,7 @@ def fallback_content(data: BuilderInput):
         accent = tpl.get("accent", "#a3e635")
     except Exception:
         tpl = TEMPLATES[0]
-        accent = "#a3e635"
+        accent = "#2563eb"
     # Minimalist Vite + React + TS structure - fallback when AI fails
     index_html = f"""<!doctype html>
 <html lang="pl">
@@ -493,7 +493,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><
 @tailwind components;
 @tailwind utilities;
 :root{--paper:#fcfcf9;--ink:#131412;--line:#e7e5e0;--sage:#d8e4bc}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+body{font-family:'SF Pro Display',system-ui,sans-serif;background:#ffffff;color:#2563eb} html.dark body{background:#000;color:#fff}
 h1,h2{font-family:'Instrument Serif',Georgia,serif;letter-spacing:-.02em}"""
     utils_ts = """export function cn(...c:(string|boolean|undefined)[]){return c.filter(Boolean).join(' ')}"""
     types_ts = """export interface BusinessData{name:string;niche:string;description:string}"""
@@ -674,7 +674,7 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
 
         # 2) Gemini = BACKUP (3.5 flash lite najczÄ™Ĺ›ciej, 3.7 flash rzadko) â€” na Vercel tylko Laguna, potem fallback (limit 10s)
         if parsed_files is None and GEMINI_API_KEY and not os.getenv("VERCEL"):
-            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=14000)
+            text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=8000 if os.getenv("VERCEL") else 14000)
             if text:
                 try:
                     parsed = extract_json(text)

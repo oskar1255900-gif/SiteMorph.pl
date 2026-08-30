@@ -131,13 +131,11 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
       className="fixed inset-0 z-[95] bg-white dark:bg-black text-[#2563eb] dark:text-white overflow-y-auto no-scrollbar"
     >
       {/* morph blobs */}
-      <div className="pointer-events-none fixed -top-32 -right-32 w-[520px] h-[520px] bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-100 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl morph-blob" />
-      <div className="pointer-events-none fixed -bottom-32 -left-32 w-[460px] h-[460px] bg-gradient-to-tr from-blue-100 via-sky-100 to-lime-100 dark:from-blue-500/10 dark:via-sky-400/5 dark:to-lime-400/10 blur-3xl morph-blob" style={{ animationDelay: '1.2s' }} />
 
       <div className="relative max-w-6xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center font-black"><Settings size={18} /></div>
+            <div className="w-9 h-9 rounded-2xl bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center font-black"><Settings size={18} /></div>
             <div>
               <h1 className="text-xl font-black tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Panel administratora</h1>
               <p className="text-[11px] font-bold opacity-60">Tylko dla administratora · wszystkie dane o stronie w jednym miejscu</p>
@@ -162,8 +160,8 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
         <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 mb-6">
           <h3 className="text-sm font-black mb-3">Zarządzanie kredytami</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input value={creditUser} onChange={(e) => setCreditUser(e.target.value)} placeholder="Nazwa użytkownika" className="px-3 py-2 rounded-xl border text-xs font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
-            <select value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-black bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+            <input value={creditUser} onChange={(e) => setCreditUser(e.target.value)} placeholder="Nazwa użytkownika" className="px-3 py-2 rounded-2xl border text-xs font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
+            <select value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} className="px-3 py-2 rounded-2xl border text-xs font-black bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
               <option value="10">+10 kredytów</option>
               <option value="25">+25 kredytów</option>
               <option value="50">+50 kredytów</option>
@@ -197,8 +195,8 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
         <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 mb-6">
           <h3 className="text-sm font-black mb-3">Zarządzanie planami użytkowników</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
-            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-xl border text-xs font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
-            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-black bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-2xl border text-xs font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
+            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-2xl border text-xs font-black bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
               {(plans.length ? plans : [{name:'Starter',credits:10,price:49},{name:'Pro',credits:50,price:99},{name:'Business',credits:200,price:199},{name:'Agencja',credits:500,price:499}]).map((p: any) => (
                 <option key={(p.name||p).toLowerCase()} value={(p.name||p).toLowerCase()}>
                   {p.name} ({p.credits} kr/mies, {p.price} zł)

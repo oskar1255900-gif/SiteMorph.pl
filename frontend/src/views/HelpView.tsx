@@ -83,7 +83,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="md:col-span-8 rounded-3xl p-8 border shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
+        <motion.div variants={itemVariants} className="md:col-span-8 rounded-2xl p-8 border shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
           {sent ? (
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}

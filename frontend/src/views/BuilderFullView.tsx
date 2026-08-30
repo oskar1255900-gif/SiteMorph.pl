@@ -339,7 +339,7 @@ export const BuilderFullView = ({
       exit={{ opacity: 0 }}
       className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] dark:bg-[#0a0a0a] text-[#2563eb] dark:text-white"
     >
-      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white">
+      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white dark:bg-black  border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white">
         <motion.button 
           whileHover={{ x: -2 }}
           onClick={onBack} 
@@ -412,7 +412,7 @@ export const BuilderFullView = ({
       <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div
           style={isDesktop ? { width: leftW } : undefined}
-          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white rounded-r-2xl shadow-sm"
+          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white rounded-2xl shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
         >
           <div className="flex-1 p-4 overflow-y-auto no-scrollbar space-y-5">
             <div className="text-center space-y-2">
@@ -502,7 +502,6 @@ export const BuilderFullView = ({
                 exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
                 className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 relative overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
               >
-                <div className="pointer-events-none absolute w-[360px] h-[360px] bg-gradient-to-tr from-lime-200 via-emerald-100 to-lime-200 dark:from-lime-500/15 dark:via-emerald-400/10 dark:to-lime-400/15 blur-3xl morph-blob opacity-70" />
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}

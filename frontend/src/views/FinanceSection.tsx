@@ -204,7 +204,7 @@ export const FinanceSection = () => {
                 {idx > 0 && <span className="w-8 h-px bg-blue-200 dark:bg-neutral-800" />}
                 <span className={`flex items-center gap-2 ${setupStep >= step.n ? 'text-emerald-500 font-black' : 'opacity-70'}`}>
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] ${
-                    setupStep >= step.n ? 'bg-lime-400 text-neutral-900 shadow-sm' : 'bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white'
+                    setupStep >= step.n ? 'bg-[#2563eb] text-white shadow-[0_8px_32px_rgba(37,99,235,0.18)]' : 'bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white'
                   }`}>{step.n}</span>
                   {step.label}
                 </span>
@@ -214,7 +214,7 @@ export const FinanceSection = () => {
 
           <motion.div
             layout
-            className="p-6 rounded-3xl border text-left space-y-4 shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
+            className="p-6 rounded-2xl border text-left space-y-4 shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
           >
             {setupStep === 1 && (
               <div className="space-y-3">
@@ -351,7 +351,7 @@ export const FinanceSection = () => {
             ))}
           </div>
 
-          <div className="p-6 rounded-3xl border shadow-xl space-y-4 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
+          <div className="p-6 rounded-2xl border shadow-xl space-y-4 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
             <div className="flex items-center justify-between">
               <span className="text-sm font-black">Rejestr faktur</span>
               <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-xs font-black">

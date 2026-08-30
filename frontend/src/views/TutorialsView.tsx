@@ -130,7 +130,7 @@ export const TutorialsView = () => {
               exit={{ scale: 0.96, y: 12, opacity: 0, filter: 'blur(10px)' }}
               transition={{ type: 'spring' as const, stiffness: 280, damping: 24 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl max-h-[86vh] overflow-hidden rounded-3xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl flex flex-col"
+              className="relative w-full max-w-2xl max-h-[86vh] overflow-hidden rounded-2xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl flex flex-col"
               style={{ perspective: 1200 }}
             >
               <div className="pointer-events-none absolute -top-24 -right-24 w-[340px] h-[340px] bg-gradient-to-tr from-lime-200 via-emerald-200 to-lime-100 opacity-25 blur-2xl legal-blob" />

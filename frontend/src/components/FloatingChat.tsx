@@ -21,7 +21,7 @@ export const FloatingChat = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.85, y: 20 }}
           transition={springTransition}
-          className="rounded-3xl shadow-2xl border w-80 p-4 mb-3 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
+          className="rounded-2xl shadow-[0_16px_48px_rgba(37,99,235,0.12)] border w-80 p-4 mb-3 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
         >
           <div className="flex justify-between items-center border-b border-[#EAEAEA] dark:border-neutral-900 pb-3 mb-3">
             <div className="flex items-center gap-2">
@@ -36,7 +36,7 @@ export const FloatingChat = ({
               <X size={14} />
             </motion.button>
           </div>
-          <div className="text-xs p-3 rounded-xl mb-3 border font-bold bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
+          <div className="text-xs p-3 rounded-2xl mb-3 border font-bold bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
             Cześć! W czym możemy Ci dzisiaj pomóc?
           </div>
           <div className="flex gap-2">
@@ -61,7 +61,7 @@ export const FloatingChat = ({
       whileTap={{ scale: 0.9 }}
       transition={springTransition}
       onClick={() => setChatOpen(!chatOpen)}
-      className="w-12 h-12 rounded-full flex items-center justify-center font-black shadow-2xl cursor-pointer border-none bg-[#111111] text-white dark:bg-white dark:text-black"
+      className="w-12 h-12 rounded-full flex items-center justify-center font-black shadow-[0_16px_48px_rgba(37,99,235,0.12)] cursor-pointer border-none bg-[#111111] text-white dark:bg-white dark:text-black"
     >
       <MessageSquare size={20} />
     </motion.button>

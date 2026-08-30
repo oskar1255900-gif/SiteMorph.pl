@@ -59,7 +59,7 @@ export const DashboardMainView = ({
 
         <motion.div
           layout
-          className="relative rounded-[12px] p-2 pl-5 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-4 overflow-hidden"
+          className="relative rounded-2xl p-3 pl-5 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-4 overflow-hidden"
         >
           <input
             type="text"
@@ -100,7 +100,7 @@ export const DashboardMainView = ({
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             onClick={() => setActiveTab(a.tab)}
-            className={`text-left p-6 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition-all cursor-pointer ${i===0 ? 'md:col-span-2 rounded-[16px]' : 'rounded-[12px]'}`}
+            className={`text-left p-6 bg-white dark:bg-zinc-950 border border-[#EAEAEA] dark:border-white/[0.08] shadow-[0_8px_32px_rgba(37,99,235,0.08)] hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition-all cursor-pointer ${i===0 ? 'md:col-span-2 rounded-2xl' : 'rounded-2xl'}`}
           >
             <div className="w-8 h-8 rounded-[8px] bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center">
               <a.icon size={14} />
@@ -115,7 +115,7 @@ export const DashboardMainView = ({
 
       <motion.div 
         variants={cineChild}
-        className="rounded-3xl p-6 border shadow-xl space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
+        className="rounded-2xl p-6 border shadow-[0_8px_32px_rgba(37,99,235,0.08)] space-y-6 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
       >
         <div className="flex items-center gap-2 text-xs font-bold border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
           <div className="relative flex gap-2">

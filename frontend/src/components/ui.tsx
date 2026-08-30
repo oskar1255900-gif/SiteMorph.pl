@@ -88,9 +88,9 @@ export const GlobalStyles = () => (
       transition: background-color 0.3s ease, color 0.3s ease;
     }
     html.dark body { background: #000; color: #fff; }
-    h1, h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -0.02em; line-height: 0.96; }
+    h1, h2 { font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 0.96; }
     h1 em, h2 em { font-style: italic; font-weight: 400; color: #5a6b44; }
-    ::selection { background: var(--sage); }
+    ::selection { background: #2563eb; color: white; } ::-moz-selection { background: #2563eb; color: white; } *::selection { background: #2563eb; color: white; } :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; } ::-webkit-scrollbar-thumb { background: #2563eb; }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -122,15 +122,15 @@ export const Button = ({
   type?: 'button' | 'submit';
 }) => {
   const sizeStyles = {
-    sm: 'text-xs px-3.5 py-1.5 gap-1.5 rounded-full font-bold',
-    md: 'text-xs px-5 py-2.5 gap-2 rounded-full font-black',
-    lg: 'text-sm px-7 py-3.5 gap-2.5 rounded-full font-black'
+    sm: 'text-xs px-3.5 py-1.5 gap-1.5 rounded-2xl font-bold',
+    md: 'text-xs px-5 py-2.5 gap-2 rounded-2xl font-black',
+    lg: 'text-sm px-7 py-3.5 gap-2.5 rounded-2xl font-black'
   };
 
   const variantStyles = {
-    primary: 'bg-[#111111] text-white dark:bg-white dark:text-black shadow-lg shadow-blue-600/20 dark:shadow-white/10 hover:opacity-90',
+    primary: 'bg-[#2563eb] text-white dark:bg-white dark:text-[#2563eb] shadow-[0_8px_32px_rgba(37,99,235,0.18)] hover:opacity-90 border border-[#2563eb] dark:border-white',
     lime: 'bg-gradient-to-r from-lime-300 to-emerald-400 text-black hover:opacity-95 font-black shadow-lg shadow-lime-400/20',
-    blue: 'bg-[#111111] text-white hover:bg-blue-700 font-black shadow-md shadow-blue-600/30',
+    blue: 'bg-[#2563eb] text-white hover:bg-blue-700 font-black shadow-[0_8px_32px_rgba(37,99,235,0.18)] border border-[#2563eb]',
     outline: 'bg-transparent text-[#2563eb] dark:text-white border border-blue-300 dark:border-neutral-700 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900',
     ghost: 'bg-transparent text-[#2563eb] dark:text-white hover:bg-[#F7F6F3] dark:hover:bg-neutral-900'
   };

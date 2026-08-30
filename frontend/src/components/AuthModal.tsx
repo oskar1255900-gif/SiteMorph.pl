@@ -46,11 +46,11 @@ export const AuthModal = ({ onClose, onSuccess }: { onClose: () => void; onSucce
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <motion.div initial={{ y: 24, scale: 0.96 }} animate={{ y: 0, scale: 1 }} exit={{ y: 16, scale: 0.97, opacity: 0 }} transition={springTransition} className="relative w-full max-w-[460px] rounded-3xl border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 shadow-2xl overflow-hidden text-[#2563eb] dark:text-white">
+      <div className="absolute inset-0 bg-black/60 " onClick={onClose} />
+      <motion.div initial={{ y: 24, scale: 0.96 }} animate={{ y: 0, scale: 1 }} exit={{ y: 16, scale: 0.97, opacity: 0 }} transition={springTransition} className="relative w-full max-w-[460px] rounded-2xl border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 shadow-[0_16px_48px_rgba(37,99,235,0.12)] overflow-hidden text-[#2563eb] dark:text-white">
         {/* Nagłówek z gradientem */}
         <div className="relative px-8 pt-8 pb-6 text-center bg-gradient-to-b from-blue-50 to-transparent dark:from-neutral-900 dark:to-transparent">
-          <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-xl grid place-items-center hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors text-[#2563eb] dark:text-white"><X size={16} /></button>
+          <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-2xl grid place-items-center hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors text-[#2563eb] dark:text-white"><X size={16} /></button>
           <div className="w-14 h-14 rounded-2xl bg-[#111111] text-white dark:bg-white dark:text-black grid place-items-center mx-auto mb-4 shadow-lg shadow-blue-600/25 dark:shadow-white/10">
             <Zap size={26} className="fill-current" />
           </div>
