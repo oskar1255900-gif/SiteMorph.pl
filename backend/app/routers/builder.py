@@ -276,7 +276,7 @@ KLUCZOWE ZASADY DLA preview.html:
 
 
 def fallback_content(data: BuilderInput):
-    """Clean professional fallback — looks like a real designer made it."""
+    """Fallback with attractive copy, morphing animations, realistic prices."""
     import random
 
     src = (data.extraPrompt or "") + " " + (data.description or "")
@@ -316,24 +316,51 @@ def fallback_content(data: BuilderInput):
     is_beauty = any(k in niche_l for k in ["beauty","kosmetolog","salon urod","spa","manicure","paznokci"])
     is_gym = any(k in niche_l for k in ["siłowni","fitness","gym","crossfit"])
 
-    # Niche-specific data
     if is_rest:
         hero_img = random.choice(["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80","https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80","https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80","https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80","https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"]
-        svc = [("Kurczaki","Smażone, grillowane, w panierce — zawsze świeże i chrupkie.","od 18 zł",imgs[0],"utensils"),("Ziemniaki","Pieczona, smażone — idealny dodatek do każdego dania.","od 12 zł",imgs[1],"flame"),("Kebab","Klasyczny, w bułce, na talerzu — z surówką i sosem do wyboru.","od 20 zł",imgs[2],"star")]
-        prices = [("Kurczak smażony + ziemniaki","25 zł"),("Kebab w bułce z surówką","22 zł"),("Kurczak grillowany + sałatka","28 zł"),("Zestaw rodzinny (4 os.)","89 zł"),("Ziemniaki pieczone + sos","15 zł"),("Napój / Surówka","5-8 zł")]
+        svc = [
+            ("Kurczaki","Soczyste kurczaki smażone na złoto. Podajemy z frytkami i surówką — szef kuchni ręczy za każdy kęs.","od 18 zł",imgs[0],"utensils"),
+            ("Ziemniaki","Chrupkie ziemniaki pieczone z ziołami. Idealny dodatek do każdego dania — klienci wracają po nie co tydzień.","od 12 zł",imgs[1],"flame"),
+            ("Kebab","Klasyczny kebab w bułce z świeżym mięsem, surówką i三种 sosami do wyboru.","od 22 zł",imgs[2],"star"),
+        ]
+        prices = [("Kurczak smażony + frytki","25 zł"),("Kebab w bułce z surówką","22 zł"),("Kurczak grillowany + sałatka","28 zł"),("Zestaw rodzinny (4 os.)","89 zł"),("Ziemniaki pieczone + sos","15 zł"),("Napój / Surówka","5-8 zł")]
+        hero_headline = "Jedzenie, do którego się wraca"
+        hero_sub = "Od 15 lat karmimy mieszkańców Łodzi. Prawdziwe smaki, duże porcje, ceny bez niespodzianek."
     elif is_barber:
         hero_img = random.choice(["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"]
-        svc = [("Strzyżenie","Klasyczne i nowoczesne fryzury. Doradztwo w cenie.","od 50 zł",imgs[0],"scissors"),("Golenie brody","Golenie brzytwą, balsam, ręcznik gorący.","od 40 zł",imgs[1],"sparkles"),("Pakiet complete","Strzyżenie + golenie + stylizacja.","od 80 zł",imgs[2],"star")]
-        prices = [("Strzyżenie męskie","50 zł"),("Golenie brzytwą","40 zł"),("Strzyżenie + golenie","80 zł"),("Trymowanie brody","30 zł")]
+        svc = [
+            ("Strzyżenie","Nasz mistrz fryzury dobierze fryzurę do Twojej twarzy. Doradztwo i stylizacja w cenie.","od 50 zł",imgs[0],"scissors"),
+            ("Golenie brzytwą","Rytuał golenia brzytwą z gorącym ręcznikiem i balsamem — jak za dawnych lat.","od 40 zł",imgs[1],"sparkles"),
+            ("Pakiet VIP","Strzyżenie + golenie + modelowanie + balsam. Wyjdziesz nowy człowiek.","od 90 zł",imgs[2],"star"),
+        ]
+        prices = [("Strzyżenie męskie","50 zł"),("Golenie brzytwą","40 zł"),("Strzyżenie + golenie","80 zł"),("Trymowanie brody","30 zł"),("Pakiet VIP","90 zł")]
+        hero_headline = "Fryzura, która robi wrażenie"
+        hero_sub = "Od 12 lat strzyżemy mężczyzn z Łodzi. Znamy się na trendach i na brodach."
+    elif is_beauty:
+        hero_img = random.choice(["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80","https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=1200&q=80"])
+        imgs = ["https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80","https://images.unsplash.com/photo-1457972729786-0411a3b2b626?w=600&q=80","https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80"]
+        svc = [
+            ("Manicure hybrydowy","Trwały kolor na 3 tygodnie. Ponad 200 odcieni do wyboru.","od 80 zł",imgs[0],"sparkles"),
+            ("Zabieg na twarz","Oczyszczanie, nawilżenie, odmładzanie — dobieramy pod typ skóry.","od 150 zł",imgs[1],"heart"),
+            ("Depilacja","Szybko, bezboleśnie, na długo. Stosujemy wosk premium.","od 60 zł",imgs[2],"star"),
+        ]
+        prices = [("Manicure hybrydowy","80 zł"),("Manicure + pedicure","140 zł"),("Zabieg na twarz","150 zł"),("Depilacja nóg","120 zł"),("Pakiet SPA","280 zł")]
+        hero_headline = "Twoje dłonie zasługują na piękno"
+        hero_sub = "Salon urody, w którym jakość spotyka się z dbałością o każdy szczegół."
     else:
         hero_img = random.choice(["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=80"])
         imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80","https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80","https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"]
-        svc = [("Szybka realizacja","Projekt gotowy w 48h. Poprawki bez dopłat, pełna satysfakcja.","od 500 zł",imgs[0],"zap"),("Kompleksowa obsługa","Od pomysłu do gotowego produktu. Jeden kontakt, zero stresu.","od 1 200 zł",imgs[1],"sparkles"),("Premium pakiet","Wszystko + wsparcie techniczne i aktualizacje przez rok.","od 2 500 zł",imgs[2],"shield")]
-        prices = [("Pakiet podstawowy","500 zł"),("Pakiet rozbudowany","1 200 zł"),("Pakiet premium","2 500 zł"),("Konsultacja (1h)","150 zł")]
+        svc = [
+            ("Strategia i projektowanie","Analizujemy Twoje potrzeby i tworzymy strategię, która przynosi realne rezultaty.","od 3 000 zł",imgs[0],"zap"),
+            ("Realizacja full-service","Od pomysłu po wdrożenie — jeden zespół,零stresu, termin jak w zegarku.","od 8 000 zł",imgs[1],"sparkles"),
+            ("Wsparcie i rozwój","Po wdrożeniu nie zostawiamy Cię samego. Aktualizacje, optymalizacja, wsparcie 24/7.","od 1 500 zł/mies.",imgs[2],"shield"),
+        ]
+        prices = [("Pakiet startowy","3 000 zł"),("Pakiet business","8 000 zł"),("Pakiet premium","15 000 zł"),("Konsultacja strategiczna","500 zł"),("Wsparcie miesięczne","1 500 zł/mies.")]
+        hero_headline = "Twój biznes zasługuje na więcej"
+        hero_sub = "Pomagamy firmom rosnąć. Strategia, projektowanie, realizacja — wszystko pod jednym dachem."
 
-    # Lucide icon names → HTML icons
     svc_cards = ""
     for nm, ds, pr, img, icon in svc:
         svc_cards += f'''<div class="group">
@@ -346,20 +373,20 @@ def fallback_content(data: BuilderInput):
     for n, p in prices:
         price_rows += f'<div class="flex justify-between items-center py-4 border-b border-gray-100 last:border-0"><span class="text-gray-600 text-[15px]">{n}</span><span class="font-semibold" style="color:{accent}">{p}</span></div>'
 
-    rev_cards = ""
-    names = [("Marek K.","MK"),("Anna N.","AN"),("Jan P.","JP")]
-    texts = [
-        "Najlepsze jedzenie w okolicy! Soczyste kurczaki, chrupkie ziemniaki. Chodzę tu co tydzień.",
-        "Porcje duże, ceny przystępne, obsługa mega miła. Zestaw rodzinny to strzał w dziesiątkę.",
-        "Dobra lokalizacja, szybka obsługa. Kebab zawsze na czas. Polecam każdemu!"
+    rev_pool = [
+        ("Jedzenie przeszło moje oczekiwania. Kurczak soczysty, surówka świeża. Na pewno wrócę!","Marek K.","MK"),
+        ("Stały klient od 2 lat. Ceny przystępne, porcje ogromne, obsługa na 5+.","Anna N.","AN"),
+        ("Najlepszy kebab w okolicy. Zamawiam co piątek — nigdy się nie zawiodłem.","Tomek R.","TR"),
+        ("Pierwszy raz i już wiem, że wrócę. Atmosfera super, jedzenie jeszcze lepsze.","Kasia W.","KW"),
     ]
-    for (nm, ini), txt in zip(names, texts):
+    chosen = random.sample(rev_pool, 3)
+    rev_cards = ""
+    for txt, nm, ini in chosen:
         rev_cards += f'''<div class="bg-gray-50 rounded-xl p-6">
         <div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div>
         <p class="text-gray-600 text-sm leading-relaxed mb-4">"{txt}"</p>
         <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'''
 
-    # Build clean HTML
     html = f'''<!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -374,11 +401,16 @@ def fallback_content(data: BuilderInput):
 body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6}}
 .fade-up{{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}}
 .fade-up.visible{{opacity:1;transform:translateY(0)}}
+@keyframes morph{{0%,100%{{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}}50%{{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}}}}
+.morph-blob{{animation:morph 8s ease-in-out infinite}}
+@keyframes float{{0%,100%{{transform:translateY(0)}}50%{{transform:translateY(-10px)}}}}
+.float-anim{{animation:float 4s ease-in-out infinite}}
+@keyframes pulse-ring{{0%{{transform:scale(1);opacity:1}}100%{{transform:scale(1.5);opacity:0}}}}
+.pulse-ring::after{{content:'';position:absolute;inset:-4px;border-radius:inherit;border:2px solid {accent};animation:pulse-ring 2s ease-out infinite}}
 </style>
 </head>
 <body>
 
-<!-- Header -->
 <header class="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100">
 <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
 <div class="flex items-center gap-2.5">
@@ -391,48 +423,44 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6}}
 <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav>
 <a href="tel:{phone}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}"><i data-lucide="phone" class="w-3.5 h-3.5"></i>Zadzwoń</a></div></header>
 
-<!-- Hero -->
-<section class="pt-24 pb-16 md:pt-32 md:pb-24">
-<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+<section class="pt-24 pb-16 md:pt-32 md:pb-24 relative overflow-hidden">
+<div class="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-[0.04] morph-blob" style="background:{accent}"></div>
+<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
 <div class="fade-up">
 <div class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-5"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</div>
-<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{bn}</h1>
-<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{desc}</p>
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{hero_headline}</h1>
+<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{hero_sub}</p>
 <div class="flex flex-wrap gap-3 mb-8">
-<a href="#kontakt" class="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+<a href="#kontakt" class="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-white text-sm font-medium transition-all hover:shadow-lg" style="background:{accent}">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
 <a href="#oferta" class="px-5 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors">Zobacz ofertę</a></div>
 <div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews} opinii na Google</span></div></div>
 <div class="fade-up relative">
-<div class="aspect-[4/5] rounded-2xl overflow-hidden"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"></div>
+<div class="aspect-[4/5] rounded-2xl overflow-hidden float-anim"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"></div>
 <div class="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 border border-gray-100">
 <div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i></div>
 <div><p class="text-xs font-medium">Otwarte teraz</p><p class="text-xs text-gray-400">Pon-Sob 10:00-22:00</p></div></div></div></div></section>
 
-<!-- Oferta -->
 <section id="oferta" class="py-16 md:py-24 bg-gray-50">
 <div class="max-w-6xl mx-auto px-6">
-<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Nasza oferta</h2><p class="text-gray-500 mt-2">Sprawdź co dla Ciebie przygotowaliśmy.</p></div>
+<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Nasza oferta</h2><p class="text-gray-500 mt-2">Każda usługa zaprojektowana z myślą o Twojej satysfakcji.</p></div>
 <div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-8">{svc_cards}</div></div></section>
 
-<!-- Cennik -->
 <section id="cennik" class="py-16 md:py-24">
 <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-start">
-<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Cennik</h2><p class="text-gray-500 mt-2 mb-6">Przejrzyste ceny bez ukrytych kosztów.</p>
+<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Cennik</h2><p class="text-gray-500 mt-2 mb-6">Jasne ceny — bez ukrytych kosztów i niespodzianek.</p>
 <div class="flex items-center gap-3 text-sm text-gray-500"><i data-lucide="phone" class="w-4 h-4" style="color:{accent}"></i><span>Pytaj o wycenę: <a href="tel:{phone}" class="font-medium" style="color:{accent}">{phone}</a></span></div></div>
 <div class="fade-up bg-gray-50 rounded-2xl p-6 md:p-8">{price_rows}</div></div></section>
 
-<!-- Opinie -->
 <section id="opinie" class="py-16 md:py-24 bg-gray-50">
 <div class="max-w-6xl mx-auto px-6">
-<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Opinie klientów</h2><p class="text-gray-500 mt-2">Co mówią o nas nasi klienci.</p></div>
+<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Co mówią nasi klienci</h2><p class="text-gray-500 mt-2">Ponad {reviews} zadowolonych klientów nie kłamie.</p></div>
 <div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{rev_cards}</div></div></section>
 
-<!-- Kontakt -->
 <section id="kontakt" class="py-16 md:py-24">
 <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
-<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Kontakt</h2><p class="text-gray-500 mb-8">Napisz do nas lub zadzwoń — odpowiadamy tego samego dnia.</p>
+<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Kontakt</h2><p class="text-gray-500 mb-8">Napisz lub zadzwoń — odpowiadamy tego samego dnia.</p>
 <div class="space-y-5">
-<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="map-pin" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją</p></div></div>
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="map-pin" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją miejską</p></div></div>
 <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="phone" class="w-5 h-5 text-gray-600"></i></div><div><a href="tel:{phone}" class="font-medium text-sm hover:underline" style="color:{accent}">{phone}</a><p class="text-gray-400 text-xs mt-0.5">Pon-Pt 8:00-18:00</p></div></div>
 <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">Pon-Sob: 10:00 - 22:00</p><p class="text-gray-400 text-xs mt-0.5">Niedziela: 12:00 - 20:00</p></div></div></div></div>
 <div class="fade-up"><form class="bg-gray-50 rounded-2xl p-6 md:p-8 space-y-4">
@@ -442,7 +470,6 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6}}
 <div><label class="block text-xs font-medium text-gray-600 mb-1.5">Wiadomość</label><textarea rows="4" placeholder="W czym możemy pomóc?" class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0" style="--tw-ring-color:{accent}"></textarea></div>
 <button type="submit" class="w-full py-2.5 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}">Wyślij wiadomość</button></form></div></div></section>
 
-<!-- Footer -->
 <footer class="border-t border-gray-100 py-8">
 <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
 <p class="text-sm text-gray-400">© {year} {safe}. Wszelkie prawa zastrzeżone.</p>
@@ -458,7 +485,7 @@ document.querySelectorAll('.fade-up').forEach(el=>o.observe(el));
 </script>
 </body></html>'''
 
-    return {"files": {"main/frontend/preview.html": html}, "meta": {"title": title, "headline": bn, "subheadline": desc[:120], "ctaText": "Skontaktuj się"}}
+    return {"files": {"main/frontend/preview.html": html}, "meta": {"title": title, "headline": hero_headline, "subheadline": desc[:120], "ctaText": "Skontaktuj się"}}
 
 @router.post("/generate")
 def generate_site(data: BuilderInput):
