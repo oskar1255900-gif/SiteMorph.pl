@@ -285,7 +285,7 @@ KLUCZOWE ZASADY DLA preview.html:
 
 
 def fallback_content(data: BuilderInput):
-    """Fallback with attractive copy, morphing animations, realistic prices."""
+    """Fallback — EVERYTHING from random pools. Zero hardcoded content."""
     import random
 
     src = (data.extraPrompt or "") + " " + (data.description or "")
@@ -317,69 +317,101 @@ def fallback_content(data: BuilderInput):
     safe = (bn or "Site").strip()[:30] or "Site"
     addr = parsed_addr or "Adres do uzupełnienia"
     phone = parsed_phone or "+48 000 000 000"
-    accent = "#2563eb"
+
+    # Dynamic accent color
+    accents = ["#2563eb","#111827","#d97706","#059669","#7c3aed","#dc2626","#0891b2","#c026d3"]
+    accent = random.choice(accents)
+
+    # Dynamic hero background
+    hero_bgs = [
+        f"background:{accent}08",
+        f"background:linear-gradient(135deg,{accent}06,white,{accent}04)",
+        f"background:white",
+    ]
+    hero_bg = random.choice(hero_bgs)
+
+    # Dynamic animation style
+    anim_styles = [
+        "@keyframes morph{0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}} .morph{animation:morph 8s ease-in-out infinite}",
+        "@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 "+accent+"40}50%{box-shadow:0 0 20px 4px "+accent+"20}} .pulse-glow{animation:pulse-glow 3s ease-in-out infinite}",
+        "@keyframes slide-up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}} .slide-up{animation:slide-up .8s ease forwards}",
+    ]
+    anim_css = random.choice(anim_styles)
+
+    # Dynamic layout style
+    layouts = ["split","centered","full"]
+    layout = random.choice(layouts)
 
     niche_l = (niche or "").lower()
     is_rest = any(k in niche_l for k in ["restaurac","kebab","kurczaki","ziemniaki","jedzenie","food","pizzeria","bistro","kawiarni","cafe"])
     is_barber = any(k in niche_l for k in ["barber","fryzjer","strzyż","salon fryzj"])
     is_beauty = any(k in niche_l for k in ["beauty","kosmetolog","salon urod","spa","manicure","paznokci"])
-    is_gym = any(k in niche_l for k in ["siłowni","fitness","gym","crossfit"])
 
+    # ===== POOLS OF CONTENT =====
     if is_rest:
-        hero_img = random.choice(["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80","https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80","https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80"])
-        imgs = ["https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80","https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80","https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80"]
-        svc = [
-            ("Kurczaki","Soczyste kurczaki smażone na złoto. Podajemy z frytkami i surówką — szef kuchni ręczy za każdy kęs.","od 18 zł",imgs[0],"utensils"),
-            ("Ziemniaki","Chrupkie ziemniaki pieczone z ziołami. Idealny dodatek do każdego dania — klienci wracają po nie co tydzień.","od 12 zł",imgs[1],"flame"),
-            ("Kebab","Klasyczny kebab w bułce z świeżym mięsem, surówką i三种 sosami do wyboru.","od 22 zł",imgs[2],"star"),
+        hero_imgs = ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80","https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80","https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80","https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=1200&q=80"]
+        food_imgs = ["https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80","https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80","https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80","https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80","https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=80"]
+        svc_pool = [
+            ("Danie dnia","Świeże, sezonowe składniki. Zmienia się codziennie — zawsze jest w czym wybierać.","od 18 zł","utensils"),
+            ("Kurczaki","Smażone na złoto, z surówką i pieczywem. Porcja, po której nie wstaniesz od stołu.","od 16 zł","flame"),
+            ("Kebab","Klasyczny, w bułce lub na talerzu. Trzy sosy do wyboru — każdy inny, każdy dobry.","od 22 zł","star"),
+            ("Zestaw rodzinny","Cztery dania, surówki, napoje. Rodzinny obiad bez gotowania — w cenę wliczony spokój.","od 79 zł","heart"),
+            ("Desery","Domowe ciasta i lody. Słodkie zakończenie, które zapamiętasz.","od 12 zł","sparkles"),
         ]
-        prices = [("Kurczak smażony + frytki","25 zł"),("Kebab w bułce z surówką","22 zł"),("Kurczak grillowany + sałatka","28 zł"),("Zestaw rodzinny (4 os.)","89 zł"),("Ziemniaki pieczone + sos","15 zł"),("Napój / Surówka","5-8 zł")]
-        hero_headlines = ["Jedzenie, do którego się wraca", "Smak, który zapamiętasz", "Tu się je inaczej", "Kęs po kęsie — sameosaurs", "Prawdziwy smak, prawdziwe ceny", "Gdzie apetyt rośnie z każdym kęsem"]
-        hero_subs = ["Od 15 lat karmimy mieszkańców Łodzi. Prawdziwe smaki, duże porcje, ceny bez niespodzianek.", "Kurczaki z grilla, kebab z surówką, ziemniaki jak u mamy. Przyjdź i sprawdź.", "Świeże składniki codziennie. Zero mrożonek. Stawiamy na smak, nie na marketing.", "Duże porcje w cenach, które nie przerażają. Rodzina znajdzie tu coś dla siebie."]
-        hero_headline = random.choice(hero_headlines)
-        hero_sub = random.choice(hero_subs)
+        price_pool = [("Danie dnia","18-22 zł"),("Kebab w bułce","22 zł"),("Kurczak + frytki","25 zł"),("Zestaw rodzinny","79-99 zł"),("Surówka","5-8 zł"),("Napój","4-6 zł"),("Deser","12-18 zł")]
+        headline_pool = ["Jedzenie, do którego się wraca","Smak, który zapamiętasz","Tu się je inaczej","Prawdziwy smak, prawdziwe ceny","Gdzie apetyt rośnie z każdym kęsem","Stawiamy na smak, nie na marketing"]
+        sub_pool = ["Od 15 lat karmimy mieszkańców. Duże porcje, ceny bez niespodzianek.","Świeże składniki codziennie. Zero mrożonek. Przyjdź i sprawdź.","Duże porcje w cenach, które nie przerażają. Rodzina znajdzie tu coś dla siebie.","Tu nie ma kompromisów — jest smak, świeżość i uczciwa cena."]
     elif is_barber:
-        hero_img = random.choice(["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1200&q=80"])
-        imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80"]
-        svc = [
-            ("Strzyżenie","Nasz mistrz fryzury dobierze fryzurę do Twojej twarzy. Doradztwo i stylizacja w cenie.","od 50 zł",imgs[0],"scissors"),
-            ("Golenie brzytwą","Rytuał golenia brzytwą z gorącym ręcznikiem i balsamem — jak za dawnych lat.","od 40 zł",imgs[1],"sparkles"),
-            ("Pakiet VIP","Strzyżenie + golenie + modelowanie + balsam. Wyjdziesz nowy człowiek.","od 90 zł",imgs[2],"star"),
+        hero_imgs = ["https://images.unsplash.com/photo-1585747860019-024afab6236e?w=1200&q=80","https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=1200&q=80","https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1200&q=80"]
+        food_imgs = ["https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80","https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80","https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80","https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&q=80"]
+        svc_pool = [
+            ("Strzyżenie","Dobierzemy fryzurę do Twojej twarzy i stylu życia. Doradztwo gratis.","od 50 zł","scissors"),
+            ("Golenie brzytwą","Gorący ręcznik, balsam, brzytwa. Rytuał, który pokochasz.","od 40 zł","sparkles"),
+            ("Trymowanie brody","Każdy włosek na swoim miejscu. Precyzja i styl.","od 30 zł","star"),
+            ("Pakiet full","Strzyżenie + golenie + modelowanie. Wyjdziesz nowy człowiek.","od 90 zł","heart"),
+            ("Malowanie włosów","Koloryzacja, pasemka, odrosty. Doświadczony kolorysta.","od 120 zł","flame"),
         ]
-        prices = [("Strzyżenie męskie","50 zł"),("Golenie brzytwą","40 zł"),("Strzyżenie + golenie","80 zł"),("Trymowanie brody","30 zł"),("Pakiet VIP","90 zł")]
-        hero_headlines = ["Fryzura, która robi wrażenie", "Twoja broda zasługuje na mistrza", "Tu się strzyże inaczej", "Wyjdź nowy człowiek", "Broda jak z katalogu w 30 minut"]
-        hero_subs = ["Od 12 lat strzyżemy mężczyzn z Łodzi. Znamy się na trendach i na brodach.", "Brzytwa, gorący ręcznik i mistrz fachu. Twój barber zna się na rzeczy.", "Strzyżenie to nie tylko włosy — to Twój styl. Dobierzemy coś idealnego."]
-        hero_headline = random.choice(hero_headlines)
-        hero_sub = random.choice(hero_subs)
+        price_pool = [("Strzyżenie męskie","50-65 zł"),("Golenie brzytwą","40-55 zł"),("Trymowanie brody","30-40 zł"),("Strzyżenie + golenie","80-95 zł"),("Koloryzacja","120-180 zł"),("Pakiet VIP","90-130 zł")]
+        headline_pool = ["Fryzura, która robi wrażenie","Twoja broda zasługuje na mistrza","Tu się strzyże inaczej","Wyjdź nowy człowiek","Styl zaczyna się od fryzura","Broda jak z katalogu"]
+        sub_pool = ["Od 12 lat strzyżemy mężczyzn. Znamy się na trendach i na brodach.","Brzytwa, gorący ręcznik i mistrz fachu. Twój barber zna się na rzeczy.","Strzyżenie to nie tylko włosy — to Twój styl. Dobierzemy coś idealnego."]
     elif is_beauty:
-        hero_img = random.choice(["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80","https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=1200&q=80"])
-        imgs = ["https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80","https://images.unsplash.com/photo-1457972729786-0411a3b2b626?w=600&q=80","https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80"]
-        svc = [
-            ("Manicure hybrydowy","Trwały kolor na 3 tygodnie. Ponad 200 odcieni do wyboru.","od 80 zł",imgs[0],"sparkles"),
-            ("Zabieg na twarz","Oczyszczanie, nawilżenie, odmładzanie — dobieramy pod typ skóry.","od 150 zł",imgs[1],"heart"),
-            ("Depilacja","Szybko, bezboleśnie, na długo. Stosujemy wosk premium.","od 60 zł",imgs[2],"star"),
+        hero_imgs = ["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80","https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=1200&q=80","https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80"]
+        food_imgs = ["https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80","https://images.unsplash.com/photo-1457972729786-0411a3b2b626?w=600&q=80","https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80","https://images.unsplash.com/photo-1604654894610-df83d6d64ba5?w=600&q=80"]
+        svc_pool = [
+            ("Manicure hybrydowy","200+ odcieni. Trwałość 3 tygodnie. Twoje dłonie będą mówić same za siebie.","od 80 zł","sparkles"),
+            ("Zabieg na twarz","Oczyszczanie, nawilżenie, odmładzanie. Dobieramy pod typ Twojej skóry.","od 150 zł","heart"),
+            ("Depilacja woskiem","Szybko, na długo, bez podrażnień. Stosujemy wosk premium.","od 60 zł","star"),
+            ("Pakiet SPA","Manicure + pedicure + zabieg na twarz. Dzień tylko dla Ciebie.","od 280 zł","flame"),
+            ("Przedłużanie rzęs","Naturalne, objętościowe, mega volume. Obudzisz się piękna.","od 150 zł","scissors"),
         ]
-        prices = [("Manicure hybrydowy","80 zł"),("Manicure + pedicure","140 zł"),("Zabieg na twarz","150 zł"),("Depilacja nóg","120 zł"),("Pakiet SPA","280 zł")]
-        hero_headlines = ["Twoje dłonie zasługują na piękno", "Zadbaj o siebie — my zadbamy o detale", "Tu piękno spotyka precyzję", "Manicure, który robi wrażenie"]
-        hero_subs = ["Salon urody, w którym jakość spotyka się z dbałością o każdy szczegół.", "Ponad 200 odcieni, trwałość 3 tygodnie. Hybrydy, które nie odpryskują.", "Zabiegi na twarz, dłonie i ciało. Dobieramy pod Twój typ skóry."]
-        hero_headline = random.choice(hero_headlines)
-        hero_sub = random.choice(hero_subs)
+        price_pool = [("Manicure hybrydowy","80-100 zł"),("Manicure + pedicure","140-180 zł"),("Zabieg na twarz","150-250 zł"),("Depilacja nóg","100-150 zł"),("Pakiet SPA","280-400 zł"),("Przedłużanie rzęs","150-200 zł")]
+        headline_pool = ["Twoje dłonie zasługują na piękno","Zadbaj o siebie — my zadbamy o detale","Tu piękno spotyka precyzję","Manicure, który robi wrażenie","Dzień tylko dla Ciebie","Piękno to nie luksus — to norma"]
+        sub_pool = ["Salon urody, w którym jakość spotyka się z dbałością o każdy szczegół.","Ponad 200 odcieni, trwałość 3 tygodnie. Hybrydy, które nie odpryskują.","Zabiegi na twarz, dłonie i ciało. Dobieramy pod Twój typ skóry."]
     else:
-        hero_img = random.choice(["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=80"])
-        imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80","https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80","https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80"]
-        svc = [
-            ("Strategia i projektowanie","Analizujemy Twoje potrzeby i tworzymy strategię, która przynosi realne rezultaty.","od 3 000 zł",imgs[0],"zap"),
-            ("Realizacja full-service","Od pomysłu po wdrożenie — jeden zespół,零stresu, termin jak w zegarku.","od 8 000 zł",imgs[1],"sparkles"),
-            ("Wsparcie i rozwój","Po wdrożeniu nie zostawiamy Cię samego. Aktualizacje, optymalizacja, wsparcie 24/7.","od 1 500 zł/mies.",imgs[2],"shield"),
+        hero_imgs = ["https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=80","https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1200&q=80"]
+        food_imgs = ["https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80","https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80","https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80","https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80"]
+        svc_pool = [
+            ("Strategia","Analizujemy rynek, konkurencję i Twoje cele. Plan, który przynosi kasę.","od 3 000 zł","zap"),
+            ("Realizacja","Od pomysłu po produkt. Jeden zespół, zero chaosu, termin jak w zegarku.","od 8 000 zł","sparkles"),
+            ("Wsparcie","Po wdrożeniu nie zostawiamy Cię. Aktualizacje, optymalizacja, pomoc 24/7.","od 1 500 zł/mies.","shield"),
+            ("Audyt","Sprawdzimy co nie działa i powiemy jak to naprawić. Bez ściemy.","od 2 000 zł","star"),
+            ("Szkolenia","Nauczymy Twój zespół narzędzi, które zwiększają sprzedaż.","od 3 500 zł","heart"),
         ]
-        prices = [("Pakiet startowy","3 000 zł"),("Pakiet business","8 000 zł"),("Pakiet premium","15 000 zł"),("Konsultacja strategiczna","500 zł"),("Wsparcie miesięczne","1 500 zł/mies.")]
-        hero_headlines = ["Twój biznes zasługuje na więcej", "Nie czekaj na klienta — przyciągnij go", "Strategia, która przynosi rezultaty", "Od pomysłu do pieniędzy"]
-        hero_subs = ["Pomagamy firmom rosnąć. Strategia, projektowanie, realizacja — wszystko pod jednym dachem.", "Nie daj się konkurencji. Zbudujemy narzędzia, które sprzedają za Ciebie.", "Widzimy trendy, zanim staną się mainstreamem. Twój biznes też może być do przodu."]
-        hero_headline = random.choice(hero_headlines)
-        hero_sub = random.choice(hero_subs)
+        price_pool = [("Pakiet startowy","3 000-5 000 zł"),("Pakiet business","8 000-15 000 zł"),("Pakiet premium","15 000-30 000 zł"),("Konsultacja","500-1 000 zł"),("Wsparcie miesięczne","1 500-3 000 zł/mies."),("Audyt","2 000-4 000 zł")]
+        headline_pool = ["Twój biznes zasługuje na więcej","Nie czekaj na klienta — przyciągnij go","Strategia, która przynosi rezultaty","Od pomysłu do pieniędzy","Bądź o krok przed konkurencją","Twój Next Level zaczyna się tutaj"]
+        sub_pool = ["Pomagamy firmom rosnąć. Strategia, projektowanie, realizacja — wszystko pod jednym dachem.","Nie daj się konkurencji. Zbudujemy narzędzia, które sprzedają za Ciebie.","Widzimy trendy, zanim staną się mainstreamem. Twój biznes też może być do przodu."]
 
+    # Random pick from pools
+    hero_img = random.choice(hero_imgs)
+    hero_headline = random.choice(headline_pool)
+    hero_sub = random.choice(sub_pool)
+    chosen_svc = random.sample(svc_pool, min(3, len(svc_pool)))
+    chosen_prices = random.sample(price_pool, min(4, len(price_pool)))
+
+    # Build service cards
     svc_cards = ""
-    for nm, ds, pr, img, icon in svc:
+    for i, (nm, ds, pr, icon) in enumerate(chosen_svc):
+        img = food_imgs[i % len(food_imgs)]
         svc_cards += f'''<div class="group">
         <div class="aspect-[4/3] rounded-xl overflow-hidden mb-4"><img src="{img}" alt="{nm}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"></div>
         <div class="flex items-center gap-2.5 mb-2"><i data-lucide="{icon}" class="w-5 h-5" style="color:{accent}"></i><h3 class="font-semibold text-[15px]">{nm}</h3></div>
@@ -387,22 +419,61 @@ def fallback_content(data: BuilderInput):
         <span class="text-sm font-semibold" style="color:{accent}">{pr}</span></div>'''
 
     price_rows = ""
-    for n, p in prices:
+    for n, p in chosen_prices:
         price_rows += f'<div class="flex justify-between items-center py-4 border-b border-gray-100 last:border-0"><span class="text-gray-600 text-[15px]">{n}</span><span class="font-semibold" style="color:{accent}">{p}</span></div>'
 
-    rev_pool = [
-        ("Jedzenie przeszło moje oczekiwania. Kurczak soczysty, surówka świeża. Na pewno wrócę!","Marek K.","MK"),
-        ("Stały klient od 2 lat. Ceny przystępne, porcje ogromne, obsługa na 5+.","Anna N.","AN"),
-        ("Najlepszy kebab w okolicy. Zamawiam co piątek — nigdy się nie zawiodłem.","Tomek R.","TR"),
-        ("Pierwszy raz i już wiem, że wrócę. Atmosfera super, jedzenie jeszcze lepsze.","Kasia W.","KW"),
+    # Dynamic reviews
+    review_pool = [
+        ("Najlepsze w okolicy! Polecam każdemu, kto szuka jakości.","Marek K.","MK"),
+        ("Stały klient od roku. Ceny OK, obsługa super, zero zastrzeżeń.","Anna N.","AN"),
+        ("Pierwszy raz — i na pewno nie ostatni. Wrócę tu jeszcze!","Tomek R.","TR"),
+        ("Super atmosfera, szybka obsługa, efekt przechodzi oczekiwania.","Kasia W.","KW"),
+        ("Mój znajomy polecił — i miał rację. To miejsce ma klimat.","Piotr S.","PS"),
+        ("Szukałam czegoś dobrego w okolicy — i znalazłam. Brawo!","Ola M.","OM"),
     ]
-    chosen = random.sample(rev_pool, 3)
+    chosen_reviews = random.sample(review_pool, 3)
     rev_cards = ""
-    for txt, nm, ini in chosen:
+    for txt, nm, ini in chosen_reviews:
         rev_cards += f'''<div class="bg-gray-50 rounded-xl p-6">
         <div class="flex items-center gap-0.5 text-amber-400 mb-3"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div>
         <p class="text-gray-600 text-sm leading-relaxed mb-4">"{txt}"</p>
         <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">{ini}</div><div><p class="text-sm font-medium">{nm}</p><p class="text-xs text-gray-400">Klient</p></div></div></div>'''
+
+    # Hero section layout
+    if layout == "centered":
+        hero_section = f'''<section class="pt-24 pb-16 md:pt-32 md:pb-24" style="{hero_bg}">
+<div class="max-w-4xl mx-auto px-6 text-center fade-up">
+<div class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-5"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</div>
+<h1 class="text-4xl md:text-5xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-5">{hero_headline}</h1>
+<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-2xl mx-auto">{hero_sub}</p>
+<div class="flex flex-wrap gap-3 justify-center mb-8">
+<a href="#kontakt" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-sm font-medium transition-all hover:shadow-lg" style="background:{accent}">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+<a href="#oferta" class="px-6 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors">Zobacz ofertę</a></div>
+<div class="flex items-center gap-2.5 text-sm justify-center"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews} opinii</span></div>
+<div class="mt-10 aspect-video rounded-2xl overflow-hidden max-w-2xl mx-auto"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"></div></div></section>'''
+    elif layout == "full":
+        hero_section = f'''<section class="relative min-h-[80vh] flex items-center overflow-hidden">
+<img src="{hero_img}" alt="{safe}" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 bg-black/50"></div>
+<div class="max-w-6xl mx-auto px-6 relative z-10 fade-up text-white">
+<div class="inline-flex items-center gap-1.5 text-xs font-medium text-white/70 mb-5"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>{niche} · {addr}</div>
+<h1 class="text-4xl md:text-5xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-5">{hero_headline}</h1>
+<p class="text-white/80 text-base md:text-lg leading-relaxed mb-8 max-w-xl">{hero_sub}</p>
+<div class="flex flex-wrap gap-3 mb-8">
+<a href="#kontakt" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-black text-sm font-medium bg-white hover:bg-gray-100 transition-all">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+<a href="#oferta" class="px-6 py-3 rounded-lg border border-white/30 text-sm font-medium hover:bg-white/10 transition-colors">Zobacz ofertę</a></div>
+<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-white/60">· {reviews} opinii</span></div></div></section>'''
+    else:
+        hero_section = f'''<section class="pt-24 pb-16 md:pt-32 md:pb-24" style="{hero_bg}">
+<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+<div class="fade-up">
+<div class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-5"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</div>
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{hero_headline}</h1>
+<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{hero_sub}</p>
+<div class="flex flex-wrap gap-3 mb-8">
+<a href="#kontakt" class="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-white text-sm font-medium transition-all hover:shadow-lg" style="background:{accent}">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+<a href="#oferta" class="px-5 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors">Zobacz ofertę</a></div>
+<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews} opinii</span></div></div>
+<div class="fade-up relative"><div class="aspect-[4/5] rounded-2xl overflow-hidden"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"></div></div></div></section>'''
 
     html = f'''<!DOCTYPE html>
 <html lang="pl">
@@ -418,16 +489,10 @@ def fallback_content(data: BuilderInput):
 body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6}}
 .fade-up{{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}}
 .fade-up.visible{{opacity:1;transform:translateY(0)}}
-@keyframes morph{{0%,100%{{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}}50%{{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}}}}
-.morph-blob{{animation:morph 8s ease-in-out infinite}}
-@keyframes float{{0%,100%{{transform:translateY(0)}}50%{{transform:translateY(-10px)}}}}
-.float-anim{{animation:float 4s ease-in-out infinite}}
-@keyframes pulse-ring{{0%{{transform:scale(1);opacity:1}}100%{{transform:scale(1.5);opacity:0}}}}
-.pulse-ring::after{{content:'';position:absolute;inset:-4px;border-radius:inherit;border:2px solid {accent};animation:pulse-ring 2s ease-out infinite}}
+{anim_css}
 </style>
 </head>
 <body>
-
 <header class="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100">
 <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
 <div class="flex items-center gap-2.5">
@@ -440,44 +505,29 @@ body{{font-family:'Inter',system-ui,sans-serif;color:#111827;line-height:1.6}}
 <a href="#kontakt" class="hover:text-gray-900 transition-colors">Kontakt</a></nav>
 <a href="tel:{phone}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors" style="background:{accent}"><i data-lucide="phone" class="w-3.5 h-3.5"></i>Zadzwoń</a></div></header>
 
-<section class="pt-24 pb-16 md:pt-32 md:pb-24 relative overflow-hidden">
-<div class="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-[0.04] morph-blob" style="background:{accent}"></div>
-<div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
-<div class="fade-up">
-<div class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-5"><i data-lucide="map-pin" class="w-3.5 h-3.5" style="color:{accent}"></i>{niche} · {addr}</div>
-<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-5">{hero_headline}</h1>
-<p class="text-gray-500 text-base md:text-lg leading-relaxed mb-8 max-w-md">{hero_sub}</p>
-<div class="flex flex-wrap gap-3 mb-8">
-<a href="#kontakt" class="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-white text-sm font-medium transition-all hover:shadow-lg" style="background:{accent}">Skontaktuj się<i data-lucide="arrow-right" class="w-4 h-4"></i></a>
-<a href="#oferta" class="px-5 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors">Zobacz ofertę</a></div>
-<div class="flex items-center gap-2.5 text-sm"><div class="flex items-center gap-0.5 text-amber-400"><i data-lucide="star" class="w-4 h-4 fill-amber-400"></i></div><span class="font-medium">{rating}</span><span class="text-gray-400">· {reviews} opinii na Google</span></div></div>
-<div class="fade-up relative">
-<div class="aspect-[4/5] rounded-2xl overflow-hidden float-anim"><img src="{hero_img}" alt="{safe}" class="w-full h-full object-cover"></div>
-<div class="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 border border-gray-100">
-<div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i></div>
-<div><p class="text-xs font-medium">Otwarte teraz</p><p class="text-xs text-gray-400">Pon-Sob 10:00-22:00</p></div></div></div></div></section>
+{hero_section}
 
 <section id="oferta" class="py-16 md:py-24 bg-gray-50">
 <div class="max-w-6xl mx-auto px-6">
-<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Nasza oferta</h2><p class="text-gray-500 mt-2">Każda usługa zaprojektowana z myślą o Twojej satysfakcji.</p></div>
+<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Nasza oferta</h2><p class="text-gray-500 mt-2">{random.choice(["Sprawdź co dla Ciebie przygotowaliśmy.","Każda usługa zaprojektowana z myślą o Tobie.","Zobacz, co możemy dla Ciebie zrobić.","Nasza oferta — bez ściemy, same konkrety."])}</p></div>
 <div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-8">{svc_cards}</div></div></section>
 
 <section id="cennik" class="py-16 md:py-24">
 <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-start">
-<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Cennik</h2><p class="text-gray-500 mt-2 mb-6">Jasne ceny — bez ukrytych kosztów i niespodzianek.</p>
+<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Cennik</h2><p class="text-gray-500 mt-2 mb-6">{random.choice(["Jasne ceny — bez niespodzianek.","Przejrzysty cennik.","Co ile kosztuje? Sprawdź poniżej.","Ceny bez ukrytych kosztów."])}</p>
 <div class="flex items-center gap-3 text-sm text-gray-500"><i data-lucide="phone" class="w-4 h-4" style="color:{accent}"></i><span>Pytaj o wycenę: <a href="tel:{phone}" class="font-medium" style="color:{accent}">{phone}</a></span></div></div>
 <div class="fade-up bg-gray-50 rounded-2xl p-6 md:p-8">{price_rows}</div></div></section>
 
 <section id="opinie" class="py-16 md:py-24 bg-gray-50">
 <div class="max-w-6xl mx-auto px-6">
-<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">Co mówią nasi klienci</h2><p class="text-gray-500 mt-2">Ponad {reviews} zadowolonych klientów nie kłamie.</p></div>
+<div class="fade-up mb-12"><h2 class="text-3xl md:text-4xl font-bold tracking-tight">{random.choice(["Co mówią nasi klienci","Opinie","Co mówią o nas ludzie","Klienci polecają nas dalej"])}</h2><p class="text-gray-500 mt-2">{reviews} zadowolonych klientów nie kłamie.</p></div>
 <div class="fade-up grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{rev_cards}</div></div></section>
 
 <section id="kontakt" class="py-16 md:py-24">
 <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
-<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Kontakt</h2><p class="text-gray-500 mb-8">Napisz lub zadzwoń — odpowiadamy tego samego dnia.</p>
+<div class="fade-up"><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Kontakt</h2><p class="text-gray-500 mb-8">{random.choice(["Napisz lub zadzwoń — odpowiadamy szybko.","Masz pytanie? Dzwoń śmiało.","Czekamy na Ciebie — napisz lub zadzwoń."])}</p>
 <div class="space-y-5">
-<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="map-pin" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją miejską</p></div></div>
+<div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="map-pin" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">{addr}</p><p class="text-gray-400 text-xs mt-0.5">Dojazd samochodem i komunikacją</p></div></div>
 <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="phone" class="w-5 h-5 text-gray-600"></i></div><div><a href="tel:{phone}" class="font-medium text-sm hover:underline" style="color:{accent}">{phone}</a><p class="text-gray-400 text-xs mt-0.5">Pon-Pt 8:00-18:00</p></div></div>
 <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-5 h-5 text-gray-600"></i></div><div><p class="font-medium text-sm">Pon-Sob: 10:00 - 22:00</p><p class="text-gray-400 text-xs mt-0.5">Niedziela: 12:00 - 20:00</p></div></div></div></div>
 <div class="fade-up"><form class="bg-gray-50 rounded-2xl p-6 md:p-8 space-y-4">
