@@ -476,9 +476,8 @@ export const BuilderFullView = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    // Masz opis? Generuj OD RAZU bez żadnych pytań.
-                    if (builderPrompt.trim()) handleGenerate();
-                    else { setWizardStep(0); setShowWizard(true); }
+                    // ZAWSZE pokazuj wizard przed generowaniem
+                    setWizardStep(0); setShowWizard(true);
                   }
                 }}
                 placeholder="Wklej dane z Google Maps albo opisz firmę (Enter = generuj)..."
@@ -493,8 +492,8 @@ export const BuilderFullView = ({
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => {
-                    if (builderPrompt.trim()) handleGenerate();
-                    else { setWizardStep(0); setShowWizard(true); }
+                    // ZAWSZE pokazuj wizard przed generowaniem
+                    setWizardStep(0); setShowWizard(true);
                   }}
                   className="w-7 h-7 bg-[#111111] dark:bg-white text-white dark:text-black rounded-lg flex items-center justify-center cursor-pointer border-none font-black shadow-md"
                   title={builderPrompt.trim() ? `Generuj - ${cost} kredytów` : 'Otwórz kreator pytań'}
