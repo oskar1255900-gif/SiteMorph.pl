@@ -88,18 +88,12 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center"
         >
-          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
-            <span className="relative flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-60" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-cyan-200" />
-            </span>
-      </div>
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/50">SiteMorph</p>
-          <h1 className="text-4xl font-semibold tracking-tight leading-[1.02] md:text-6xl">
+          <p className="mb-6 text-sm font-medium uppercase tracking-[0.45em] text-white/45">SiteMorph</p>
+          <h1 className="text-6xl font-semibold tracking-tight leading-[1.02] md:text-7xl">
             Strona w budowie
           </h1>
-          <p className="mt-5 max-w-md text-sm leading-[1.7] text-white/55">
-            Składamy coś nowego. Wróć za chwilę — albo jeśli masz dostęp, wejdź przez Panel.
+          <p className="mt-7 max-w-lg text-lg leading-[1.6] text-white/50">
+            Składamy coś nowego. Wróć za chwilę.
           </p>
         </motion.div>
       </div>
