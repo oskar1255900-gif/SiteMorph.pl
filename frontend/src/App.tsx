@@ -23,6 +23,7 @@ import { AuthModal } from './components/AuthModal';
 import { GlobalNavbar } from './components/GlobalNavbar';
 import { FloatingChat } from './components/FloatingChat';
 import { apiFetch } from './lib/api';
+import { MaintenanceGateView } from './views/MaintenanceGateView';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -43,6 +44,8 @@ export default function App() {
   const [session, setSession] = useState<any>(null)
   const [showAuth, setShowAuth] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  // BRAMKA "STRONA W BUDOWIE" - odblokowywana hasłem weryfikowanym na backendzie
+  const [gateUnlocked, setGateUnlocked] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -145,6 +148,16 @@ export default function App() {
       setShowAuth(true);
     }
   }, [showSplash, currentView, activeTab, session]);
+
+  // BRAMKA: dopóki nie odblokujesz przez Panel (hasło po stronie backendu) - pokazuj ekran "w budowie"
+  if (!gateUnlocked) {
+    return (
+      <>
+        <GlobalStyles />
+        <MaintenanceGateView onUnlock={() => setGateUnlocked(true)} />
+      </>
+    );
+  }
 
   if (!showSplash && currentView === 'app' && activeTab === 'builder') {
     return (

@@ -1,14 +1,59 @@
 import hmac
 import os
+import secrets
 import time
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Lead, Project, UserSettings
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+# ----------------------------------------------------------------------------
+# BRAMKA "STRONA W BUDOWIE" — hasło weryfikowane WYŁĄCZNIE na backendzie.
+# Frontend wysyła SHA-256 hasła; tutaj porównujemy z GATE_HASH (env).
+# Po sukcesie ustawiamy httpOnly cookie — frontend nigdy nie poznaje sekretu.
+# ----------------------------------------------------------------------------
+GATE_HASH = (os.getenv("GATE_HASH") or "").strip().lower()
+GATE_COOKIE = "sm_gate"
+GATE_COOKIE_VALUE = secrets.token_hex(16)
+
+
+def _gate_ok(candidate: str) -> bool:
+    if not GATE_HASH:
+        return False
+    return hmac.compare_digest((candidate or "").strip().lower(), GATE_HASH)
+
+
+class GatePayload(BaseModel):
+    hash: str
+
+
+@router.post("/gate/verify")
+def gate_verify(payload: GatePayload, response: Response):
+    if not GATE_HASH:
+        raise HTTPException(status_code=503, detail="Bramka nie jest skonfigurowana (brak GATE_HASH)")
+    if not _gate_ok(payload.hash):
+        raise HTTPException(status_code=403, detail="Nieprawidłowe hasło")
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        GATE_COOKIE,
+        GATE_COOKIE_VALUE,
+        max_age=60 * 60 * 24 * 30,
+        httponly=True,
+        samesite="lax",
+        secure=bool(os.getenv("VERCEL") or os.getenv("ENV") == "production"),
+        path="/",
+    )
+    return resp
+
+
+@router.get("/gate/check")
+def gate_check(sm_gate: str = Cookie(None)):
+    return {"unlocked": bool(GATE_HASH) and bool(sm_gate) and hmac.compare_digest(sm_gate, GATE_COOKIE_VALUE)}
 
 # SHA-256 hash hasła administratora — WYŁĄCZNIE ze zmiennej środowiskowej.
 # Brak konfiguracji = endpointy admina są zablokowane (brak domyślnego hasła).
