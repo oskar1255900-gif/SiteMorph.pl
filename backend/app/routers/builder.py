@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 from typing import Optional, List
 import os
@@ -6,7 +6,11 @@ import json
 import re
 import time
 import requests
+import uuid
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from ..database import get_db
+from ..models import UploadedAsset
 
 load_dotenv()
 
@@ -28,7 +32,7 @@ GEMINI_PREFERRED = [
         "GEMINI_MODELS",
         # z-ai/glm-5.2:free = PRIMARY (OpenRouter). Gemini = backup:
         # 3.5 flash lite najczÄ™Ĺ›ciej, 3.7 flash rzadko (mimo ĹĽe user prosi, drogi/wolny)
-        "gemini-3.5-flash-lite,gemini-flash-latest,gemini-3.7-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite",
+        "gemini-3.7-flash",
     ).split(",") if m.strip()
 ]
 _gemini_model_cache: Optional[str] = None
@@ -82,10 +86,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     JEDEN szybki call na flash-lite (najszybszy model), timeout 9s, zero retry/resolve."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    # 3.7 Flash = PRIMARY (najnowszy, najlepszy), potem 3.5 flash lite, potem 2.5
-    candidates = ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-3.5-flash-lite"]
-    # 3.7 Flash = PRIMARY (najnowszy, najlepszy), potem 3.5 flash lite, potem 2.5
-    candidates = ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-3.5-flash-lite"]
+    candidates = ["gemini-3.7-flash"]
     per_try_timeout = 8 if os.getenv("VERCEL") else 12
     errs: List[str] = []
     last_err: str = "brak dostÄ™pnych modeli"
@@ -289,57 +290,8 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
         parsed_files = None
         parsed_meta = None
 
-        # 1) OpenRouter / Laguna S-2.1 = PRIMARY (czÄ™Ĺ›ciej, nowoczesne strony)
-        if OPENROUTER_API_KEY:
-            # Vercel 10s â†’ max 8s, inaczej 15s
-            _laguna_timeout = 8 if os.getenv("VERCEL") else 15
-            try:
-                resp = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                        "HTTP-Referer": OPENROUTER_SITE_URL,
-                        "X-Title": OPENROUTER_APP_NAME,
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": OPENROUTER_MODEL,
-                        "messages": [
-                            {"role": "system", "content": system_prompt_filled},
-                            {"role": "user", "content": user_prompt},
-                        ],
-                        "temperature": 0.85,
-                        "max_tokens": OPENROUTER_MAX_TOKENS,
-                    },
-                    timeout=_laguna_timeout,
-                )
-                resp.raise_for_status()
-                content_text = resp.json()["choices"][0]["message"]["content"]
-                parsed = extract_json(content_text)
-                ofiles = parsed.get("files") or {}
-                has_preview = any("preview.html" in k for k in ofiles)
-                has_react = any(k.endswith(("index.html", "App.tsx", "main.tsx")) for k in ofiles)
-                if has_preview or has_react:
-                    if has_preview:
-                        ph = ofiles.get("main/frontend/preview.html", "")
-                        if len(ph) < 1500:
-                            warning = f"AI za krotki ({len(ph)} chars) - fallback"
-                        else:
-                            parsed_files = ofiles
-                            parsed_meta = parsed.get("meta", {})
-                            provider = "openrouter"
-                    else:
-                        parsed_files = ofiles
-                        parsed_meta = parsed.get("meta", {})
-                        provider = "openrouter"
-                else:
-                    warning = "Laguna nie zwrĂłciĹ‚a plikĂłw â€” prĂłbujÄ™ Gemini"
-            except Exception as e:
-                warning = f"Laguna bĹ‚Ä…d: {str(e)[:150]}"
-                print(f"[SiteMorph][Laguna] fail: {warning}", flush=True)
-
-        # 2) Gemini = BACKUP (3.5 flash lite najczÄ™Ĺ›ciej, 3.7 flash rzadko) â€” na Vercel tylko Laguna, potem fallback (limit 10s)
-        if parsed_files is None and GEMINI_API_KEY and not os.getenv("VERCEL"):
+        # 1) GEMINI = PRIMARY (gemini-3.7-flash). Dziala tez na Vercel.
+        if parsed_files is None and GEMINI_API_KEY:
             text, err = gemini_generate(system_prompt_filled, user_prompt, max_tokens=GEMINI_MAX_TOKENS)
             if text:
                 try:
@@ -361,15 +313,16 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
                             parsed_meta = parsed.get("meta", {})
                             provider = "gemini"
                     else:
-                        warning = "Gemini nie zwrĂłciĹ‚ plikĂłw â€” prĂłbuje fallback"
+                        warning = "Gemini nie zwrocil plikow - probuje fallback"
                 except Exception as e:
-                    warning = f"Gemini: nieparsowalna odpowiedĹş ({str(e)[:120]})"
+                    warning = f"Gemini: nieparsowalna odpowiedz ({str(e)[:120]})"
             else:
                 if warning is None:
-                    warning = f"Gemini niedostÄ™pny: {err}"
+                    warning = f"Gemini niedostepny: {err}"
                 else:
                     warning = warning + f" | Gemini: {err}"
 
+        # 2) OpenRouter = BACKUP (po Gemini)
         # 3) Fallback lokalny
         fb = fallback_content(data)
         if parsed_files is None:
@@ -408,4 +361,36 @@ NIE zadawaj pytaĹ„. ZwrĂłÄ‡ od razu kompletny JSON."""
             return JSONResponse(status_code=500, content={"detail": f"Builder critical error: {str(e)[:300]} | fallback also failed: {str(e2)[:200]}"})
 
 
+# ---------------------------------------------------------------------------
+# UPLOAD ZDJEC - klient dolacza pliki do promptu; AI dostaje URL-e do <img>
+# ---------------------------------------------------------------------------
+@router.post("/upload")
+async def upload_assets(files: List[UploadFile] = File(...), db: Session = Depends(get_db)):
+    urls: List[str] = []
+    for f in files[:8]:
+        data = await f.read()
+        if not data or len(data) > 6_000_000:
+            continue
+        asset = UploadedAsset(
+            id=uuid.uuid4().hex[:16],
+            filename=(f.filename or "plik")[:120],
+            content_type=f.content_type or "image/jpeg",
+            data=data,
+            created_at=time.time(),
+        )
+        db.add(asset)
+        db.commit()
+        urls.append(f"/api/builder/asset/{asset.id}")
+    return {"urls": urls}
 
+
+@router.get("/asset/{asset_id}")
+def get_asset(asset_id: str, db: Session = Depends(get_db)):
+    a = db.query(UploadedAsset).filter(UploadedAsset.id == asset_id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Nie ma takiego pliku")
+    return Response(
+        content=a.data,
+        media_type=a.content_type or "application/octet-stream",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -10,12 +10,12 @@ import {
   Clock,
   Wrench,
   Receipt,
-  ChevronDown,
   Image as ImageIcon,
   Figma,
   Palette,
 } from 'lucide-react';
 import { cineChild, cineParent, springTransition } from '../lib/shared';
+import { API_BASE } from '../lib/api';
 
 /* ============================================================================
    FASTSHOT-STYLE COMPOSER HERO — jednostka skali --u (1560×1008 reference frame)
@@ -159,16 +159,7 @@ const COMPOSER_CSS = `
 }
 `;
 
-const PROOF_LOGOS = (
-  <div className="dm-proof-logos">
-    {/* Google wordmark (uproszczony) */}
-    <svg viewBox="0 0 272 92" fill="currentColor" aria-label="Google"><path d="M115.1 47.2c0-11.6-9.5-19.9-20.4-19.9-10.9 0-20.4 8.3-20.4 19.9 0 11.5 9.5 19.9 20.4 19.9 10.9 0 20.4-8.4 20.4-19.9zm-10.9 0c0 6.1-4.6 10.3-9.5 10.3-4.9 0-9.5-4.2-9.5-10.3 0-6.1 4.6-10.3 9.5-10.3 4.9 0 9.5 4.2 9.5 10.3zM36.9 27.3v10h23.1c-.7 5.4-2.5 9.4-5.2 12.1-3.3 3.3-8.5 7-17.9 7-14.3 0-25.4-11.5-25.4-25.8S22.6 4.8 36.9 4.8c7.7 0 13.3 3 17.4 7l7.1-7.1C55.9-0.5 47.9-4.8 36.9-4.8 16.9-4.8.2 11.6.2 33.6s16.7 28.4 36.7 28.4c10.7 0 18.7-3.5 25-10 6.4-6.4 8.4-15.5 8.4-22.8 0-2.3-.2-4.4-.5-6.2H36.9v.1z" transform="translate(0,28) scale(0.9)"/></svg>
-    {/* Cisco wordmark (uproszczony) */}
-    <svg viewBox="0 0 120 34" fill="currentColor" aria-label="Cisco"><path d="M7 20h4v10H7zM14 15h4v15h-4zM21 20h4v10h-4zM28 12h4v18h-4zM35 20h4v10h-4zM60 20c-.6-5.8-5.4-10-11.2-10-6.3 0-11.3 5-11.3 11.2 0 6.2 5 11.2 11.3 11.2 5.8 0 10.6-4.2 11.2-10h-4.6c-.5 3.3-3.2 5.8-6.6 5.8-3.9 0-7-3.1-7-7s3.1-7 7-7c3.4 0 6.1 2.5 6.6 5.8H60zM76 10h-4.3v20H76zM84 15h-4.3v15H84zM92 20h-4.3v10H92zM104 10h-4.3v20h4.3zM99 4.5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0z" transform="scale(0.85) translate(4,2)"/></svg>
-    {/* Adobe wordmark (uproszczony) */}
-    <svg viewBox="0 0 150 40" fill="currentColor" aria-label="Adobe"><path d="M42 2h-9.6L14 38h9.7l3.6-8.9h16.3L47.2 38h9.7L42 2zm-11.6 19.3 4.9-12.1 4.9 12.1h-9.8zM56 2h24v6H63v7h15v6H63v11h-7V2zM95 2h-9.6L67 38h9.7l3.6-8.9h16.3l3.6 8.9h9.7L95 2zm-11.6 19.3 4.9-12.1 4.9 12.1h-9.8z" transform="scale(0.8)"/></svg>
-  </div>
-);
+
 
 export const DashboardMainView = ({
   setActiveTab,
@@ -181,10 +172,41 @@ export const DashboardMainView = ({
 }) => {
   const [promptInput, setPromptInput] = useState('');
   const [activeTabSub, setActiveTabSub] = useState<'my' | 'recent'>('my');
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [styleLabel, setStyleLabel] = useState('Styl dnia');
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const styleOpts = ['Styl dnia', 'Dark premium', 'Jasny minimal', 'Neon'];
+  const cycleStyle = () =>
+    setStyleLabel((p) => styleOpts[(styleOpts.indexOf(p) + 1) % styleOpts.length]);
+  const onAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      files.forEach((f) => fd.append('files', f));
+      const res = await fetch(`${API_BASE}/api/builder/upload`, { method: 'POST', body: fd });
+      const data = await res.json().catch(() => null);
+      if (data?.urls?.length) setAttachments((prev) => [...prev, ...data.urls]);
+    } catch {
+      // offline - zostaw local names
+      setAttachments((prev) => [...prev, ...files.map((f) => f.name)]);
+    }
+    setUploading(false);
+    e.target.value = '';
+  };
 
   const handleSendPrompt = () => {
-    if (!promptInput.trim()) return;
-    onLaunchBuilderWithPrompt(promptInput);
+    if (!promptInput.trim() && attachments.length === 0) return;
+    let full = promptInput.trim();
+    if (attachments.length) full += `
+Zdjęcia do wykorzystania na stronie (użyj jako src w <img>): ${attachments.join(', ')}`;
+    if (styleLabel !== 'Styl dnia') full += `
+Styl: ${styleLabel}`;
+    onLaunchBuilderWithPrompt(full);
+    setAttachments([]);
+    setStyleLabel('Styl dnia');
   };
 
   const quickActions = [
@@ -226,16 +248,21 @@ export const DashboardMainView = ({
           {/* tools: chipsy po lewej */}
           <div className="dm-tools">
             <div className="dm-chips dm-a-chips">
-              <button type="button" className="dm-chip"><ImageIcon /> <span>Załącz zdjęcia</span></button>
-              <button type="button" className="dm-chip"><Figma /> <span>Dodaj logo</span></button>
-              <button type="button" className="dm-chip"><Palette /> <span>Styl dnia</span></button>
+              <button type="button" className="dm-chip" onClick={() => fileRef.current?.click()}>
+                <ImageIcon /> <span>{uploading ? 'Wysyłam...' : attachments.length ? `${attachments.length} zdjęć` : 'Załącz zdjęcia'}</span>
+              </button>
+              <button type="button" className="dm-chip" onClick={() => fileRef.current?.click()}>
+                <Figma /> <span>Dodaj logo</span>
+              </button>
+              <button type="button" className="dm-chip" onClick={cycleStyle}>
+                <Palette /> <span>{styleLabel}</span>
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={onAttach} />
             </div>
 
             {/* prawy klaster — absolutny: model · attach · send */}
             <div className="dm-right dm-a-right">
-              <button type="button" className="dm-model">
-                SiteMorph v3 <ChevronDown />
-              </button>
+              <span className="dm-model">SiteMorph 1</span>
               <button type="button" className="dm-attach" aria-label="Załącz plik">
                 <Paperclip />
               </button>
@@ -243,7 +270,7 @@ export const DashboardMainView = ({
                 type="submit"
                 className="dm-send dm-a-send"
                 aria-label="Buduj"
-                disabled={!promptInput.trim()}
+                disabled={!promptInput.trim() && attachments.length === 0}
               >
                 <ArrowUp strokeWidth={2.4} />
               </button>
@@ -251,11 +278,6 @@ export const DashboardMainView = ({
           </div>
         </form>
 
-        {/* proof */}
-        <div className="dm-proof dm-a-proof">
-          <p className="dm-proof-cap">Zaufały nam lokalne firmy i twórcy stron z całej Polski</p>
-          <div className="dm-a-logos">{PROOF_LOGOS}</div>
-        </div>
       </div>
 
       {/* ===================== SZYBKIE AKCJE — dark glass ===================== */}

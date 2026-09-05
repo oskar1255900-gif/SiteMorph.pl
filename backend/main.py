@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -63,7 +63,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if _os.getenv("VERCEL") or _os.getenv("ENV") == "production":
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
         # CSP minimalistyczne — API zwraca JSON, nie HTML
-        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; img-src * data:; style-src 'unsafe-inline'; frame-ancestors 'none'"
         return response
 app.add_middleware(SecurityHeadersMiddleware)
 

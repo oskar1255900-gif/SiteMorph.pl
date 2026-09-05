@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, Integer, String, Text, ForeignKey, JSON, Float
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, JSON, Float, LargeBinary
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -74,3 +74,13 @@ class UserSettings(Base):
     data = Column(JSON)  # dane sprzedawcy: nazwa, adres, NIP, PayPal, Blik, IBAN...
     credits = Column(Integer, default=0)  # kredyty użytkownika
     updated_at = Column(Float, nullable=True)
+
+
+class UploadedAsset(Base):
+    __tablename__ = "uploaded_assets"
+
+    id = Column(String, primary_key=True)          # krotki token w URL
+    filename = Column(String, nullable=True)
+    content_type = Column(String, nullable=True)
+    data = Column(LargeBinary)                     # bajty pliku
+    created_at = Column(Float, nullable=True)
