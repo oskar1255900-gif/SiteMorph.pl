@@ -17,7 +17,8 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 # Frontend wysyła SHA-256 hasła; tutaj porównujemy z GATE_HASH (env).
 # Po sukcesie ustawiamy httpOnly cookie — frontend nigdy nie poznaje sekretu.
 # ----------------------------------------------------------------------------
-GATE_HASH = (os.getenv("GATE_HASH") or "").strip().lower()
+# GATE_HASH z env; fallback: hash hasła admina (jedno hasło obsługuje obie bramki)
+GATE_HASH = (os.getenv("GATE_HASH") or "").strip().lower() or (os.getenv("ADMIN_HASH") or "").strip().lower()
 GATE_COOKIE = "sm_gate"
 # Deterministyczna z GATE_HASH - cookie przezywa restarty serwera (znika tylko przy zmianie hasla)
 GATE_COOKIE_VALUE = hashlib.sha256(("sm_gate_v1:" + GATE_HASH).encode()).hexdigest()[:32]
