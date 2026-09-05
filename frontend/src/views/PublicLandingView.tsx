@@ -264,6 +264,48 @@ const LANDING_CSS = `
   .sm-toggle-wrap { justify-content: center; padding-right: 0; }
 }
 
+/* ---------- LIGHT VARIANT ---------- */
+.sm-light { background: #f7f7f8; color: #0a0a0a; }
+.sm-light .text-white { color: #0a0a0a !important; }
+.sm-light [class*="text-white/3"], .sm-light [class*="text-white/4"], .sm-light [class*="text-white/5"] { color: #71717a !important; }
+.sm-light [class*="text-white/6"], .sm-light [class*="text-white/7"], .sm-light [class*="text-white/8"] { color: #3f3f46 !important; }
+.sm-light [class*="border-white"] { border-color: rgba(0,0,0,0.1) !important; }
+.sm-light [class*="bg-white/"] { background-color: rgba(0,0,0,0.045) !important; }
+.sm-light [class*="bg-black/"] { background-color: rgba(255,255,255,0.85) !important; }
+.sm-light button.bg-white { background-color: #0a0a0a !important; color: #ffffff !important; }
+.sm-light button .bg-white { background-color: #0a0a0a !important; }
+.sm-light button.text-black { color: #ffffff !important; }
+.sm-light [class*="0e0e14"], .sm-light [class*="0e1014"] { background-color: #ffffff !important; }
+.sm-light .sm-liquid-glass { background: rgba(255,255,255,0.55); box-shadow: inset 0 1px 1px rgba(0,0,0,0.05); }
+.sm-light .sm-liquid-glass::before { background: linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.07) 20%, rgba(0,0,0,0) 40%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.07) 80%, rgba(0,0,0,0.22) 100%); }
+.sm-light .sm-hero-card { background: rgba(250,250,252,0.88); border-color: rgba(0,0,0,0.08); }
+.sm-light .sm-hero-grid { background-image: linear-gradient(rgba(0,0,0,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.055) 1px, transparent 1px); }
+.sm-light .sm-pipeline-line { background: linear-gradient(90deg, rgba(0,0,0,0.18), rgba(0,0,0,0.07)); }
+.sm-light .sm-pipeline-line.right { background: linear-gradient(90deg, rgba(0,0,0,0.07), rgba(0,0,0,0.18)); }
+.sm-light .sm-node { background: #ececf2; box-shadow: 6px 6px 12px rgba(0,0,0,0.10), -4px -4px 10px rgba(255,255,255,0.95), inset 1px 1px 1px rgba(255,255,255,0.9), inset 4px 4px 8px rgba(0,0,0,0.05); }
+.sm-light .sm-node::after { border-color: #d8d8e2; }
+.sm-light .sm-node svg { stroke: rgba(0,0,0,0.65); }
+.sm-light .sm-node-center { background: #e6e6ee; box-shadow: 8px 8px 16px rgba(0,0,0,0.12), -6px -6px 14px rgba(255,255,255,0.95), inset 1px 1px 2px rgba(255,255,255,0.9), inset 6px 6px 12px rgba(0,0,0,0.06); }
+.sm-light .sm-node-center svg { fill: #0a0a0a; }
+.sm-light .sm-logomark { fill: #0a0a0a; }
+.sm-light .sm-gradient-text { filter: none; }
+.sm-light .sm-watermark-line-1 { color: #0a0a0a; }
+.sm-light .sm-card { background: rgba(255,255,255,0.88); border-color: rgba(0,0,0,0.85); }
+.sm-light .sm-card:hover { background: #ffffff; border-color: #0a0a0a; }
+.sm-light .sm-card-pro { background: rgba(250,250,252,0.95); }
+.sm-light .sm-tier-large { color: #0a0a0a; }
+.sm-light .sm-tier-small { color: #52525b; }
+.sm-light .sm-desc { color: #71717a; }
+.sm-light .sm-list li { color: #27272a; }
+.sm-light .sm-check { background: rgba(0,0,0,0.08); }
+.sm-light .sm-check svg { stroke: #0a0a0a !important; }
+.sm-light .sm-btn { background: #0a0a0a; color: #fff; }
+.sm-light .sm-btn:hover { background: #27272a; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+.sm-light .sm-toggle { background: #0a0a0a; }
+.sm-light .sm-toggle-knob { background: #ffffff; }
+.sm-light .sm-toggle.active { background: rgba(0,0,0,0.16); }
+.sm-light .sm-toggle.active .sm-toggle-knob { background: #0a0a0a; }
+
 /* ---------- responsive pipeline ---------- */
 @media (max-width: 860px) {
   .sm-pipeline { gap: 0; margin-bottom: 40px; }
@@ -595,7 +637,7 @@ export const PublicLandingView = ({
   ];
 
   return (
-    <div className="sm-landing relative min-h-screen overflow-x-hidden bg-[#0c0c0c] text-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className={`sm-landing relative min-h-screen overflow-x-hidden ${theme === 'light' ? 'sm-light' : 'bg-[#0c0c0c] text-white'}`} style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <style>{LANDING_CSS}</style>
 
       {/* noise filter globalny */}

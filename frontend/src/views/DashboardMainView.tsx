@@ -109,6 +109,28 @@ const COMPOSER_CSS = `
 .dm-proof-logos { display: flex; align-items: center; gap: clamp(28px, 5vw, 62px); }
 .dm-proof-logos svg { height: 17px; width: auto; color: #fff; filter: drop-shadow(0 1px 10px rgba(0,0,0,.30)); }
 
+/* ---------- LIGHT VARIANT (dashboard) ---------- */
+.dm-light .dm-aurora { background: #f4f5f8; }
+.dm-light .dm-aurora::before { background: radial-gradient(circle, rgba(120,150,230,0.22), transparent 65%); }
+.dm-light .dm-aurora::after { background: radial-gradient(circle, rgba(230,150,200,0.18), transparent 65%); }
+.dm-light .dm-h1 { color: #0a0a0a; text-shadow: none; }
+.dm-light .dm-card { background: rgba(255,255,255,.92); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08), 0 22px 60px rgba(0,0,0,0.08); }
+.dm-light .dm-ph { color: #8a8a8f; }
+.dm-light .dm-input { color: #18181b; }
+.dm-light .dm-chip { background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.025) 45%, rgba(0,0,0,.02) 100%); border-color: rgba(0,0,0,0.08); color: #52525b; }
+.dm-light .dm-chip:hover { background: linear-gradient(180deg, rgba(0,0,0,.09), rgba(0,0,0,.05)); color: #18181b; }
+.dm-light .dm-model { color: #71717a; }
+.dm-light .dm-attach { color: #71717a; }
+.dm-light .dm-attach:hover { color: #000; }
+.dm-light .dm-proof-cap { color: #3f3f46; text-shadow: none; }
+.dm-light .dm-proof-logos svg { color: #18181b; filter: none; }
+.dm-light .text-white { color: #0a0a0a !important; }
+.dm-light [class*="text-white/3"], .dm-light [class*="text-white/4"], .dm-light [class*="text-white/5"] { color: #71717a !important; }
+.dm-light [class*="text-white/6"], .dm-light [class*="text-white/7"], .dm-light [class*="text-white/8"] { color: #3f3f46 !important; }
+.dm-light [class*="border-white"] { border-color: rgba(0,0,0,0.09) !important; }
+.dm-light [class*="bg-white/"] { background-color: rgba(0,0,0,0.04) !important; }
+.dm-light button.bg-white { background-color: #0a0a0a !important; color: #ffffff !important; }
+
 /* ---------- wejściowe animacje ---------- */
 @keyframes dm-settle-down { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
 @keyframes dm-focus { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
@@ -173,7 +195,7 @@ export const DashboardMainView = ({
   ];
 
   return (
-    <div className="dm-root">
+    <div className={`dm-root ${theme === 'light' ? 'dm-light' : ''}`}>
       <style>{COMPOSER_CSS}</style>
 
       {/* ===================== COMPOSER HERO ===================== */}
