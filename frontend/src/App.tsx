@@ -29,11 +29,12 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [currentView, setCurrentView] = useState<'landing' | 'app'>('landing');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  // Domyślnie DARK — cały panel (builder, lead finder, faktury...) w ciemnym motywie
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
-      return localStorage.getItem('sitemorph-theme') === 'dark' ? 'dark' : 'light';
+      return localStorage.getItem('sitemorph-theme') === 'light' ? 'light' : 'dark';
     } catch {
-      return 'light';
+      return 'dark';
     }
   });
   const [prefilledPrompt, setPrefilledPrompt] = useState('');
