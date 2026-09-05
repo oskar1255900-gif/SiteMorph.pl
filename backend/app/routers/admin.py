@@ -1,6 +1,6 @@
+import hashlib
 import hmac
 import os
-import secrets
 import time
 
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response
@@ -19,7 +19,8 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 # ----------------------------------------------------------------------------
 GATE_HASH = (os.getenv("GATE_HASH") or "").strip().lower()
 GATE_COOKIE = "sm_gate"
-GATE_COOKIE_VALUE = secrets.token_hex(16)
+# Deterministyczna z GATE_HASH - cookie przezywa restarty serwera (znika tylko przy zmianie hasla)
+GATE_COOKIE_VALUE = hashlib.sha256(("sm_gate_v1:" + GATE_HASH).encode()).hexdigest()[:32]
 
 
 def _gate_ok(candidate: str) -> bool:
