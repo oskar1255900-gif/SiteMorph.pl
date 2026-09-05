@@ -14,20 +14,32 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 # ----------------------------------------------------------------------------
 # BRAMKA "STRONA W BUDOWIE" — hasło weryfikowane WYŁĄCZNIE na backendzie.
-# Frontend wysyła SHA-256 hasła; tutaj porównujemy z GATE_HASH (env).
-# Po sukcesie ustawiamy httpOnly cookie — frontend nigdy nie poznaje sekretu.
+# Konfiguracja (wystarczy JEDNA opcja, w tej kolejności):
+#   1. PANEL_PASSWORD  - hasło WPROST (najprościej, np. PANEL_PASSWORD=pacek5589)
+#   2. GATE_HASH       - sha256(hasła)
+#   3. ADMIN_HASH      - fallback: hash hasła admina
+# Frontend wysyła sha256(hasła); backend porównuje. Sesja = httpOnly cookie.
 # ----------------------------------------------------------------------------
-# GATE_HASH z env; fallback: hash hasła admina (jedno hasło obsługuje obie bramki)
+PANEL_PASSWORD = (os.getenv("PANEL_PASSWORD") or "").strip()
 GATE_HASH = (os.getenv("GATE_HASH") or "").strip().lower() or (os.getenv("ADMIN_HASH") or "").strip().lower()
 GATE_COOKIE = "sm_gate"
-# Deterministyczna z GATE_HASH - cookie przezywa restarty serwera (znika tylko przy zmianie hasla)
-GATE_COOKIE_VALUE = hashlib.sha256(("sm_gate_v1:" + GATE_HASH).encode()).hexdigest()[:32]
+# Deterministyczna z sekretu - cookie przezywa restarty serwera
+GATE_COOKIE_VALUE = hashlib.sha256(("sm_gate_v1:" + (PANEL_PASSWORD or GATE_HASH)).encode()).hexdigest()[:32]
 
 
-def _gate_ok(candidate: str) -> bool:
-    if not GATE_HASH:
+def _gate_ok(candidate_hash: str) -> bool:
+    """candidate_hash = sha256(hasla) z frontendu; pasuje PANEL_PASSWORD lub GATE_HASH."""
+    c = (candidate_hash or "").strip().lower()
+    if not c:
         return False
-    return hmac.compare_digest((candidate or "").strip().lower(), GATE_HASH)
+    if PANEL_PASSWORD:
+        expected = hashlib.sha256(PANEL_PASSWORD.encode()).hexdigest()
+        if hmac.compare_digest(c, expected):
+            return True
+    if GATE_HASH:
+        if hmac.compare_digest(c, GATE_HASH):
+            return True
+    return False
 
 
 class GatePayload(BaseModel):
@@ -36,8 +48,8 @@ class GatePayload(BaseModel):
 
 @router.post("/gate/verify")
 def gate_verify(payload: GatePayload, response: Response):
-    if not GATE_HASH:
-        raise HTTPException(status_code=503, detail="Bramka nie jest skonfigurowana (brak GATE_HASH)")
+    if not PANEL_PASSWORD and not GATE_HASH:
+        raise HTTPException(status_code=503, detail="Bramka nie jest skonfigurowana (ustaw PANEL_PASSWORD w environment)")
     if not _gate_ok(payload.hash):
         raise HTTPException(status_code=403, detail="Nieprawidłowe hasło")
     resp = JSONResponse({"ok": True})
@@ -55,7 +67,8 @@ def gate_verify(payload: GatePayload, response: Response):
 
 @router.get("/gate/check")
 def gate_check(sm_gate: str = Cookie(None)):
-    return {"unlocked": bool(GATE_HASH) and bool(sm_gate) and hmac.compare_digest(sm_gate, GATE_COOKIE_VALUE)}
+    configured = bool(PANEL_PASSWORD or GATE_HASH)
+    return {"unlocked": configured and bool(sm_gate) and hmac.compare_digest(sm_gate, GATE_COOKIE_VALUE)}
 
 # SHA-256 hash hasła administratora — WYŁĄCZNIE ze zmiennej środowiskowej.
 # Brak konfiguracji = endpointy admina są zablokowane (brak domyślnego hasła).
