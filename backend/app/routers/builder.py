@@ -144,7 +144,7 @@ from app.routers.builder_fallback_modern import fallback_content
 
 # ---------------------------------------------------------------------------
 # SYSTEM PROMPT
-# Jeden spĂłjny format wyjscia: standalone HTML w polu files["main/frontend/preview.html"].
+# Jeden spĂłjny format wyjscia: standalone HTML w polu files["main/frontend/src/App.tsx"].
 # Nie ma tu juz sprzecznosci "jeden plik HTML" vs "projekt React" ktora byla w user_prompt.
 # ---------------------------------------------------------------------------
 
@@ -644,7 +644,7 @@ EXTRA: {data.extraPrompt or ''}
 ---
 
 Wygeneruj kompletne strone HTML. Uzyj DESIGN GUIDELINES do kolorow, fontow, layoutu i tresci.
-Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
+Zwroc JSON z plikami React TSX. Bez pytan."""
 
         warning = None
         provider = "fallback"
@@ -662,13 +662,14 @@ Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
                 try:
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
-                    ph = pfiles.get("main/frontend/preview.html", "")
-                    if ph and len(ph) >= 2000:
+                    app_tsx = pfiles.get("main/frontend/src/App.tsx", "")
+                    hero_tsx = pfiles.get("main/frontend/src/components/Hero.tsx", "")
+                    if (app_tsx or hero_tsx) and len(json.dumps(pfiles)) >= 1000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = f"{data.mode} ({selected_model.split('/')[-1]})"
                     else:
-                        warning = f"Za krotka strona ({len(ph)} znakow) - probuje backup"
+                        warning = f"Za malo plikow - probuje backup"
                 except Exception as e:
                     warning = f"Nieparsowalna odpowiedz ({str(e)[:120]})"
             else:
@@ -681,8 +682,9 @@ Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
                 try:
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
-                    ph = pfiles.get("main/frontend/preview.html", "")
-                    if ph and len(ph) >= 2000:
+                    app_tsx = pfiles.get("main/frontend/src/App.tsx", "")
+                    hero_tsx = pfiles.get("main/frontend/src/components/Hero.tsx", "")
+                    if (app_tsx or hero_tsx) and len(json.dumps(pfiles)) >= 1000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = "gemini (backup)"
@@ -702,9 +704,9 @@ Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
 
         meta = parsed_meta or fb["meta"]
 
-        # Auto-generuj React pliki z preview.html jesli ich nie ma (wrapper przez iframe)
-        if parsed_files and "main/frontend/preview.html" in parsed_files:
-            ph = parsed_files["main/frontend/preview.html"]
+        # Ensure React TSX files exist jesli ich nie ma (wrapper przez iframe)
+        if parsed_files and "main/frontend/App.tsx" in parsed_files:
+            ph = parsed_files["main/frontend/src/App.tsx"]
             if "main/frontend/src/App.tsx" not in parsed_files:
                 title = meta.get("title", data.business_name or "Strona")
                 parsed_files["main/frontend/index.html"] = (
@@ -736,7 +738,7 @@ Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
                     "export default function App() {\n"
                     "  const ref = useRef<HTMLIFrameElement>(null)\n"
                     "  useEffect(() => {\n"
-                    "    fetch('/preview.html').then(r => r.text()).then(html => {\n"
+                    "    fetch('/App.tsx').then(r => r.text()).then(html => {\n"
                     "      if (ref.current) ref.current.srcdoc = html\n"
                     "    })\n"
                     "  }, [])\n"
@@ -747,7 +749,7 @@ Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
                     "  )\n"
                     "}"
                 )
-                parsed_files["main/frontend/preview.html"] = ph
+                parsed_files["main/frontend/src/App.tsx"] = ph
 
         hero = {
             "title": meta.get("headline", data.business_name),
