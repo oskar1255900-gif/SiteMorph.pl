@@ -38,29 +38,30 @@ import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
 
 // Fetch AI-generated questions from backend (Gemini 3.8 Flash)
-async function fetchWizardQuestions(businessName: string, description: string): Promise<WizardQuestion[]> {
+async function fetchWizardQuestions(businessName: string, description: string, fullPrompt: string): Promise<{questions: WizardQuestion[], detectedNiche?: string}> {
   try {
     const res = await apiFetch('/api/builder/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business_name: businessName, description: description }),
+      body: JSON.stringify({ business_name: businessName, description: description, full_prompt: fullPrompt }),
     });
     if (res.ok) {
       const data = await res.json();
       if (data.questions && Array.isArray(data.questions) && data.questions.length >= 3) {
-        return data.questions.map((q: any) => ({
+        const mapped = data.questions.map((q: any) => ({
           question: q.question || 'Pytanie?',
           placeholder: q.placeholder || '',
           options: q.options || [],
           stateKey: q.stateKey || 'extras',
           multi: q.multi || false,
         }));
+        return { questions: mapped.slice(0, 6), detectedNiche: data.detected_niche };
       }
     }
   } catch (e) {
     console.warn('[Wizard] Failed to fetch AI questions, using defaults');
   }
-  return DEFAULT_WIZARD_QUESTIONS;
+  return { questions: DEFAULT_WIZARD_QUESTIONS };
 }
 
 // ============================================================================
@@ -102,6 +103,16 @@ const InlineWizard = ({
   theme: 'light' | 'dark';
 }) => {
   const dk = theme === 'dark';
+  // Theme colors
+  const bgColor = dk ? 'linear-gradient(180deg, rgba(17,24,39,0.97) 0%, rgba(10,10,15,0.99) 100%)' : '#ffffff';
+  const borderColor = dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
+  const textPrimary = dk ? '#ffffff' : '#111827';
+  const textSecondary = dk ? 'rgba(255,255,255,0.7)' : '#374151';
+  const textMuted = dk ? 'rgba(255,255,255,0.4)' : '#9ca3af';
+  const hoverBg = dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6';
+  const optionBorder = dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
+  const accentBlue = '#2563eb';
+  const accentGreen = '#10b981';
 
   const current = questions[step];
   if (!current) return null;
@@ -137,21 +148,21 @@ const InlineWizard = ({
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
       className="mx-3 mb-2 rounded-2xl overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, rgba(17,24,39,0.97) 0%, rgba(10,10,15,0.99) 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ background: bgColor, border: `1px solid ${borderColor}` }}>
+      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: `1px solid ${dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
         <div className="flex items-center gap-2.5">
           <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: dk ? 'rgba(16,185,129,0.15)' : '#ecfdf5' }}>
-            <Sparkles size={12} className="text-emerald-400" />
+            <Sparkles size={12} className={dk ? 'text-emerald-400' : 'text-emerald-600'} />
           </div>
-          <span className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>Agent has questions for you</span>
+          <span className="text-xs font-semibold" style={{ color: textSecondary }}>Agent ma pytania</span>
         </div>
-        <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer border-none bg-transparent" style={{ color: 'rgba(255,255,255,0.3)' }}><X size={12} /></button>
+        <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer border-none bg-transparent" style={{ color: textMuted }}><X size={12} /></button>
       </div>
       <div className="px-4 pt-3">
-        <div className="flex gap-1">{questions.map((_: any, i: number) => <div key={i} className="h-[2px] flex-1 rounded-full transition-all" style={{ background: i <= step ? '#10b981' : dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />)}</div>
+        <div className="flex gap-1">{questions.map((_: any, i: number) => <div key={i} className="h-[2px] flex-1 rounded-full transition-all" style={{ background: i <= step ? accentGreen : dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />)}</div>
       </div>
       <div className="px-4 pt-3 pb-3">
-        <h3 className="text-base font-bold text-white mb-4">{current.question}</h3>
+        <h3 className="text-base font-bold mb-4" style={{ color: textPrimary }}>{current.question}</h3>
         <div className="space-y-2">
           {current.options?.map((opt) => {
             const isSelected = current.multi
@@ -161,16 +172,16 @@ const InlineWizard = ({
               <label key={opt} onClick={() => toggleOption(opt)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all"
                 style={{
-                  background: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
-                  border: `1px solid ${isSelected ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)'}`,
-                  color: isSelected ? '#fff' : 'rgba(255,255,255,0.5)',
+                  background: isSelected ? (dk ? 'rgba(255,255,255,0.06)' : '#eff6ff') : 'transparent',
+                  border: `1px solid ${isSelected ? (dk ? 'rgba(255,255,255,0.12)' : '#bfdbfe') : optionBorder}`,
+                  color: isSelected ? textPrimary : textMuted,
                 }}>
                 <div className="w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-all"
                   style={{
-                    border: `2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.2)'}`,
-                    background: isSelected ? 'rgba(16,185,129,0.2)' : 'transparent',
+                    border: `2px solid ${isSelected ? accentBlue : (dk ? 'rgba(255,255,255,0.2)' : '#d1d5db')}`,
+                    background: isSelected ? (dk ? 'rgba(16,185,129,0.2)' : '#dbeafe') : 'transparent',
                   }}>
-                  {isSelected && <Check size={10} className="text-emerald-400" />}
+                  {isSelected && <Check size={10} className={dk ? 'text-emerald-400' : 'text-blue-600'} />}
                 </div>
                 {opt}
               </label>
@@ -183,16 +194,16 @@ const InlineWizard = ({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: `1px solid ${dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
         <div className="flex items-center gap-1">
-          <button disabled={step === 0} onClick={() => setStep(step - 1)} className="text-[10px] cursor-pointer border-none bg-transparent disabled:opacity-30" style={{ color: dk ? 'rgba(255,255,255,0.3)' : '#9ca3af' }}>&lt; {step + 1} / {total} &gt;</button>
+          <button disabled={step === 0} onClick={() => setStep(step - 1)} className="text-[10px] cursor-pointer border-none bg-transparent disabled:opacity-30" style={{ color: textMuted }}>&lt; {step + 1} / {total} &gt;</button>
         </div>
         <div className="flex gap-2">
           <button onClick={handleAuto} className="px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer"
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>Auto-answer</button>
+            style={{ background: 'transparent', border: `1px solid ${dk ? 'rgba(255,255,255,0.1)' : '#d1d5db'}`, color: textMuted }}>Auto-odpowiedz</button>
           <button onClick={handleNext} className="px-4 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer border-none"
-            style={{ background: '#fff', color: '#000' }}>
-            {isLast ? 'Submit' : 'Next'}
+            style={{ background: dk ? '#fff' : accentBlue, color: dk ? '#000' : '#fff' }}>
+            {isLast ? 'Generuj' : 'Dalej'}
           </button>
         </div>
       </div>
@@ -288,17 +299,6 @@ export const BuilderFullView = ({
       const res = await apiFetch('/api/projects/');
       if (res.ok) setSavedProjects((await res.json()) || []);
     } catch {}
-  };
-
-  const detectBusiness = (text: string): string => {
-    const t = text.toLowerCase();
-    if (t.includes('restaurac') || t.includes('kebab') || t.includes('kurczak') || t.includes('jedzenie') || t.includes('food') || t.includes('pizzeria') || t.includes('bistro')) return 'Restauracja';
-    if (t.includes('barber') || t.includes('fryzjer') || t.includes('strzyż') || t.includes('salon fryzj')) return 'Barber';
-    if (t.includes('beauty') || t.includes('salon urod') || t.includes('manicure') || t.includes('paznokci') || t.includes('spa')) return 'Salon beauty';
-    if (t.includes('siłowni') || t.includes('fitness') || t.includes('gym')) return 'Siłownia';
-    if (t.includes('warsztat') || t.includes('mechanik') || t.includes('napraw')) return 'Warsztat';
-    if (t.includes('kwiaciarni') || t.includes('kwiat')) return 'Kwiaciarnia';
-    return '';
   };
 
   const buildPrompt = () => {
@@ -616,11 +616,13 @@ export const BuilderFullView = ({
                           </div>
                           <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/20' : 'text-gray-400'}`}>{cost} kr.</span>
                           <button
-                            onClick={() => {
-                            // Smart: detect business from prompt and set it
-                            const detected = detectBusiness(builderPrompt);
-                            if (detected) setAnswers(a => ({ ...a, niche: detected }));
-                            setWizardStep(0); setShowWizard(true);
+                            onClick={async () => {
+                            if (!builderPrompt.trim()) return;
+                            setShowWizard(true);
+                            setWizardStep(0);
+                            const result = await fetchWizardQuestions('manually', '', builderPrompt);
+                            if (result.questions.length > 0) setWizardQuestions(result.questions);
+                            if (result.detectedNiche) setAnswers(a => ({ ...a, niche: result.detectedNiche! }));
                           }}
                             disabled={!builderPrompt.trim()}
                             className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"

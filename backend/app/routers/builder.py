@@ -531,44 +531,99 @@ class QuestionInput(BaseModel):
     business_name: str = ""
     description: str = ""
 
+# ---------------------------------------------------------------------------
+# GENERATE QUESTIONS -- Gemini 3.8 Flash (smart: skips questions already in prompt)
+# ---------------------------------------------------------------------------
+_BUSINESS_KEYWORDS = {
+    "restaurac": "Restauracja", "kebab": "Restauracja", "jedzenie": "Restauracja",
+    "food": "Restauracja", "pizzeria": "Restauracja", "bistro": "Restauracja",
+    "bar": "Bar", "pub": "Pub", "piwo": "Bar",
+    "barber": "Barber", "fryzjer": "Barber", "strzyz": "Barber", "salon fryzj": "Barber",
+    "beauty": "Salon beauty", "salon urod": "Salon beauty", "manicure": "Salon beauty",
+    "paznokci": "Salon beauty", "spa": "Salon beauty", "kosmetyczk": "Salon beauty",
+    "silowni": "Silownia", "fitness": "Silownia", "gym": "Silownia",
+    "warsztat": "Warsztat", "mechanik": "Warsztat", "napraw": "Warsztat",
+    "kwiaciarni": "Kwiaciarnia", "kwiat": "Kwiaciarnia",
+    "prawnik": "Prawnik", "kancelaria": "Prawnik", "adwokat": "Prawnik",
+    "dentyst": "Dentysta", "stomatolog": "Dentysta",
+    "nieruchomosc": "Nieruchomosci", "mieszkan": "Nieruchomosci",
+    "hotel": "Hotel", "nocleg": "Hotel",
+    "kawiarni": "Kawiarnia", "coffee": "Kawiarnia", "kawa": "Kawiarnia",
+    "sklep": "Sklep", "butik": "Sklep", "moda": "Sklep",
+    "saas": "Startup SaaS", "landing page": "Landing page", "startup": "Startup",
+}
+
+
+def _detect_niche_from_text(text: str) -> str:
+    t = text.lower()
+    for kw, niche in _BUSINESS_KEYWORDS.items():
+        if kw in t:
+            return niche
+    return ""
+
+
+class QuestionInput(BaseModel):
+    business_name: str = ""
+    description: str = ""
+    full_prompt: str = ""  # raw user prompt for Gemini analysis
+
+
+QUESTIONS_SYSTEM_PROMPT = (
+    "You are SiteMorph AI - an expert web designer. The user wrote a prompt describing what website they want. "
+    "FIRST: analyze the prompt and identify what is ALREADY clear (business type, visual style, colors, features). "
+    "SECOND: generate ONLY 3-4 questions about things NOT already clear. "
+    "If business type is clear, DO NOT ask about it. If colors are mentioned, skip colors. "
+    "Each question object: {question: Polish 5-12 words, placeholder: example, options: [3-5 opts], "
+    "stateKey: niche|accent|layout|sections|tone|photos|extras, multi: false}. "
+    "Return ONLY a JSON array. No markdown, no explanation."
+)
+
+
 @router.post("/generate-questions")
 def generate_questions(data: QuestionInput):
-    system = (
-        "You are SiteMorph AI assistant. Generate 4-5 short, creative questions "
-        "to help build a website for a Polish local business. "
-        "Return ONLY a JSON array of question objects. Each object has: "
-        '"question" (short Polish text, 5-12 words), '
-        '"placeholder" (example answer in Polish), '
-        '"options" (array of 3-6 short Polish option strings), '
-        '"stateKey" (one of: niche, accent, layout, sections, tone, photos, extras), '
-        '"multi" (boolean, true for multi-select). '
-        "Rules: vary wording/order/focus each time. sections=multi:true. "
-        "accent=colors with hex. Include style and photos questions. "
-        "All Polish. Return ONLY JSON array."
+    """Gemini 3.8 Flash ANALYZES the user prompt first.
+    Only asks questions about things NOT already clear from the prompt."""
+    prompt_text = data.full_prompt or data.description or data.business_name or ""
+
+    user_msg = (
+        'The user wants: "' + prompt_text + '" Analyze what is clear, '
+        'generate questions only for what is missing.'
     )
-    user = f"Business: {data.business_name or 'not specified'}. Desc: {data.description or 'not specified'}. Generate creative questions."
 
     if GEMINI_API_KEY:
-        text, err = gemini_generate(system, user, temperature=0.95, max_tokens=2000)
+        text, err = gemini_generate(QUESTIONS_SYSTEM_PROMPT, user_msg, temperature=0.9, max_tokens=1500)
         if text:
             try:
-                cleaned = text.strip().strip("`json").strip("`").strip()
-                questions = json.loads(cleaned)
-                if isinstance(questions, list) and len(questions) >= 3:
-                    return {"questions": questions[:6], "source": "gemini"}
-            except Exception:
-                pass
+                cleaned = text.strip()
+                if cleaned.startswith("```"):
+                    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+                    cleaned = re.sub(r"\s*```$", "", cleaned)
+                questions = json.loads(cleaned.strip())
+                if isinstance(questions, list) and len(questions) >= 2:
+                    valid = [q for q in questions if isinstance(q, dict) and q.get("question") and q.get("stateKey")]
+                    if len(valid) >= 2:
+                        return {"questions": valid[:5], "source": "gemini"}
+            except Exception as e:
+                print(f"[Questions] Gemini parse error: {e}", flush=True)
 
+    # SMART FALLBACK
     import random
+    detected_niche = _detect_niche_from_text(prompt_text)
     fb = [
         {"question": "Jaki to biznes?", "placeholder": "np. Restauracja, Barber...", "options": ["Restauracja", "Barber", "Salon beauty", "Kawiarnia", "Warsztat", "Prawnik"], "stateKey": "niche"},
         {"question": "Jaki kolor przewodni?", "placeholder": "np. Zloty, granatowy...", "options": ["Niebieski #2563eb", "Ciemny #111827", "Zloty #d97706", "Zielony #059669", "Fioletowy #7c3aed", "Rozowy #ec4899"], "stateKey": "accent"},
         {"question": "Jaki klimat strony?", "placeholder": "np. Elegancki, sportowy...", "options": ["Nowoczesny i minimalistyczny", "Ciemny i premium", "Cieply i przytulny", "Odwazny i kolorowy"], "stateKey": "layout"},
-        {"question": "Ktore sekcje?", "placeholder": "", "options": ["Hero", "Oferta", "Cennik", "Opinie", "Kontakt", "Galeria", "O nas", "FAQ"], "stateKey": "sections", "multi": True},
+        {"question": "Ktore sekcje na stronie?", "placeholder": "", "options": ["Hero", "Oferta", "Cennik", "Opinie", "Kontakt", "Galeria", "O nas", "FAQ"], "stateKey": "sections", "multi": True},
         {"question": "Styl zdjec?", "placeholder": "np. Ciemne, jasne...", "options": ["Profesjonalne studyjne", "Naturalne / lifestyle", "Ciemne i dramaticzne", "Jasne i przestronne"], "stateKey": "photos"},
     ]
+    if detected_niche:
+        fb = [q for q in fb if q["stateKey"] != "niche"]
     random.shuffle(fb)
-    return {"questions": fb[:5], "source": "fallback"}
+    result = fb[:4]
+    resp = {"questions": result, "source": "fallback"}
+    if detected_niche:
+        resp["detected_niche"] = detected_niche
+    return resp
 
 
 @router.post("/generate")
