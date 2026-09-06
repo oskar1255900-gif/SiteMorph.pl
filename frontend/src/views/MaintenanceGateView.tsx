@@ -64,79 +64,40 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
         }
-        @keyframes blob-1 {
-          0%, 100% { top: -20%; left: 10%; transform: scale(1); }
-          33% { top: 10%; left: 30%; transform: scale(1.1); }
-          66% { top: -10%; left: 50%; transform: scale(0.95); }
-        }
-        @keyframes blob-2 {
-          0%, 100% { top: 50%; right: 5%; transform: scale(1); }
-          33% { top: 30%; right: 20%; transform: scale(1.15); }
-          66% { top: 60%; right: 10%; transform: scale(0.9); }
-        }
-        @keyframes blob-3 {
-          0%, 100% { bottom: -10%; left: 20%; transform: scale(1); }
-          33% { bottom: 20%; left: 40%; transform: scale(1.05); }
-          66% { bottom: 5%; left: 15%; transform: scale(1.1); }
-        }
-        @keyframes blob-4 {
-          0%, 100% { top: 20%; right: 15%; transform: scale(1); }
-          50% { top: 40%; right: 25%; transform: scale(1.2); }
-        }
-        .gradient-blob {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.4;
-          mix-blend-mode: overlay;
-          pointer-events: none;
-        }
-        .blob-1 { width: 35vw; height: 35vw; background: hsl(330 100% 40%); animation: blob-1 8s ease-in-out infinite; }
-        .blob-2 { width: 30vw; height: 30vw; background: hsl(140 100% 55%); animation: blob-2 10s ease-in-out infinite; }
-        .blob-3 { width: 28vw; height: 28vw; background: hsl(210 100% 30%); animation: blob-3 9s ease-in-out infinite; }
-        .blob-4 { width: 25vw; height: 25vw; background: hsl(60 100% 70%); animation: blob-4 11s ease-in-out infinite; }
-        .gradient-text-animated {
+        .gradient-word {
           background: linear-gradient(
             135deg,
-            hsl(330 100% 55%) 0%,
-            hsl(140 100% 45%) 25%,
-            hsl(210 100% 50%) 50%,
-            hsl(60 100% 55%) 75%,
-            hsl(330 100% 55%) 100%
+            #c9b8a8 0%,
+            #e8ddd3 25%,
+            #f5f0eb 50%,
+            #d4c5b5 75%,
+            #c9b8a8 100%
           );
-          background-size: 300% 300%;
-          animation: gradient-shift 6s ease infinite;
+          background-size: 200% 200%;
+          animation: gradient-shift 8s ease infinite;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
         }
       `}</style>
 
-      {/* Background video with heavy blur */}
+      {/* Background video with subtle blur */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="w-full h-full object-cover pointer-events-none scale-110"
-          style={{ filter: 'blur(12px) saturate(1.2) brightness(0.6)' }}
+          className="w-full h-full object-cover pointer-events-none"
+          style={{ filter: 'blur(3px) brightness(0.55) saturate(0.9)' }}
           src={VIDEO_URL}
         />
-        {/* Dark tint layer */}
-        <div className="absolute inset-0 bg-[#070709]/50" />
-        {/* Vignette */}
+        {/* Dark tint */}
+        <div className="absolute inset-0 bg-[#070709]/40" />
+        {/* Subtle vignette */}
         <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(7,7,9,0.7) 100%)'
+          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(7,7,9,0.5) 100%)'
         }} />
-      </div>
-
-      {/* Gradient blobs behind text */}
-      <div className="fixed inset-0 z-[1] pointer-events-none overflow-hidden">
-        <div className="gradient-blob blob-1" />
-        <div className="gradient-blob blob-2" />
-        <div className="gradient-blob blob-3" />
-        <div className="gradient-blob blob-4" />
       </div>
 
       {/* Panel button - top right */}
@@ -174,24 +135,24 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
             <span className="text-sm font-medium tracking-[0.3em] uppercase text-white/30">SiteMorph</span>
           </motion.div>
 
-          {/* Gradient headline */}
+          {/* Headline: 'Budowa' has gradient */}
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.02] gradient-text-animated"
+            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.02] text-white"
           >
-            Strona w budowie
+            Strona w <span className="gradient-word">budowie</span>
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Subtitle: 'nowego' has gradient */}
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="mt-8 max-w-md text-base md:text-lg leading-[1.6] text-white/40"
           >
-            Składamy coś nowego. Wróć za chwilę.
+            Składamy coś <span className="gradient-word">nowego</span>. Wróć za chwilę.
           </motion.p>
 
           {/* Decorative line */}
