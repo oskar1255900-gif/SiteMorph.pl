@@ -26,7 +26,7 @@ XKIRO_BASE_URL = "https://api.xkiro.com/v1"
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "24000"))
+GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "32000"))
 
 
 def extract_json(text: str) -> dict:
@@ -63,7 +63,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
                 "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
                 "generationConfig": {
                     "temperature": temperature,
-                    "maxOutputTokens": min(max_tokens, 16000),
+                    "maxOutputTokens": min(max_tokens, 32000),
                     "responseMimeType": "application/json",
                 },
             },
@@ -99,7 +99,7 @@ def openrouter_generate(system_prompt: str, user_prompt: str, temperature: float
             json={
                 "model": "qwen/qwen3.8-max:free",
                 "temperature": temperature,
-                "max_tokens": min(max_tokens, 16000),
+                "max_tokens": min(max_tokens, 32000),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -180,17 +180,27 @@ OUTPUT FORMAT — ONLY valid JSON:
 preview.html and the React project must look IDENTICAL — same sections, same content, same colors, same animations. preview.html is a hand-crafted HTML/CSS/JS replica of the React components.
 
 =====================================================================
-AVAILABLE LIBRARIES (use them — they are installed)
+INSTALLED LIBRARIES — ALL of these ARE in package.json dependencies. YOU KNOW THEIR APIs AND YOU USE THEM:
 =====================================================================
-- tailwindcss + clsx + tailwind-merge + class-variance-authority (cva) for styling
-- framer-motion (motion/react) — page transitions, scroll reveals, gestures, stagger
-- gsap + @gsap/react — timeline animations, ScrollTrigger parallax effects
-- lenis (@studio-freight/lenis) — buttery smooth scrolling (init in App.tsx)
-- @radix-ui/react-dialog, dropdown, popover — accessible UI logic
+This exact npm install command was run for the project, so every one of these packages is available to import:
+
+npm install tailwindcss clsx tailwind-merge class-variance-authority framer-motion gsap @gsap/react @studio-freight/lenis @formkit/auto-animate lucide-react @fontsource/inter @fontsource/playfair-display embla-carousel-react canvas-confetti @radix-ui/react-dialog
+
+Your package.json MUST include ALL of the following as dependencies (write the full list, versions ^ latest):
+- tailwindcss (v3, with postcss + autoprefixer in devDependencies)
+- clsx, tailwind-merge, class-variance-authority (cva) — utility for clean className composition
+- framer-motion — page transitions, scroll reveals, gestures, stagger (import from 'framer-motion')
+- gsap + @gsap/react — timeline animations, ScrollTrigger parallax
+- @studio-freight/lenis — buttery smooth scrolling (init in App.tsx useEffect)
+- @formkit/auto-animate — one-line animations for list add/remove
 - lucide-react — consistent icons everywhere
-- embla-carousel-react — carousels/sliders
+- @fontsource/inter + @fontsource/playfair-display — self-hosted fonts (import in index.css or main.tsx)
+- embla-carousel-react — carousels/sliders (menu, gallery, testimonials)
 - canvas-confetti — celebration effects after form submit
-- Fonts via Google Fonts CDN (see FONTS below)
+- @radix-ui/react-dialog — accessible modals
+- react, react-dom (v18)
+
+USE THEM LIBERALLY: every component should import something real from this stack. clsx+tailwind-merge for class composition, framer-motion for all entrance animations, lenis for scroll, lucide-react for every icon, embla for carousels, canvas-confetti after successful form submit, radix dialog for any modal (menu item detail, gallery lightbox, reservation confirmation).
 
 PICK THE RIGHT TOOLS: don't use all of them everywhere — choose what fits. Framer Motion for most animations, GSAP only for cinematic scroll effects, Lenis for scroll feel, Embla for the menu/gallery carousel, Radix Dialog for modals, canvas-confetti after a successful reservation.
 
@@ -280,7 +290,7 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
             json={
                 "model": model,
                 "temperature": temperature,
-                "max_tokens": min(max_tokens, 24000),
+                "max_tokens": min(max_tokens, 32000),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -792,8 +802,14 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
                 parsed_files["main/frontend/package.json"] = (
                     '{"name":"firma-site","private":true,"type":"module",'
                     '"scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},'
-                    '"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0","lucide-react":"^0.300.0"},'
-                    '"devDependencies":{"@types/react":"^18.2.0","@vitejs/plugin-react":"^4.2.0",'
+                    '"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0",'
+                    '"clsx":"^2.1.0","tailwind-merge":"^2.2.0","class-variance-authority":"^0.7.0",'
+                    '"framer-motion":"^11.0.0","gsap":"^3.12.0","@gsap/react":"^2.1.0",'
+                    '"@studio-freight/lenis":"^1.0.0","@formkit/auto-animate":"^0.8.0",'
+                    '"lucide-react":"^0.300.0","@fontsource/inter":"^5.0.0","@fontsource/playfair-display":"^5.0.0",'
+                    '"embla-carousel-react":"^8.0.0","canvas-confetti":"^1.9.0","@radix-ui/react-dialog":"^1.0.0"},'
+                    '"devDependencies":{"@types/react":"^18.2.0","@types/canvas-confetti":"^1.6.0",'
+                    '"@vitejs/plugin-react":"^4.2.0",'
                     '"autoprefixer":"^10.4.0","postcss":"^8.4.0","tailwindcss":"^3.4.0",'
                     '"typescript":"^5.3.0","vite":"^5.0.0"}}'
                 )
