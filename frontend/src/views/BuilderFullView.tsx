@@ -133,39 +133,66 @@ const InlineWizard = ({
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-      className="mx-3 mb-2 rounded-xl bg-[#1a1d23] border border-white/10 overflow-hidden">
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <div className="flex items-center gap-2">
-          <Sparkles size={12} className="text-green-400" />
-          <span className="text-[11px] font-semibold text-white/80">Agent ma pytania</span>
-          <span className="text-[10px] text-white/30">{step + 1}/{total}</span>
-        </div>
-        <button onClick={onClose} className="w-5 h-5 rounded flex items-center justify-center hover:bg-white/10 text-white/30 cursor-pointer border-none bg-transparent"><X size={10} /></button>
-      </div>
-      <div className="px-4 pb-1"><div className="flex gap-0.5">{DEFAULT_WIZARD_QUESTIONS.map((_, i) => <div key={i} className={`h-0.5 flex-1 rounded-full transition-all ${i <= step ? 'bg-green-500' : 'bg-white/10'}`} />)}</div></div>
-      <div className="px-4 py-3">
-        <div className="text-sm font-semibold text-white mb-2">{current.question}</div>
-        {current.options ? (
-          <div className="flex flex-wrap gap-1.5">
-            {current.options.map((opt) => {
-              const sel = current.multi ? ((answers[current.stateKey] as string[]) || []).includes(opt) : answers[current.stateKey] === opt;
-              return <button key={opt} onClick={() => toggleOption(opt)} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer border ${sel ? 'bg-green-500/20 border-green-500/40 text-green-300' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80'}`}>{sel && <Check size={9} className="inline mr-0.5" />}{opt}</button>;
-            })}
+      className="mx-3 mb-2 rounded-2xl overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, rgba(17,24,39,0.97) 0%, rgba(10,10,15,0.99) 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.15)' }}>
+            <Sparkles size={12} className="text-emerald-400" />
           </div>
-        ) : (
-          <input autoFocus value={(answers[current.stateKey] as string) || ''} onChange={(e) => setAnswers({ ...answers, [current.stateKey]: e.target.value })}
-            onKeyDown={(e) => e.key === 'Enter' && handleNext()} placeholder={current.placeholder}
-            className="w-full px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-green-500/50" />
-        )}
-      </div>
-      <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06]">
-        <div className="flex gap-1">
-          {step > 0 && <button onClick={() => setStep(step - 1)} className="px-2 py-1 rounded text-[10px] text-white/40 hover:text-white/70 cursor-pointer border-none bg-transparent"><ChevronLeft size={10} className="inline" /> Wstecz</button>}
-          <button onClick={handleAuto} className="px-2 py-1 rounded text-[10px] text-white/40 hover:text-white/70 cursor-pointer border-none bg-transparent">Auto</button>
+          <span className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>Agent has questions for you</span>
         </div>
-        <button onClick={handleNext} className="px-3 py-1 rounded-lg text-[11px] font-semibold bg-white text-black hover:bg-white/90 cursor-pointer border-none">
-          {isLast ? 'Generuj' : 'Dalej'} {!isLast && <ChevronRight size={10} className="inline" />}
-        </button>
+        <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer border-none bg-transparent" style={{ color: 'rgba(255,255,255,0.3)' }}><X size={12} /></button>
+      </div>
+      <div className="px-5 pt-4">
+        <div className="flex gap-1">{questions.map((_: any, i: number) => <div key={i} className="h-[3px] flex-1 rounded-full transition-all" style={{ background: i <= step ? '#10b981' : 'rgba(255,255,255,0.1)' }} />)}</div>
+      </div>
+      <div className="px-5 pt-5 pb-4">
+        <h3 className="text-base font-bold text-white mb-4">{current.question}</h3>
+        <div className="space-y-2">
+          {current.options?.map((opt) => {
+            const isSelected = current.multi
+              ? Array.isArray(answers[current.stateKey]) && (answers[current.stateKey] as string[]).includes(opt)
+              : answers[current.stateKey] === opt;
+            return (
+              <label key={opt} onClick={() => toggleOption(opt)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all"
+                style={{
+                  background: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  border: `1px solid ${isSelected ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)'}`,
+                  color: isSelected ? '#fff' : 'rgba(255,255,255,0.5)',
+                }}>
+                <div className="w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-all"
+                  style={{
+                    border: `2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.2)'}`,
+                    background: isSelected ? 'rgba(16,185,129,0.2)' : 'transparent',
+                  }}>
+                  {isSelected && <Check size={10} className="text-emerald-400" />}
+                </div>
+                {opt}
+              </label>
+            );
+          })}
+          {!current.options?.length && (
+            <input autoFocus value={(answers[current.stateKey] as string) || ''} onChange={(e) => setAnswers({ ...answers, [current.stateKey]: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && handleNext()} placeholder={current.placeholder}
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }} />
+          )}
+        </div>
+      </div>
+      <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-1">
+          <button disabled={step === 0} onClick={() => setStep(step - 1)} className="text-[11px] cursor-pointer border-none bg-transparent disabled:opacity-30" style={{ color: 'rgba(255,255,255,0.3)' }}>&lt; Question {step + 1} of {total} &gt;</button>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleAuto} className="px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer"
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>Auto-answer</button>
+          <button onClick={handleNext} className="px-5 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer border-none"
+            style={{ background: '#fff', color: '#000' }}>
+            {isLast ? 'Submit' : 'Next'}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -633,10 +660,14 @@ export const BuilderFullView = ({
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setBuilderMode(builderMode === 'normal' ? 'ultra' : 'normal')}
-                            className={`px-2 py-0.5 rounded text-[9px] font-semibold cursor-pointer border transition-all ${builderMode === 'ultra' ? 'bg-purple-500/20 border-purple-500/30 text-purple-300' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}>
-                            {builderMode === 'ultra' ? 'ULTRA' : 'NORMAL'}
-                          </button>
+                          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5 border border-white/10">
+                            {(['normal', 'ultra', 'ultra+'] as const).map(m => (
+                              <button key={m} onClick={() => setBuilderMode(m)}
+                                className={`px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra+' ? 'bg-amber-500/20 text-amber-300' : m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : 'bg-white/10 text-white') : 'text-white/30 hover:text-white/50 bg-transparent'}`}>
+                                {m === 'normal' ? 'S1' : m === 'ultra' ? 'Ultra' : 'Ultra+'}
+                              </button>
+                            ))}
+                          </div>
                           <span className="text-[10px] text-white/20 font-medium">{cost} kr.</span>
                           <button
                             onClick={() => { setWizardStep(0); setShowWizard(true); }}
