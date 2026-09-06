@@ -321,8 +321,8 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
 
 # Model mapping: normal = fast/cheap, ultra = best quality
 MODEL_MAP = {
-    "normal": "qwen/qwen3-coder-plus:free",   # Free, 1M context, coding-focused
-    "ultra": "qwen/qwen3.8-max:free"           # Free, 1M context, flagship quality
+    "normal": "qwen/qwen3.8-max:free",        # Free, 1M context, flagship quality
+    "ultra": "openai/gpt-5.6-luna"             # $0.20/1M in, $1.20/1M out, ~$0.025/strone
 }
 
 
