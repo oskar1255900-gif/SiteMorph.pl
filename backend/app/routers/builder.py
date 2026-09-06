@@ -85,24 +85,36 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
 
 
 def openrouter_generate(system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 16000):
-    """XKIRO API (OpenAI-compatible). Zwraca (tekst, None) albo (None, blad)."""
+    """XKIRO API (OpenAI-compatible via requests). Zwraca (tekst, None) albo (None, blad)."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
     per_try_timeout = 15 if os.getenv("VERCEL") else 450
     try:
-        from openai import OpenAI
-        client = OpenAI(base_url=XKIRO_BASE_URL, api_key=XKIRO_API_KEY)
-        resp = client.chat.completions.create(
-            model="qwen/qwen3.8-max:free",
-            temperature=temperature,
-            max_tokens=min(max_tokens, 16000),
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+        r = requests.post(
+            f"{XKIRO_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {XKIRO_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "qwen/qwen3.8-max:free",
+                "temperature": temperature,
+                "max_tokens": min(max_tokens, 16000),
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            },
+            timeout=per_try_timeout,
         )
-        text = resp.choices[0].message.content or ""
-        print(f"[SiteMorph][XKIRO] qwen/qwen3.8-max:free -> OK ({len(text)} chars)", flush=True)
+        print(f"[SiteMorph][XKIRO] qwen/qwen3.8-max:free -> HTTP {r.status_code}", flush=True)
+        if r.status_code != 200:
+            return None, f"XKIRO: HTTP {r.status_code} - {r.text[:200]}"
+        data = r.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return None, "XKIRO: brak choices"
+        text = choices[0].get("message", {}).get("content", "")
         if not text.strip():
             return None, "XKIRO: pusta odpowiedz"
         return text, None
@@ -264,19 +276,31 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
         return None, "Brak XKIRO_API_KEY"
     per_try_timeout = 15 if os.getenv("VERCEL") else 450
     try:
-        from openai import OpenAI
-        client = OpenAI(base_url=XKIRO_BASE_URL, api_key=XKIRO_API_KEY)
-        resp = client.chat.completions.create(
-            model=model,
-            temperature=temperature,
-            max_tokens=min(max_tokens, 24000),
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+        r = requests.post(
+            f"{XKIRO_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {XKIRO_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": min(max_tokens, 24000),
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            },
+            timeout=per_try_timeout,
         )
-        text = resp.choices[0].message.content or ""
-        print(f"[SiteMorph][XKIRO] {model} -> OK ({len(text)} chars)", flush=True)
+        print(f"[SiteMorph][XKIRO] {model} -> HTTP {r.status_code}", flush=True)
+        if r.status_code != 200:
+            return None, f"{model}: HTTP {r.status_code} - {r.text[:200]}"
+        data = r.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return None, f"{model}: brak choices"
+        text = choices[0].get("message", {}).get("content", "")
         if not text.strip():
             return None, f"{model}: pusta odpowiedz"
         return text, None
