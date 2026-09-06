@@ -100,13 +100,13 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
         }} />
       </div>
 
-      {/* Panel button - top right */}
+      {/* Panel button - top right, nearly invisible */}
       <div className="absolute top-5 right-6 z-20">
         <button
           onClick={() => setPanelOpen(true)}
-          className="group relative px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-[11px] font-medium tracking-[0.22em] uppercase text-white/40 hover:text-white/80 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
+          className="text-[10px] font-medium tracking-[0.2em] uppercase text-white/15 hover:text-white/40 transition-colors duration-500 cursor-pointer bg-transparent border-none"
         >
-          <span className="relative z-10">Panel</span>
+          Panel
         </button>
       </div>
 
@@ -118,23 +118,6 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center max-w-2xl"
         >
-          {/* Brand mark */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-8 flex items-center gap-3"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400/30 to-blue-400/30 border border-white/10 backdrop-blur-sm flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/80">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-            </div>
-            <span className="text-sm font-medium tracking-[0.3em] uppercase text-white/30">SiteMorph</span>
-          </motion.div>
-
           {/* Headline: 'Budowa' has gradient */}
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
@@ -155,13 +138,6 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
             Składamy coś <span className="gradient-word">nowego</span>. Wróć za chwilę.
           </motion.p>
 
-          {/* Decorative line */}
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ duration: 1, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-10 h-px w-24 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          />
         </motion.div>
       </div>
 
