@@ -525,7 +525,7 @@ Create a complete design system for this business. Return ONLY the JSON."""
 
 
 # ---------------------------------------------------------------------------
-# GENERATE QUESTIONS -- Gemini 3.8 Flash (smart: skips questions already in prompt)
+# GENERATE QUESTIONS -- DeepSeek V4 Pro (smart: skips questions already in prompt)
 # ---------------------------------------------------------------------------
 _BUSINESS_KEYWORDS = {
     "restaurac": "Restauracja", "kebab": "Kebab", "jedzenie": "Restauracja",
@@ -573,36 +573,39 @@ class QuestionInput(BaseModel):
 
 
 QUESTIONS_SYSTEM_PROMPT = (
-    "Analizujesz prompt uzytkownika, ktory chce zbudowac strone internetowa.\n\n"
-    "PRZYKLADY PROMPTOW I CO DETEKTUJESZ:\n"
-    "- 'Kartagina Kebab, 4.3 gwiazdki, menu, opinie, telefon 739...' → biznes: KEBAB, lokalizacja: podana, dane kontaktowe: podane\n"
-    "- 'Restauracja w Krakowie z rezerwacja stolikow' → biznes: RESTAURACJA, lokalizacja: podana\n"
-    "- 'Strona firmowa' → biznes: NIEZNANY, trzeba zapytac\n"
-    "- 'Barber shop z goleniem i strzyzeniem' → biznes: BARBER\n\n"
-    "ZADANIE: Wygeneruj 2-4 pytania TYLKO o to, czego NIE MA w promptnie.\n"
-    "Jesli biznes/restauracja/kebab/barber itp. sa jasne → NIE pytaj o biznes.\n"
-    "Jesli adres/miasto sa podane → NIE pytaj o lokalizacje.\n"
-    "Jesli telefon/email sa podane → NIE pytaj o kontakt.\n"
-    "Jesli kolory sa podane → NIE pytaj o kolory.\n\n"
-    "Format: [{\"question\": \"po polsku 5-12 slow\", \"placeholder\": \"przyklad\", \"options\": [\"a\", \"b\", \"c\"], \"stateKey\": \"klucz\", \"multi\": false}]\n"
-    "stateKey: accent|layout|sections|tone|photos|extras (NIE niche jesli biznes jasny)\n"
-    "Zwroc TYLKO tablice JSON."
+    "You are SiteMorph AI - an expert web designer. The user wrote a prompt describing their website.\n\n"
+    "STEP 1: ANALYZE the prompt. Identify what is ALREADY clear:\n"
+    "- Business type (restaurant, kebab, barber, cafe, salon, etc)\n"
+    "- Location/address\n"
+    "- Contact info (phone, email)\n"
+    "- Colors or style preference\n"
+    "- Sections they want (menu, pricing, gallery, contact)\n\n"
+    "STEP 2: Generate 2-4 questions ONLY about what is NOT clear.\n"
+    "If business type is clear → DO NOT ask about it.\n"
+    "If address is provided → DO NOT ask about location.\n"
+    "If phone/email provided → DO NOT ask about contact.\n\n"
+    "STEP 3: Return ONLY a JSON array. ALL text must be in POLISH.\n"
+    "Each element: {\"question\": \"Polish text 5-12 words\", \"placeholder\": \"example\", \"options\": [\"option1\", \"option2\", \"option3\"], \"stateKey\": \"key\", \"multi\": false}\n"
+    "stateKey options: accent|layout|sections|tone|photos|extras (NOT niche if business is clear)\n"
+    "Return ONLY the JSON array. No explanation, no markdown."
 )
 
 
 @router.post("/generate-questions")
 def generate_questions(data: QuestionInput):
-    """Gemini 3.8 Flash ANALYZES the user prompt first.
+    """DeepSeek V4 Pro ANALYZES the user prompt first.
     Only asks questions about things NOT already clear from the prompt."""
     prompt_text = data.full_prompt or data.description or data.business_name or ""
 
     user_msg = (
-        'The user wants: "' + prompt_text + '" Analyze what is clear, '
-        'generate questions only for what is missing.'
+        'USER PROMPT: "' + prompt_text + '"\n\n'
+        'Analyze this prompt. What is ALREADY clear? '
+        'Generate questions ONLY for what is missing. All questions in POLISH.'
     )
 
-    if GEMINI_API_KEY:
-        text, err = gemini_generate(QUESTIONS_SYSTEM_PROMPT, user_msg, temperature=0.9, max_tokens=1500)
+    # Use DeepSeek V4 Pro for thorough prompt analysis (free, deep reasoning)
+    if XKIRO_API_KEY:
+        text, err = openrouter_generate_model("deepseek/deepseek-v4-pro", QUESTIONS_SYSTEM_PROMPT, user_msg, temperature=0.7, max_tokens=2000)
         if text:
             try:
                 cleaned = text.strip()
@@ -614,12 +617,12 @@ def generate_questions(data: QuestionInput):
                     valid = [q for q in questions if isinstance(q, dict) and q.get("question") and q.get("stateKey")]
                     if len(valid) >= 1:
                         detected = _detect_niche_from_text(prompt_text)
-                        resp = {"questions": valid[:5], "source": "gemini"}
+                        resp = {"questions": valid[:5], "source": "deepseek-v4-pro"}
                         if detected:
                             resp["detected_niche"] = detected
                         return resp
             except Exception as e:
-                print(f"[Questions] Gemini parse error: {e}", flush=True)
+                print(f"[Questions] DeepSeek parse error: {e}", flush=True)
 
     # SMART FALLBACK
     import random
