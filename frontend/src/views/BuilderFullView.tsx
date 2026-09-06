@@ -40,39 +40,7 @@ import { GeneratedWebsite } from '../types';
 // ============================================================================
 // BORDER BEAM CSS (animowany gradient naokolo karty)
 // ============================================================================
-const BORDER_BEAM_CSS = `
-@keyframes border-beam {
-  0% { offset-distance: 0%; }
-  100% { offset-distance: 100%; }
-}
-.sm-border-beam {
-  position: relative;
-  overflow: hidden;
-}
-.sm-border-beam::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  padding: 2px;
-  background: conic-gradient(from 0deg, transparent 70%, #22c55e 85%, #3b82f6 92%, transparent 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: border-beam 3s linear infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-.sm-border-beam::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: 0 0 20px rgba(34,197,94,0.08), 0 0 40px rgba(59,130,246,0.04);
-  pointer-events: none;
-  z-index: 0;
-}
-`;
+
 
 // ============================================================================
 // THINKING STEPS (symulacja agenta)
@@ -289,7 +257,7 @@ export const BuilderFullView = ({
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [saveMsg, setSaveMsg] = useState('');
-  const cost = builderMode === 'ultra' ? 15 : 10;
+  const cost = builderMode === 'ultra' ? 45 : 15;
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -358,7 +326,7 @@ export const BuilderFullView = ({
     setIsGenerating(true);
     setGenStep(0);
     const start = Date.now();
-    const MIN_MS = 5000;
+    const MIN_MS = 120000; // 2 minuty minimum na generowanie
     let fetchResult: any = null;
     let fetchError: any = null;
     try {
@@ -496,7 +464,7 @@ export const BuilderFullView = ({
 
   return (
     <>
-      <style>{BORDER_BEAM_CSS}</style>
+      
       {/* Inline questionnaire appears above input when showWizard is true */}
 
       <motion.div
@@ -653,7 +621,7 @@ export const BuilderFullView = ({
 
                 {/* Chat Input — Border Beam */}
                 <div className="p-3 border-t border-white/[0.06]">
-                  <div className="sm-border-beam rounded-xl">
+                  <div>
                     <div className="relative rounded-xl bg-[#1a1d23] border border-white/[0.08] overflow-hidden">
                       <textarea
                         rows={3}
