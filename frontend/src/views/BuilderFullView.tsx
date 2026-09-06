@@ -36,6 +36,7 @@ import { Button } from '../components/ui';
 import { springTransition } from '../lib/shared';
 import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
+import { ThinkingSteps } from './ThinkingSteps';
 
 // Fetch AI-generated questions from backend (Gemini 3.8 Flash)
 async function fetchWizardQuestions(businessName: string, description: string, fullPrompt: string): Promise<{questions: WizardQuestion[], detectedNiche?: string}> {
@@ -502,21 +503,8 @@ export const BuilderFullView = ({
           {/* Left Panel — Agent Chat */}
           <div style={isDesktop ? { width: leftW } : undefined} className={`border-b md:border-b-0 md:border-r h-[45vh] md:h-auto flex flex-col overflow-hidden shrink-0 ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
             {isGenerating ? (
-              /* Thinking State */
-              <div className="flex-1 p-5 overflow-y-auto">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center">
-                    <Sparkles size={14} className="text-green-400" />
-                  </div>
-                  <div>
-                    <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>SiteMorph Agent</div>
-                    <div className={`text-[10px] ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>Pracuję nad Twoją stroną...</div>
-                  </div>
-                </div>
-                
-              </div>
+              <ThinkingSteps mode={builderMode} />
             ) : generatedSite ? (
-              /* After Generation — summary */
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-green-500/20 border border-green-500/20 flex items-center justify-center">
@@ -680,7 +668,7 @@ export const BuilderFullView = ({
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 grid place-items-center mb-3">
                     <Sparkles size={18} className="text-green-400" />
                   </motion.div>
-                  <div className="text-xs font-medium text-white/60">'Tworzę stronę...'</div>
+                  <div className="text-xs font-medium text-white/60">Generuję stronę...</div>
                 </motion.div>
               ) : !generatedSite ? (
                 <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex-1 flex items-center justify-center rounded-xl border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
