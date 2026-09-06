@@ -57,7 +57,7 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070709] text-white" style={{ fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>
+    <div className="relative min-h-screen overflow-hidden bg-[#070709] text-white font-sans">
       {/* Gradient keyframe styles */}
       <style>{`
         @keyframes gradient-shift {
