@@ -218,7 +218,8 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
     """Generate using XKIRO (OpenAI-compatible) with any model."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
-    per_try_timeout = 15 if os.getenv("VERCEL") else 450
+    # Ultra+ (Fable) needs more time for complex backend generation
+    per_try_timeout = 15 if os.getenv("VERCEL") else (600 if "fable" in model.lower() else 450)
     try:
         r = requests.post(
             f"{XKIRO_BASE_URL}/chat/completions",
@@ -254,8 +255,9 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
 
 # Model mapping: normal = fast/cheap, ultra = best quality
 MODEL_MAP = {
-    "normal": "qwen/qwen3.8-max:free",        # Free, 1M context, flagship quality
-    "ultra": "openai/gpt-5.6-luna"             # $0.20/1M in, $1.20/1M out, ~$0.025/strone
+    "normal": "qwen/qwen3.8-max:free",         # Free, 1M context, landing page only
+    "ultra": "openai/gpt-5.6-luna",            # $0.025/strona, better quality landing
+    "ultra+": "anthropic/claude-fable-5-1"      # Premium, backend features (reservations, admin)
 }
 
 

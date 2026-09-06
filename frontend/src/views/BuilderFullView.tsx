@@ -101,6 +101,7 @@ const InlineWizard = ({
   questions: WizardQuestion[];
 }) => {
   const current = questions[step];
+  if (!current) return null;
   const total = questions.length;
   const isLast = step === total - 1;
 
@@ -200,34 +201,8 @@ const AIThinkingDisplay = ({ thinking }: { thinking: any }) => {
   );
 };
 
-const ThinkingState = ({ step }: { step: number }) => (
-  <div className="space-y-2 py-3">
-    {[].map((s: any, i: number) => {
-      const isActive = i === step;
-      const isDone = i < step;
-      return (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.15 }}
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all ${
-            isActive ? 'bg-white/5 text-white' : isDone ? 'text-white/40' : 'text-white/20'
-          }`}
-        >
-          {isDone ? (
-            <CheckCircle2 size={14} className="text-green-400 shrink-0" />
-          ) : isActive ? (
-            <Loader2 size={14} className={`${s.color} animate-spin shrink-0`} />
-          ) : (
-            <div className="w-3.5 h-3.5 rounded-full border border-white/10 shrink-0" />
-          )}
-          <span className={isActive ? 'font-medium' : ''}>{s.label}</span>
-        </motion.div>
-      );
-    })}
-  </div>
-);
+// ThinkingState removed — generation is silent
+const ThinkingState = () => null;
 
 // ============================================================================
 // MAIN BUILDER VIEW
@@ -251,7 +226,7 @@ export const BuilderFullView = ({
   const [genStep, setGenStep] = useState(0);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [builderMode, setBuilderMode] = useState<'normal' | 'ultra'>('normal');
+  const [builderMode, setBuilderMode] = useState<'normal' | 'ultra' | 'ultra+'>('normal');
   const [wizardQuestions, setWizardQuestions] = useState<WizardQuestion[]>(DEFAULT_WIZARD_QUESTIONS);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
@@ -276,12 +251,10 @@ export const BuilderFullView = ({
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [saveMsg, setSaveMsg] = useState('');
-  const cost = builderMode === 'ultra' ? 45 : 15;
+  const cost = builderMode === 'ultra+' ? 150 : builderMode === 'ultra' ? 45 : 15;
 
   useEffect(() => {
-    if (!isGenerating) return;
-    const id = setInterval(() => setGenStep((s) => (s + 1) % 6), 2200);
-    return () => clearInterval(id);
+    // No visible steps — generation is silent
   }, [isGenerating]);
 
   useEffect(() => {
@@ -411,14 +384,8 @@ export const BuilderFullView = ({
 
   const handleWizardComplete = (ans: Record<string, string | string[]>) => {
     setAnswers(ans);
-    // Auto-generate after wizard
-    setTimeout(() => {
-      setBuilderPrompt((prev) => {
-        const niche = ans.niche || '';
-        return prev || `Strona dla ${niche}`;
-      });
-      handleGenerate();
-    }, 400);
+    setShowWizard(false);
+    // User clicks Generate manually — no auto-generate
   };
 
   const handleSaveProject = async () => {
@@ -545,7 +512,7 @@ export const BuilderFullView = ({
                     <div className="text-[10px] text-white/40">Pracuję nad Twoją stroną...</div>
                   </div>
                 </div>
-                <ThinkingState step={genStep} />
+                <ThinkingState />
               </div>
             ) : generatedSite ? (
               /* After Generation — summary */
