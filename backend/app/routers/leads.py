@@ -334,7 +334,7 @@ OVERPASS_ENDPOINTS = [
     "https://overpass.private.coffee",
 ]
 
-def overpass_query(bbox, filters: List[str], timeout: int = 12, rounds: int = 2):
+def overpass_query(bbox, filters: List[str], timeout: int = 8, rounds: int = 2):
     parts = "\n".join(f"  nwr{f}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});" for f in filters)
     q = f"[out:json][timeout:25];\n(\n{parts}\n);\nout center {60};"
     last_err = ""
@@ -561,6 +561,11 @@ def normalize(el, industry: str, city: str, country: str, only_without_website: 
     name = t.get("name") or t.get("operator") or t.get("brand")
     if not name:
         return None
+    # Sanitize weird names: strip whitespace, skip very short names
+    name = name.strip()
+    name = " ".join(name.split())
+    if len(name) < 2:
+        return None
     # Pomiń wielkie sieci/marki (Zabka, McDonald's, dealerzy Opla itp.)
     if is_big_brand(t, name):
         return None
@@ -777,7 +782,7 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
                     "https://places.googleapis.com/v1/places:searchText",
                     headers={"Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_KEY, "X-Goog-FieldMask": "places.websiteUri,places.nationalPhoneNumber,places.displayName"},
                     json={"textQuery": q, "maxResultCount": 1},
-                    timeout=7,
+                    timeout=5,
                 )
                 if r.status_code != 200:
                     return lead, None, None
@@ -792,8 +797,8 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
         # Wzbogać pierwsze 60 leadów równolegle (Overpass ma ~60), Google tylko dla strony/tel
         from concurrent.futures import ThreadPoolExecutor, as_completed
         enriched = []
-        with ThreadPoolExecutor(max_workers=6) as ex:
-            fut_map = {ex.submit(_enrich_with_google, ld): ld for ld in leads_out[:60]}
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            fut_map = {ex.submit(_enrich_with_google, ld): ld for ld in leads_out[:40]}
             for fut in as_completed(fut_map):
                 ld, g_website, g_phone = fut.result()
                 # Uzupełnij tel jeśli brak w OSM, a Google ma

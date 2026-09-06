@@ -208,11 +208,19 @@ export const LeadFinderView = ({
         body.osmId = cityDetails.osm_id ? String(cityDetails.osm_id) : undefined
         body.osmType = cityDetails.osm_type || undefined
       }
-      const res = await apiFetch('/api/leads/search', {
-        method: 'POST',
-        headers: { 'X-User-Plan': plan },
-        body: JSON.stringify(body),
-      })
+      const controller = new AbortController()
+      const searchTimeout = setTimeout(() => controller.abort(), 35000)
+      let res: Response
+      try {
+        res = await apiFetch('/api/leads/search', {
+          method: 'POST',
+          headers: { 'X-User-Plan': plan },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(searchTimeout)
+      }
       const data = await res.json()
       if (!res.ok) {
         const msg = data?.detail || data?.warning || data?.message || `Błąd ${res.status}`
@@ -226,7 +234,11 @@ export const LeadFinderView = ({
       if (Array.isArray(data.leads)) setLeads(data.leads)
       else setLeads([])
     } catch (e: any) {
-      setSearchError('Błąd połączenia z serwerem - spróbuj ponownie')
+      if (e?.name === 'AbortError') {
+        setSearchError('Wyszukiwanie trwało za długo (>35s). Overpass API może być przeciążony — spróbuj mniejsze miasto lub inną branżę.')
+      } else {
+        setSearchError('Błąd połączenia z serwerem - spróbuj ponownie')
+      }
     } finally {
       setIsSearching(false)
     }
