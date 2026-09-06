@@ -322,14 +322,10 @@ export const BuilderFullView = ({
     } catch {}
   };
 
-  const buildPrompt = () => {
-    const sections = ((answers.sections as string[]) || []).join(', ');
-    const niche = answers.niche || 'Restauracja';
-    return `Branża: ${niche}. Styl: ${answers.layout || 'Nowoczesny'}. Akcent: ${answers.accent || '#2563eb'}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
-  };
-
-  const handleGenerate = async () => {
-    const p = buildPrompt();
+  const generateWithAnswers = async (ans: Record<string, string | string[]>, promptOverride?: string) => {
+    const sections = ((ans.sections as string[]) || []).join(', ');
+    const niche = String(ans.niche || 'Firma');
+    const p = promptOverride || `Branża: ${niche}. Styl: ${ans.layout || 'Nowoczesny'}. Akcent: ${ans.accent || ''}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
     if (!p.trim()) return;
     if (credits < cost) {
       alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
@@ -337,7 +333,7 @@ export const BuilderFullView = ({
     }
     setIsGenerating(true);
     const start = Date.now();
-    const MIN_MS = 120000; // 2 minuty minimum na generowanie
+    const MIN_MS = 120000;
     let fetchResult: any = null;
     let fetchError: any = null;
     try {
@@ -347,15 +343,15 @@ export const BuilderFullView = ({
         headers: { 'X-User-Plan': plan },
         timeoutMs: 480000,
         body: JSON.stringify({
-          business_name: answers.niche || 'Firma',
-          niche: answers.niche || 'Restauracja',
+          business_name: niche,
+          niche,
           description: p,
-          style: String(answers.layout || 'Nowoczesny'),
-          colors: String(answers.accent || '#2563eb'),
-          sections: (answers.sections as string[]) || ['Hero', 'Oferta', 'Cennik', 'Kontakt'],
+          style: String(ans.layout || 'Nowoczesny'),
+          colors: String(ans.accent || ''),
+          sections: (ans.sections as string[]) || ['Hero', 'Oferta', 'Kontakt'],
           extraPrompt: builderPrompt,
-          accent_color: String(answers.accent || '#2563eb'),
-          layout: String(answers.layout || 'Nowoczesny'),
+          accent_color: String(ans.accent || ''),
+          layout: String(ans.layout || 'Nowoczesny'),
           fonts: 'Inter',
           mode: builderMode,
         }),
@@ -376,7 +372,7 @@ export const BuilderFullView = ({
         const meta = data.meta || {};
         setGeneratedSite({
           title: meta.title || p.slice(0, 28),
-          category: String(answers.niche),
+          category: niche,
           domain: `${(meta.title || 'strona').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
           headline: meta.headline || p,
           subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'AI'})`,
@@ -389,7 +385,7 @@ export const BuilderFullView = ({
       } else if (fetchError) {
         setGeneratedSite({
           title: p.slice(0, 25),
-          category: String(answers.niche),
+          category: niche,
           domain: 'blad.sitemorph.pl',
           headline: p,
           subheadline: `Błąd: ${fetchError.message}`,
@@ -404,8 +400,12 @@ export const BuilderFullView = ({
   const handleWizardComplete = (ans: Record<string, string | string[]>) => {
     setAnswers(ans);
     setShowWizard(false);
-    // Auto-generate after wizard completes
-    setTimeout(() => handleGenerate(), 300);
+    // Build prompt directly from passed answers (state is stale)
+    const sections = ((ans.sections as string[]) || []).join(', ');
+    const niche = String(ans.niche || 'Firma');
+    const prompt = `Branża: ${niche}. Styl: ${ans.layout || 'Nowoczesny'}. Akcent: ${ans.accent || ''}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
+    // Auto-generate with correct answers
+    setTimeout(() => generateWithAnswers(ans, prompt), 300);
   };
 
   const handleSaveProject = async () => {
