@@ -93,13 +93,14 @@ const DEFAULT_WIZARD_QUESTIONS: WizardQuestion[] = [
 // INLINE WIZARD (pojawia sie nad inputem, nie jako modal)
 // ============================================================================
 const InlineWizard = ({
-  step, setStep, answers, setAnswers, onGenerate, onClose, questions, theme,
+  step, setStep, answers, setAnswers, onGenerate, onClose, questions, loading, theme,
 }: {
   step: number; setStep: (s: number) => void;
   answers: Record<string, string | string[]>;
   setAnswers: (a: Record<string, string | string[]>) => void;
   onGenerate: () => void; onClose: () => void;
   questions: WizardQuestion[];
+  loading: boolean;
   theme: 'light' | 'dark';
 }) => {
   const dk = theme === 'dark';
@@ -158,6 +159,13 @@ const InlineWizard = ({
         </div>
         <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer border-none bg-transparent" style={{ color: textMuted }}><X size={12} /></button>
       </div>
+      {loading ? (
+        <div className="px-4 py-8 flex flex-col items-center gap-3">
+          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: accentGreen + '30', borderTopColor: accentGreen }} />
+          <span className="text-xs" style={{ color: textMuted }}>Analizuję prompt...</span>
+        </div>
+      ) : (
+      <div>
       <div className="px-4 pt-3">
         <div className="flex gap-1">{questions.map((_: any, i: number) => <div key={i} className="h-[2px] flex-1 rounded-full transition-all" style={{ background: i <= step ? accentGreen : dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />)}</div>
       </div>
@@ -194,6 +202,8 @@ const InlineWizard = ({
           )}
         </div>
       </div>
+      </div>
+      )}
       <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: `1px solid ${dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
         <div className="flex items-center gap-1">
           <button disabled={step === 0} onClick={() => setStep(step - 1)} className="text-[10px] cursor-pointer border-none bg-transparent disabled:opacity-30" style={{ color: textMuted }}>&lt; {step + 1} / {total} &gt;</button>
@@ -241,6 +251,7 @@ export const BuilderFullView = ({
   const [wizardStep, setWizardStep] = useState(0);
   const [builderMode, setBuilderMode] = useState<'normal' | 'ultra' | 'ultra+'>('normal');
   const [wizardQuestions, setWizardQuestions] = useState<WizardQuestion[]>(DEFAULT_WIZARD_QUESTIONS);
+  const [wizardLoading, setWizardLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -575,6 +586,7 @@ export const BuilderFullView = ({
                     onGenerate={() => { setShowWizard(false); handleWizardComplete(answers); }}
                     onClose={() => setShowWizard(false)}
                     questions={wizardQuestions}
+                    loading={wizardLoading}
                     theme={theme}
                   />
                 )}
@@ -618,11 +630,14 @@ export const BuilderFullView = ({
                           <button
                             onClick={async () => {
                             if (!builderPrompt.trim()) return;
-                            setShowWizard(true);
                             setWizardStep(0);
+                            setWizardLoading(true);
+                            setWizardQuestions(DEFAULT_WIZARD_QUESTIONS);
+                            setShowWizard(true);
                             const result = await fetchWizardQuestions('', builderPrompt, builderPrompt);
                             if (result.questions.length > 0) setWizardQuestions(result.questions);
                             if (result.detectedNiche) setAnswers(a => ({ ...a, niche: result.detectedNiche! }));
+                            setWizardLoading(false);
                           }}
                             disabled={!builderPrompt.trim()}
                             className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
