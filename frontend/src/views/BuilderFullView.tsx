@@ -72,10 +72,11 @@ async function fetchWizardQuestions(businessName: string, description: string): 
 // THINKING STEPS (symulacja agenta)
 // ============================================================================
 const THINKING_STEPS = [
-  { icon: Search, label: 'Analizuję brief i dane firmy...', color: 'text-blue-400' },
-  { icon: Globe, label: 'Projektuję układ strony...', color: 'text-purple-400' },
-  { icon: FileText, label: 'Piszę treści i dopasowuję zdjęcia...', color: 'text-amber-400' },
-  { icon: Terminal, label: 'Składam projekt HTML + Tailwind...', color: 'text-green-400' },
+  { icon: Search, label: 'Design Agent: analizuję branżę i szukam inspiracji...', color: 'text-blue-400' },
+  { icon: Globe, label: 'Design Agent: tworzę design guidelines (kolory, fonty, layout)...', color: 'text-purple-400' },
+  { icon: ImageIcon, label: 'Design Agent: dobieram zdjęcia z Unsplash...', color: 'text-pink-400' },
+  { icon: FileText, label: 'Code Agent: piszę treści po polsku...', color: 'text-amber-400' },
+  { icon: Terminal, label: 'Code Agent: składam HTML + CSS + JavaScript...', color: 'text-green-400' },
   { icon: Check, label: 'Finalizuję i waliduję kod...', color: 'text-emerald-400' },
 ];
 

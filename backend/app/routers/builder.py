@@ -342,6 +342,182 @@ def search_unsplash(query, count=4):
     return [f"https://source.unsplash.com/800x600/?{q}&sig={i}" for i in range(count)]
 
 
+
+
+# ---------------------------------------------------------------------------
+# DESIGN AGENT -- Gemini 3.8 Flash creates design_guidelines.json
+# ---------------------------------------------------------------------------
+DESIGN_AGENT_SYSTEM = """You are a senior UI/UX design agent. Your job is to analyze a business
+and create a complete design system before any code is written.
+
+You will receive:
+- Business name, niche, description
+- User answers to wizard questions (style, colors, sections, photos preference)
+- Any attached images
+
+You MUST return a JSON object with this EXACT structure:
+
+{
+  "design_guidelines": {
+    "brand_name": "Business Name",
+    "concept": "One sentence describing the visual concept",
+    "color_palette": {
+      "primary": "#hex",
+      "secondary": "#hex",
+      "accent": "#hex",
+      "background": "#hex (light or dark)",
+      "text": "#hex",
+      "muted": "#hex"
+    },
+    "typography": {
+      "heading_font": "Font name from Google Fonts",
+      "body_font": "Font name from Google Fonts",
+      "heading_weight": "700 or 800",
+      "heading_size_h1": "48-80px range",
+      "heading_size_h2": "32-48px range",
+      "body_size": "16-18px"
+    },
+    "layout": {
+      "max_width": "1200px",
+      "section_padding": "80-140px",
+      "grid": "description of grid strategy",
+      "hero_style": "asymmetric / centered / split"
+    },
+    "visual_effects": {
+      "shadows": "description",
+      "borders": "description",
+      "gradients": "description or none",
+      "animations": "fade-in / slide-up / parallax / none"
+    },
+    "image_search_queries": [
+      "search term 1 for Unsplash hero image",
+      "search term 2 for section image",
+      "search term 3 for additional image"
+    ],
+    "sections": [
+      {
+        "id": "hero",
+        "title": "Hero section title text",
+        "subtitle": "Hero subtitle text",
+        "cta_text": "Button text",
+        "description": "What this section should contain and how it should look"
+      },
+      {
+        "id": "services",
+        "title": "Section title",
+        "items": ["Service 1", "Service 2", "Service 3"],
+        "description": "Layout and content instructions"
+      }
+    ],
+    "content_tone": "Description of writing style (e.g. warm and casual, professional and clean)",
+    "special_instructions": "Any unique requirements for this specific business"
+  }
+}
+
+RULES:
+- Pick colors that fit THIS specific business (not generic blue!)
+- For restaurants: warm tones, food photography colors
+- For bars/pubs: dark moody, amber/gold accents
+- For beauty/salon: soft pastels or elegant dark
+- For tech/modern: clean, minimal, bold accent
+- For kids/family: bright, playful colors
+- Choose fonts that match the vibe (serif for elegant, sans for modern)
+- Search queries must be specific (not "business photo" but "artisan coffee latte art wooden counter")
+- Include 6-8 sections minimum
+- All text content must be in Polish
+- Return ONLY the JSON, no markdown, no explanation"""
+
+
+class DesignAgentInput(BaseModel):
+    business_name: str = ""
+    niche: str = ""
+    description: str = ""
+    style: Optional[str] = ""
+    accent_color: Optional[str] = ""
+    layout: Optional[str] = ""
+    sections: Optional[List[str]] = None
+    photo_style: Optional[str] = ""
+    answers: Optional[dict] = None
+
+
+@router.post("/design-agent")
+def run_design_agent(data: DesignAgentInput):
+    """Design Agent (Gemini 3.8 Flash) creates design guidelines before code generation."""
+    
+    user_prompt = f"""Business: {data.business_name}
+Niche: {data.niche}
+Description: {data.description}
+Style preference: {data.style or 'not specified'}
+Accent color: {data.accent_color or 'not specified'}
+Layout preference: {data.layout or 'not specified'}
+Photo style: {data.photo_style or 'not specified'}
+Sections: {', '.join(data.sections or [])}
+User answers: {json.dumps(data.answers or {}, ensure_ascii=False)}
+
+Create a complete design system for this business. Return ONLY the JSON."""
+
+    if GEMINI_API_KEY:
+        text, err = gemini_generate(DESIGN_AGENT_SYSTEM, user_prompt, temperature=0.8, max_tokens=4000)
+        if text:
+            try:
+                cleaned = text.strip().strip("`json").strip("`").strip()
+                parsed = json.loads(cleaned)
+                guidelines = parsed.get("design_guidelines") or parsed
+                if isinstance(guidelines, dict) and guidelines.get("color_palette"):
+                    return {"status": "success", "design_guidelines": guidelines, "source": "gemini"}
+            except Exception as e:
+                print(f"[DesignAgent] Parse error: {e}", flush=True)
+    
+    # Fallback: generate basic guidelines from inputs
+    color = data.accent_color or "#2563eb"
+    is_dark = "ciemny" in (data.style or "").lower() or "dark" in (data.style or "").lower()
+    bg = "#0a0a0a" if is_dark else "#fafafa"
+    text_color = "#ffffff" if is_dark else "#111827"
+    
+    fallback = {
+        "brand_name": data.business_name,
+        "concept": f"Modern, clean website for {data.niche or 'business'}",
+        "color_palette": {
+            "primary": color,
+            "secondary": color + "80",
+            "accent": color,
+            "background": bg,
+            "text": text_color,
+            "muted": "#6b7280"
+        },
+        "typography": {
+            "heading_font": "Inter",
+            "body_font": "Inter",
+            "heading_weight": "800",
+            "heading_size_h1": "64px",
+            "heading_size_h2": "40px",
+            "body_size": "16px"
+        },
+        "layout": {
+            "max_width": "1200px",
+            "section_padding": "100px",
+            "grid": "responsive 1-3 column grid",
+            "hero_style": "asymmetric"
+        },
+        "visual_effects": {
+            "shadows": "subtle card shadows",
+            "borders": "rounded corners 16px",
+            "gradients": "none",
+            "animations": "fade-in on scroll"
+        },
+        "image_search_queries": [data.niche or "business", "professional workspace", "team photo"],
+        "sections": [
+            {"id": "hero", "title": data.business_name, "subtitle": data.description[:100] if data.description else "", "cta_text": "Kontakt", "description": "Full-width hero with image"},
+            {"id": "services", "title": "Nasza oferta", "items": ["Usługa 1", "Usługa 2", "Usługa 3"], "description": "3-column grid of services"},
+            {"id": "contact", "title": "Kontakt", "description": "Formularz kontaktowy + dane"}
+        ],
+        "content_tone": "professional yet friendly",
+        "special_instructions": ""
+    }
+    return {"status": "success", "design_guidelines": fallback, "source": "fallback"}
+
+
+
 # ---------------------------------------------------------------------------
 # GENERATE QUESTIONS -- Gemini 3.8 Flash
 # ---------------------------------------------------------------------------
@@ -427,6 +603,26 @@ def generate_site(data: BuilderInput):
             except Exception:
                 pass
 
+        # First run Design Agent to get guidelines
+        design_guidelines_str = ""
+        try:
+            da_input = DesignAgentInput(
+                business_name=data.business_name,
+                niche=data.niche,
+                description=data.description,
+                style=data.style,
+                accent_color=data.accent_color,
+                layout=data.layout,
+                sections=data.sections,
+                photo_style=data.photo_style,
+            )
+            da_result = run_design_agent(da_input)
+            if da_result.get("design_guidelines"):
+                design_guidelines_str = f"\nDESIGN GUIDELINES (created by Design Agent):\n{json.dumps(da_result['design_guidelines'], ensure_ascii=False, indent=2)}"
+                print(f"[Builder] Design Agent: {da_result.get('source', 'unknown')}", flush=True)
+        except Exception as e:
+            print(f"[Builder] Design Agent fallback: {e}", flush=True)
+
         user_prompt = f"""Dane firmy:
 ---
 BUSINESS_NAME: {data.business_name}
@@ -438,9 +634,11 @@ SECTIONS: {sections_str}
 EXTRA: {data.extraPrompt or ''}
 {extra_style_str}
 {image_section}
+{design_guidelines_str}
 ---
 
-Wygeneruj kompletne strone HTML. Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
+Wygeneruj kompletne strone HTML. Uzyj DESIGN GUIDELINES do kolorow, fontow, layoutu i tresci.
+Zwroc JSON z files["main/frontend/preview.html"]. Bez pytan."""
 
         warning = None
         provider = "fallback"
