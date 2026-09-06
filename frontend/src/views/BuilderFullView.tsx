@@ -83,9 +83,7 @@ interface WizardQuestion {
 }
 
 const DEFAULT_WIZARD_QUESTIONS: WizardQuestion[] = [
-  { question: 'Jaki to biznes?', placeholder: 'np. Restauracja, Barber, Fryzjer...', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Prawnik', 'Korepetytor'], stateKey: 'niche' },
-  { question: 'Jaki akcent kolorystyczny?', placeholder: 'np. #2563eb', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626', 'Różowy #ec4899'], stateKey: 'accent' },
-  { question: 'Jaki styl strony?', placeholder: 'np. Nowoczesny, ciemny, minimalistyczny', options: ['Nowoczesny (serif + duże litery)', 'Ciemny (dark mode + neon)', 'Brutalistyczny (grube ramki)', 'Minimalistyczny (Inter + dużo białego)'], stateKey: 'layout' },
+  { question: 'Jaki styl strony?', placeholder: '', options: ['Nowoczesny i minimalistyczny', 'Ciemny i premium', 'Ciepły i przytulny', 'Odwazny i kolorowy'], stateKey: 'layout' },
   { question: 'Które sekcje na stronie?', placeholder: '', options: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt', 'Galeria', 'O nas', 'FAQ'], stateKey: 'sections', multi: true },
 ];
 
@@ -105,7 +103,7 @@ const InlineWizard = ({
 }) => {
   const dk = theme === 'dark';
   // Theme colors
-  const bgColor = dk ? 'linear-gradient(180deg, rgba(17,24,39,0.97) 0%, rgba(10,10,15,0.99) 100%)' : '#ffffff';
+  const bgColor = dk ? '#111111' : '#ffffff';
   const borderColor = dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
   const textPrimary = dk ? '#ffffff' : '#111827';
   const textSecondary = dk ? 'rgba(255,255,255,0.7)' : '#374151';
@@ -191,7 +189,19 @@ const InlineWizard = ({
                   }}>
                   {isSelected && <Check size={10} className={dk ? 'text-emerald-400' : 'text-blue-600'} />}
                 </div>
-                {opt}
+                {(() => {
+                  const hexMatch = opt.match(/#[0-9a-fA-F]{6}/);
+                  if (hexMatch && current.stateKey === 'accent') {
+                    const label = opt.replace(/#[0-9a-fA-F]{6}/, '').trim();
+                    return (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-md shrink-0 border border-white/10" style={{ background: hexMatch[0] }} />
+                        {label}
+                      </span>
+                    );
+                  }
+                  return opt;
+                })()}
               </label>
             );
           })}
@@ -394,7 +404,8 @@ export const BuilderFullView = ({
   const handleWizardComplete = (ans: Record<string, string | string[]>) => {
     setAnswers(ans);
     setShowWizard(false);
-    // User clicks Generate manually — no auto-generate
+    // Auto-generate after wizard completes
+    setTimeout(() => handleGenerate(), 300);
   };
 
   const handleSaveProject = async () => {
