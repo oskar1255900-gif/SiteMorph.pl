@@ -37,6 +37,32 @@ import { springTransition } from '../lib/shared';
 import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
 
+// Fetch AI-generated questions from backend (Gemini 3.8 Flash)
+async function fetchWizardQuestions(businessName: string, description: string): Promise<WizardQuestion[]> {
+  try {
+    const res = await apiFetch('/api/builder/generate-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_name: businessName, description: description }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.questions && Array.isArray(data.questions) && data.questions.length >= 3) {
+        return data.questions.map((q: any) => ({
+          question: q.question || 'Pytanie?',
+          placeholder: q.placeholder || '',
+          options: q.options || [],
+          stateKey: q.stateKey || 'extras',
+          multi: q.multi || false,
+        }));
+      }
+    }
+  } catch (e) {
+    console.warn('[Wizard] Failed to fetch AI questions, using defaults');
+  }
+  return DEFAULT_WIZARD_QUESTIONS;
+}
+
 // ============================================================================
 // BORDER BEAM CSS (animowany gradient naokolo karty)
 // ============================================================================
@@ -64,7 +90,7 @@ interface WizardQuestion {
   multi?: boolean;
 }
 
-const WIZARD_QUESTIONS: WizardQuestion[] = [
+const DEFAULT_WIZARD_QUESTIONS: WizardQuestion[] = [
   { question: 'Jaki to biznes?', placeholder: 'np. Restauracja, Barber, Fryzjer...', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Prawnik', 'Korepetytor'], stateKey: 'niche' },
   { question: 'Jaki akcent kolorystyczny?', placeholder: 'np. #2563eb', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626', 'Różowy #ec4899'], stateKey: 'accent' },
   { question: 'Jaki styl strony?', placeholder: 'np. Nowoczesny, ciemny, minimalistyczny', options: ['Nowoczesny (serif + duże litery)', 'Ciemny (dark mode + neon)', 'Brutalistyczny (grube ramki)', 'Minimalistyczny (Inter + dużo białego)'], stateKey: 'layout' },
@@ -75,15 +101,16 @@ const WIZARD_QUESTIONS: WizardQuestion[] = [
 // INLINE WIZARD (pojawia sie nad inputem, nie jako modal)
 // ============================================================================
 const InlineWizard = ({
-  step, setStep, answers, setAnswers, onGenerate, onClose,
+  step, setStep, answers, setAnswers, onGenerate, onClose, questions,
 }: {
   step: number; setStep: (s: number) => void;
   answers: Record<string, string | string[]>;
   setAnswers: (a: Record<string, string | string[]>) => void;
   onGenerate: () => void; onClose: () => void;
+  questions: WizardQuestion[];
 }) => {
-  const current = WIZARD_QUESTIONS[step];
-  const total = WIZARD_QUESTIONS.length;
+  const current = questions[step];
+  const total = questions.length;
   const isLast = step === total - 1;
 
   const handleNext = () => {
@@ -123,7 +150,7 @@ const InlineWizard = ({
         </div>
         <button onClick={onClose} className="w-5 h-5 rounded flex items-center justify-center hover:bg-white/10 text-white/30 cursor-pointer border-none bg-transparent"><X size={10} /></button>
       </div>
-      <div className="px-4 pb-1"><div className="flex gap-0.5">{WIZARD_QUESTIONS.map((_, i) => <div key={i} className={`h-0.5 flex-1 rounded-full transition-all ${i <= step ? 'bg-green-500' : 'bg-white/10'}`} />)}</div></div>
+      <div className="px-4 pb-1"><div className="flex gap-0.5">{DEFAULT_WIZARD_QUESTIONS.map((_, i) => <div key={i} className={`h-0.5 flex-1 rounded-full transition-all ${i <= step ? 'bg-green-500' : 'bg-white/10'}`} />)}</div></div>
       <div className="px-4 py-3">
         <div className="text-sm font-semibold text-white mb-2">{current.question}</div>
         {current.options ? (
@@ -234,6 +261,7 @@ export const BuilderFullView = ({
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [builderMode, setBuilderMode] = useState<'normal' | 'ultra'>('normal');
+  const [wizardQuestions, setWizardQuestions] = useState<WizardQuestion[]>(DEFAULT_WIZARD_QUESTIONS);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -616,6 +644,7 @@ export const BuilderFullView = ({
                     setAnswers={setAnswers}
                     onGenerate={() => { setShowWizard(false); handleWizardComplete(answers); }}
                     onClose={() => setShowWizard(false)}
+                    questions={wizardQuestions}
                   />
                 )}
 

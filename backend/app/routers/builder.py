@@ -317,9 +317,83 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
 
 # Model mapping: normal = fast/cheap, ultra = best quality
 MODEL_MAP = {
-    "normal": "qwen/qwen3.8-max:free",        # Free, 1M context, flagship quality
+    "normal": "qwen/qwen3-coder-plus:free",        # Free, 1M context, flagship quality
     "ultra": "openai/gpt-5.6-luna"             # $0.20/1M in, $1.20/1M out, ~$0.025/strone
 }
+
+
+
+
+# ---------------------------------------------------------------------------
+# UNPLASH SEARCH
+# ---------------------------------------------------------------------------
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "")
+
+def search_unsplash(query, count=4):
+    if not UNSPLASH_ACCESS_KEY:
+        q = requests.utils.quote(query)
+        return [f"https://source.unsplash.com/800x600/?{q}&sig={i}" for i in range(count)]
+    try:
+        r = requests.get(
+            "https://api.unsplash.com/search/photos",
+            headers={"Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"},
+            params={"query": query, "per_page": count, "orientation": "landscape"},
+            timeout=8,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            return [res["urls"]["regular"] for res in data.get("results", [])[:count]]
+    except Exception:
+        pass
+    q = requests.utils.quote(query)
+    return [f"https://source.unsplash.com/800x600/?{q}&sig={i}" for i in range(count)]
+
+
+# ---------------------------------------------------------------------------
+# GENERATE QUESTIONS -- Gemini 3.8 Flash
+# ---------------------------------------------------------------------------
+class QuestionInput(BaseModel):
+    business_name: str = ""
+    description: str = ""
+
+@router.post("/generate-questions")
+def generate_questions(data: QuestionInput):
+    system = (
+        "You are SiteMorph AI assistant. Generate 4-5 short, creative questions "
+        "to help build a website for a Polish local business. "
+        "Return ONLY a JSON array of question objects. Each object has: "
+        '"question" (short Polish text, 5-12 words), '
+        '"placeholder" (example answer in Polish), '
+        '"options" (array of 3-6 short Polish option strings), '
+        '"stateKey" (one of: niche, accent, layout, sections, tone, photos, extras), '
+        '"multi" (boolean, true for multi-select). '
+        "Rules: vary wording/order/focus each time. sections=multi:true. "
+        "accent=colors with hex. Include style and photos questions. "
+        "All Polish. Return ONLY JSON array."
+    )
+    user = f"Business: {data.business_name or 'not specified'}. Desc: {data.description or 'not specified'}. Generate creative questions."
+
+    if GEMINI_API_KEY:
+        text, err = gemini_generate(system, user, temperature=0.95, max_tokens=2000)
+        if text:
+            try:
+                cleaned = text.strip().strip("`json").strip("`").strip()
+                questions = json.loads(cleaned)
+                if isinstance(questions, list) and len(questions) >= 3:
+                    return {"questions": questions[:6], "source": "gemini"}
+            except Exception:
+                pass
+
+    import random
+    fb = [
+        {"question": "Jaki to biznes?", "placeholder": "np. Restauracja, Barber...", "options": ["Restauracja", "Barber", "Salon beauty", "Kawiarnia", "Warsztat", "Prawnik"], "stateKey": "niche"},
+        {"question": "Jaki kolor przewodni?", "placeholder": "np. Zloty, granatowy...", "options": ["Niebieski #2563eb", "Ciemny #111827", "Zloty #d97706", "Zielony #059669", "Fioletowy #7c3aed", "Rozowy #ec4899"], "stateKey": "accent"},
+        {"question": "Jaki klimat strony?", "placeholder": "np. Elegancki, sportowy...", "options": ["Nowoczesny i minimalistyczny", "Ciemny i premium", "Cieply i przytulny", "Odwazny i kolorowy"], "stateKey": "layout"},
+        {"question": "Ktore sekcje?", "placeholder": "", "options": ["Hero", "Oferta", "Cennik", "Opinie", "Kontakt", "Galeria", "O nas", "FAQ"], "stateKey": "sections", "multi": True},
+        {"question": "Styl zdjec?", "placeholder": "np. Ciemne, jasne...", "options": ["Profesjonalne studyjne", "Naturalne / lifestyle", "Ciemne i dramaticzne", "Jasne i przestronne"], "stateKey": "photos"},
+    ]
+    random.shuffle(fb)
+    return {"questions": fb[:5], "source": "fallback"}
 
 
 @router.post("/generate")
@@ -351,6 +425,14 @@ def generate_site(data: BuilderInput):
         if data.image_urls:
             urls = ", ".join(data.image_urls[:8])
             image_section = f"\nZALACZONE ZDJECIA (uzyj jako src w <img> zamiast Unsplash): {urls}"
+        elif data.niche:
+            try:
+                unsplash_urls = search_unsplash(data.niche, count=4)
+                if unsplash_urls:
+                    u_str = ", ".join(unsplash_urls)
+                    image_section = f"\nUNSPLASH PHOTOS (uzyj jako tlo/hero/sekcyjne): {u_str}"
+            except Exception:
+                pass
 
         user_prompt = f"""Dane firmy:
 ---
