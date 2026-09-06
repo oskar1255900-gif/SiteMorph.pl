@@ -47,7 +47,7 @@ async function fetchWizardQuestions(businessName: string, description: string, f
     });
     if (res.ok) {
       const data = await res.json();
-      if (data.questions && Array.isArray(data.questions) && data.questions.length >= 3) {
+      if (data.questions && Array.isArray(data.questions) && data.questions.length >= 1) {
         const mapped = data.questions.map((q: any) => ({
           question: q.question || 'Pytanie?',
           placeholder: q.placeholder || '',
@@ -620,7 +620,7 @@ export const BuilderFullView = ({
                             if (!builderPrompt.trim()) return;
                             setShowWizard(true);
                             setWizardStep(0);
-                            const result = await fetchWizardQuestions('manually', '', builderPrompt);
+                            const result = await fetchWizardQuestions('', builderPrompt, builderPrompt);
                             if (result.questions.length > 0) setWizardQuestions(result.questions);
                             if (result.detectedNiche) setAnswers(a => ({ ...a, niche: result.detectedNiche! }));
                           }}

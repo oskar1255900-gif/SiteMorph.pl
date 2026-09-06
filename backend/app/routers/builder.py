@@ -525,19 +525,13 @@ Create a complete design system for this business. Return ONLY the JSON."""
 
 
 # ---------------------------------------------------------------------------
-# GENERATE QUESTIONS -- Gemini 3.8 Flash
-# ---------------------------------------------------------------------------
-class QuestionInput(BaseModel):
-    business_name: str = ""
-    description: str = ""
-
-# ---------------------------------------------------------------------------
 # GENERATE QUESTIONS -- Gemini 3.8 Flash (smart: skips questions already in prompt)
 # ---------------------------------------------------------------------------
 _BUSINESS_KEYWORDS = {
-    "restaurac": "Restauracja", "kebab": "Restauracja", "jedzenie": "Restauracja",
-    "food": "Restauracja", "pizzeria": "Restauracja", "bistro": "Restauracja",
-    "bar": "Bar", "pub": "Pub", "piwo": "Bar",
+    "restaurac": "Restauracja", "kebab": "Kebab", "jedzenie": "Restauracja",
+    "food": "Restauracja", "pizzeria": "Pizzeria", "bistro": "Bistro",
+    "doner": "Kebab", "shawarma": "Kebab", "szawarma": "Kebab",
+    "bar": "Bar", "pub": "Pub", "piwo": "Bar", "kawiarnia": "Kawiarnia",
     "barber": "Barber", "fryzjer": "Barber", "strzyz": "Barber", "salon fryzj": "Barber",
     "beauty": "Salon beauty", "salon urod": "Salon beauty", "manicure": "Salon beauty",
     "paznokci": "Salon beauty", "spa": "Salon beauty", "kosmetyczk": "Salon beauty",
@@ -548,9 +542,19 @@ _BUSINESS_KEYWORDS = {
     "dentyst": "Dentysta", "stomatolog": "Dentysta",
     "nieruchomosc": "Nieruchomosci", "mieszkan": "Nieruchomosci",
     "hotel": "Hotel", "nocleg": "Hotel",
-    "kawiarni": "Kawiarnia", "coffee": "Kawiarnia", "kawa": "Kawiarnia",
+    "coffee": "Kawiarnia", "kawa": "Kawiarnia",
     "sklep": "Sklep", "butik": "Sklep", "moda": "Sklep",
     "saas": "Startup SaaS", "landing page": "Landing page", "startup": "Startup",
+    "pizza": "Pizzeria", "burger": "Burgerownia", "lodziarnia": "Lodziarnia",
+    "cukierni": "Cukiernia", "piekarni": "Piekarnia", "warzyw": "Sklep warzywny",
+    "optic": "Optyk", "okulista": "Optyk", "apteka": "Apteka",
+    "tatuaz": "Salon tatuazu", "tattoo": "Salon tatuazu",
+    "joga": "Studio jogi", "yoga": "Studio jogi", "trener": "Trener personalny",
+    "gabinet": "Gabinet", "lekarz": "Gabinet lekarski",
+    "mysl": "Mysliwy", "wedkarsk": "Sklep wedkarski",
+    "agencja": "Agencja", "marketing": "Agencja marketingowa",
+    "fotograf": "Fotograf", "fotografi": "Fotograf",
+    "tlumacz": "Tlumacz", "biuro": "Biuro tlumaczen",
 }
 
 
@@ -569,13 +573,20 @@ class QuestionInput(BaseModel):
 
 
 QUESTIONS_SYSTEM_PROMPT = (
-    "You are SiteMorph AI - an expert web designer. The user wrote a prompt describing what website they want. "
-    "FIRST: analyze the prompt and identify what is ALREADY clear (business type, visual style, colors, features). "
-    "SECOND: generate ONLY 3-4 questions about things NOT already clear. "
-    "If business type is clear, DO NOT ask about it. If colors are mentioned, skip colors. "
-    "Each question object: {question: Polish 5-12 words, placeholder: example, options: [3-5 opts], "
-    "stateKey: niche|accent|layout|sections|tone|photos|extras, multi: false}. "
-    "Return ONLY a JSON array. No markdown, no explanation."
+    "Analizujesz prompt uzytkownika, ktory chce zbudowac strone internetowa.\n\n"
+    "PRZYKLADY PROMPTOW I CO DETEKTUJESZ:\n"
+    "- 'Kartagina Kebab, 4.3 gwiazdki, menu, opinie, telefon 739...' → biznes: KEBAB, lokalizacja: podana, dane kontaktowe: podane\n"
+    "- 'Restauracja w Krakowie z rezerwacja stolikow' → biznes: RESTAURACJA, lokalizacja: podana\n"
+    "- 'Strona firmowa' → biznes: NIEZNANY, trzeba zapytac\n"
+    "- 'Barber shop z goleniem i strzyzeniem' → biznes: BARBER\n\n"
+    "ZADANIE: Wygeneruj 2-4 pytania TYLKO o to, czego NIE MA w promptnie.\n"
+    "Jesli biznes/restauracja/kebab/barber itp. sa jasne → NIE pytaj o biznes.\n"
+    "Jesli adres/miasto sa podane → NIE pytaj o lokalizacje.\n"
+    "Jesli telefon/email sa podane → NIE pytaj o kontakt.\n"
+    "Jesli kolory sa podane → NIE pytaj o kolory.\n\n"
+    "Format: [{\"question\": \"po polsku 5-12 slow\", \"placeholder\": \"przyklad\", \"options\": [\"a\", \"b\", \"c\"], \"stateKey\": \"klucz\", \"multi\": false}]\n"
+    "stateKey: accent|layout|sections|tone|photos|extras (NIE niche jesli biznes jasny)\n"
+    "Zwroc TYLKO tablice JSON."
 )
 
 
@@ -601,8 +612,12 @@ def generate_questions(data: QuestionInput):
                 questions = json.loads(cleaned.strip())
                 if isinstance(questions, list) and len(questions) >= 2:
                     valid = [q for q in questions if isinstance(q, dict) and q.get("question") and q.get("stateKey")]
-                    if len(valid) >= 2:
-                        return {"questions": valid[:5], "source": "gemini"}
+                    if len(valid) >= 1:
+                        detected = _detect_niche_from_text(prompt_text)
+                        resp = {"questions": valid[:5], "source": "gemini"}
+                        if detected:
+                            resp["detected_niche"] = detected
+                        return resp
             except Exception as e:
                 print(f"[Questions] Gemini parse error: {e}", flush=True)
 
@@ -744,7 +759,7 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
                         parsed_meta = parsed.get("meta", {})
                         provider = "gemini (backup)"
                     else:
-                        warning = (warning + " | " if warning else "") + f"Gemini: za krotka ({len(ph)})"
+                        warning = (warning + " | " if warning else "") + f"Gemini: za krotka ({len(json.dumps(pfiles))})"
                 except Exception as e:
                     warning = (warning + " | " if warning else "") + f"Gemini: {str(e)[:120]}"
 
@@ -817,7 +832,7 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
             "warning": warning,
             "gemini_key_loaded": bool(GEMINI_API_KEY),
             "gemini_model": GEMINI_MODEL if provider == "gemini" else None,
-            "openrouter_model": OPENROUTER_MODEL if provider == "openrouter" else None,
+            "openrouter_model": None,
             "content": {"hero": hero, "services": [], "pricing": []},
             "files": parsed_files,
             "meta": meta,
