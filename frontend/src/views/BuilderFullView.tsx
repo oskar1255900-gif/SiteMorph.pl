@@ -187,6 +187,33 @@ const InlineWizard = ({
 // ============================================================================
 // THINKING STATE (pokazuje co agent robi)
 // ============================================================================
+// AI Thinking Display
+const AIThinkingDisplay = ({ thinking }: { thinking: any }) => {
+  if (!thinking) return null;
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 py-2">
+      {thinking.business_analysis && (
+        <div className="px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+          <div className="text-[10px] font-semibold text-blue-400 mb-1 uppercase tracking-wider">Analiza biznesu</div>
+          <div className="text-[11px] text-white/60 leading-relaxed">{thinking.business_analysis}</div>
+        </div>
+      )}
+      {thinking.design_direction && (
+        <div className="px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/10">
+          <div className="text-[10px] font-semibold text-purple-400 mb-1 uppercase tracking-wider">Kierunek designu</div>
+          <div className="text-[11px] text-white/60 leading-relaxed">{thinking.design_direction}</div>
+        </div>
+      )}
+      {thinking.content_plan && (
+        <div className="px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/10">
+          <div className="text-[10px] font-semibold text-green-400 mb-1 uppercase tracking-wider">Plan treści</div>
+          <div className="text-[11px] text-white/60 leading-relaxed">{thinking.content_plan}</div>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
 const ThinkingState = ({ step }: { step: number }) => (
   <div className="space-y-2 py-3">
     {THINKING_STEPS.map((s, i) => {
@@ -262,6 +289,7 @@ export const BuilderFullView = ({
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [saveMsg, setSaveMsg] = useState('');
+  const [aiThinking, setAiThinking] = useState<any>(null);
   const cost = isProMode ? 15 : 10;
 
   useEffect(() => {
@@ -367,6 +395,7 @@ export const BuilderFullView = ({
         const data = fetchResult;
         const files: Record<string, string> = data.files || {};
         const meta = data.meta || {};
+        if (data.thinking) setAiThinking(data.thinking);
         setGeneratedSite({
           title: meta.title || p.slice(0, 28),
           category: String(answers.niche),
@@ -544,6 +573,8 @@ export const BuilderFullView = ({
                     <div className="text-[10px] text-white/40">{generatedSite.title}</div>
                   </div>
                 </div>
+
+                {aiThinking && <AIThinkingDisplay thinking={aiThinking} />}
 
                 <div className="space-y-2">
                   <button onClick={() => setIsEditMode((v) => { const nv = !v; try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = nv ? 'true' : 'false'; } catch {} return nv; })} className={`w-full py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${isEditMode ? 'bg-green-500/20 border-green-500/30 text-green-300' : 'bg-white/5 border-white/10 text-white/60 hover:text-white/80'}`}>
