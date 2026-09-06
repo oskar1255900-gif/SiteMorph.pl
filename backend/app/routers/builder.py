@@ -21,11 +21,8 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 # Kolejnosc prĂłb: 1) Gemini 3.7 Flash (PRIMARY)  2) OpenRouter GLM-5.2 free (BACKUP)  3) fallback lokalny
 # ---------------------------------------------------------------------------
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "z-ai/glm-5.2:free")
-OPENROUTER_MAX_TOKENS = int(os.getenv("OPENROUTER_MAX_TOKENS", "16000"))
-OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "http://localhost:3000")
-OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph")
+XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "sk-xt-fd5b3d4e86e51412c0a7d876b345ff77cd63e55729234f3e")
+XKIRO_BASE_URL = "https://api.xkiro.com/v1"
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
@@ -88,43 +85,29 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
 
 
 def openrouter_generate(system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 16000):
-    """Backup provider — OpenRouter, model GLM-5.2 free. Zwraca (tekst, None) albo (None, blad)."""
-    if not OPENROUTER_API_KEY:
-        return None, "Brak OPENROUTER_API_KEY"
-    per_try_timeout = 8 if os.getenv("VERCEL") else 30
+    """XKIRO API (OpenAI-compatible). Zwraca (tekst, None) albo (None, blad)."""
+    if not XKIRO_API_KEY:
+        return None, "Brak XKIRO_API_KEY"
+    per_try_timeout = 15 if os.getenv("VERCEL") else 450
     try:
-        r = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": OPENROUTER_SITE_URL,
-                "X-Title": OPENROUTER_APP_NAME,
-            },
-            json={
-                "model": OPENROUTER_MODEL,
-                "temperature": temperature,
-                "max_tokens": min(max_tokens, OPENROUTER_MAX_TOKENS),
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            },
-            timeout=per_try_timeout,
+        from openai import OpenAI
+        client = OpenAI(base_url=XKIRO_BASE_URL, api_key=XKIRO_API_KEY)
+        resp = client.chat.completions.create(
+            model="qwen/qwen3.8-max:free",
+            temperature=temperature,
+            max_tokens=min(max_tokens, 16000),
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
         )
-        print(f"[SiteMorph][OpenRouter] {OPENROUTER_MODEL} -> HTTP {r.status_code}", flush=True)
-        if r.status_code != 200:
-            return None, f"{OPENROUTER_MODEL}: HTTP {r.status_code} - {r.text[:200]}"
-        data = r.json()
-        choices = data.get("choices") or []
-        if not choices:
-            return None, f"{OPENROUTER_MODEL}: brak choices"
-        text = choices[0].get("message", {}).get("content", "")
+        text = resp.choices[0].message.content or ""
+        print(f"[SiteMorph][XKIRO] qwen/qwen3.8-max:free -> OK ({len(text)} chars)", flush=True)
         if not text.strip():
-            return None, f"{OPENROUTER_MODEL}: pusta odpowiedz"
+            return None, "XKIRO: pusta odpowiedz"
         return text, None
     except Exception as e:
-        return None, f"{OPENROUTER_MODEL}: {str(e)[:150]}"
+        return None, f"XKIRO: {str(e)[:150]}"
 
 
 class BuilderInput(BaseModel):
@@ -276,38 +259,24 @@ JSON RULES
 
 
 def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 24000):
-    """Generate using OpenRouter with any model."""
-    if not OPENROUTER_API_KEY:
-        return None, "Brak OPENROUTER_API_KEY"
+    """Generate using XKIRO (OpenAI-compatible) with any model."""
+    if not XKIRO_API_KEY:
+        return None, "Brak XKIRO_API_KEY"
     per_try_timeout = 15 if os.getenv("VERCEL") else 450
     try:
-        r = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": OPENROUTER_SITE_URL,
-                "X-Title": OPENROUTER_APP_NAME,
-            },
-            json={
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": min(max_tokens, 24000),
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            },
-            timeout=per_try_timeout,
+        from openai import OpenAI
+        client = OpenAI(base_url=XKIRO_BASE_URL, api_key=XKIRO_API_KEY)
+        resp = client.chat.completions.create(
+            model=model,
+            temperature=temperature,
+            max_tokens=min(max_tokens, 24000),
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
         )
-        print(f"[SiteMorph][OpenRouter] {model} -> HTTP {r.status_code}", flush=True)
-        if r.status_code != 200:
-            return None, f"{model}: HTTP {r.status_code} - {r.text[:200]}"
-        data = r.json()
-        choices = data.get("choices") or []
-        if not choices:
-            return None, f"{model}: brak choices"
-        text = choices[0].get("message", {}).get("content", "")
+        text = resp.choices[0].message.content or ""
+        print(f"[SiteMorph][XKIRO] {model} -> OK ({len(text)} chars)", flush=True)
         if not text.strip():
             return None, f"{model}: pusta odpowiedz"
         return text, None
@@ -317,7 +286,7 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
 
 # Model mapping: normal = fast/cheap, ultra = best quality
 MODEL_MAP = {
-    "normal": "qwen/qwen3-coder-plus:free",        # Free, 1M context, flagship quality
+    "normal": "qwen/qwen3.8-max:free",        # Free, 1M context, flagship quality
     "ultra": "openai/gpt-5.6-luna"             # $0.20/1M in, $1.20/1M out, ~$0.025/strone
 }
 
@@ -459,7 +428,7 @@ Wygeneruj kompletne strone HTML. Zwroc JSON z files["main/frontend/preview.html"
         print(f"[SiteMorph] Mode: {data.mode} -> Model: {selected_model}", flush=True)
 
         # 1) PRIMARY: Use selected model via OpenRouter
-        if OPENROUTER_API_KEY:
+        if XKIRO_API_KEY:
             text, err = openrouter_generate_model(selected_model, SYSTEM_PROMPT, user_prompt, max_tokens=GEMINI_MAX_TOKENS)
             if text:
                 try:
