@@ -24,22 +24,306 @@ import {
   Trash2,
   FolderOpen,
   Download,
+  ChevronRight,
+  ChevronLeft,
+  Search,
+  Terminal,
+  FileText,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { springTransition } from '../lib/shared';
 import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
 
-export const PREVIEW_FALLBACK_HTML = `<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>SiteMorph Preview</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-white text-neutral-900"><div class="max-w-6xl mx-auto px-6 py-16 text-center"><h1 class="text-4xl font-black">Podglad dziala</h1><p class="mt-3 text-neutral-600">Vite + React + Tailwind - wygenerowane przez SiteMorph + Laguna S 2.1</p></div></body></html>`;
+// ============================================================================
+// BORDER BEAM CSS (animowany gradient naokolo karty)
+// ============================================================================
+const BORDER_BEAM_CSS = `
+@keyframes border-beam {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+.sm-border-beam {
+  position: relative;
+  overflow: hidden;
+}
+.sm-border-beam::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from 0deg, transparent 70%, #22c55e 85%, #3b82f6 92%, transparent 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-beam 3s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.sm-border-beam::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 20px rgba(34,197,94,0.08), 0 0 40px rgba(59,130,246,0.04);
+  pointer-events: none;
+  z-index: 0;
+}
+`;
 
 // ============================================================================
-// 3. STYLE GLOBALNE (INSTRUMENT SERIF ITALIC + SF PRO)
+// THINKING STEPS (symulacja agenta)
+// ============================================================================
+const THINKING_STEPS = [
+  { icon: Search, label: 'Analizuję brief i dane firmy...', color: 'text-blue-400' },
+  { icon: Globe, label: 'Projektuję układ strony...', color: 'text-purple-400' },
+  { icon: FileText, label: 'Piszę treści i dopasowuję zdjęcia...', color: 'text-amber-400' },
+  { icon: Terminal, label: 'Składam projekt HTML + Tailwind...', color: 'text-green-400' },
+  { icon: Check, label: 'Finalizuję i waliduję kod...', color: 'text-emerald-400' },
+];
+
+// ============================================================================
+// QUESTIONNAIRE (agent pyta sie krok po kroku)
+// ============================================================================
+interface WizardQuestion {
+  question: string;
+  placeholder: string;
+  options?: string[];
+  stateKey: string;
+  multi?: boolean;
+}
+
+const WIZARD_QUESTIONS: WizardQuestion[] = [
+  { question: 'Jaki to biznes?', placeholder: 'np. Restauracja, Barber, Fryzjer...', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Prawnik', 'Korepetytor'], stateKey: 'niche' },
+  { question: 'Jaki akcent kolorystyczny?', placeholder: 'np. #2563eb', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626', 'Różowy #ec4899'], stateKey: 'accent' },
+  { question: 'Jaki styl strony?', placeholder: 'np. Nowoczesny, ciemny, minimalistyczny', options: ['Nowoczesny (serif + duże litery)', 'Ciemny (dark mode + neon)', 'Brutalistyczny (grube ramki)', 'Minimalistyczny (Inter + dużo białego)'], stateKey: 'layout' },
+  { question: 'Które sekcje na stronie?', placeholder: '', options: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt', 'Galeria', 'O nas', 'FAQ'], stateKey: 'sections', multi: true },
+];
+
+// ============================================================================
+// QUESTIONNAIRE MODAL (agent pyta sie)
+// ============================================================================
+const QuestionnaireModal = ({
+  open,
+  onClose,
+  onComplete,
+  initialNiche,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onComplete: (answers: Record<string, string | string[]>) => void;
+  initialNiche?: string;
+}) => {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({
+    niche: initialNiche || '',
+    accent: 'Niebieski #2563eb',
+    layout: 'Nowoczesny (serif + duże litery)',
+    sections: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt'],
+  });
+
+  useEffect(() => {
+    if (initialNiche) setAnswers((a) => ({ ...a, niche: initialNiche }));
+  }, [initialNiche]);
+
+  const current = WIZARD_QUESTIONS[step];
+  const total = WIZARD_QUESTIONS.length;
+  const isLast = step === total - 1;
+
+  const handleNext = () => {
+    if (isLast) {
+      onComplete(answers);
+      onClose();
+    } else {
+      setStep((s) => s + 1);
+    }
+  };
+
+  const handleAuto = () => {
+    if (current.options) {
+      if (current.multi) {
+        const shuffled = [...current.options].sort(() => 0.5 - Math.random()).slice(0, 3);
+        setAnswers((a) => ({ ...a, [current.stateKey]: shuffled }));
+      } else {
+        const pick = current.options[Math.floor(Math.random() * current.options.length)];
+        setAnswers((a) => ({ ...a, [current.stateKey]: pick }));
+      }
+    }
+    setTimeout(handleNext, 200);
+  };
+
+  const toggleOption = (opt: string) => {
+    if (current.multi) {
+      setAnswers((a) => {
+        const arr = (a[current.stateKey] as string[]) || [];
+        const next = arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt];
+        return { ...a, [current.stateKey]: next };
+      });
+    } else {
+      setAnswers((a) => ({ ...a, [current.stateKey]: opt }));
+      setTimeout(handleNext, 300);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: 40, opacity: 0, scale: 0.96 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 40, opacity: 0, scale: 0.96 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-md rounded-2xl bg-[#1a1d23] border border-white/10 shadow-2xl overflow-hidden"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center">
+                <Sparkles size={16} className="text-green-400" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-white/90">Agent ma pytania</div>
+                <div className="text-[10px] text-white/40">Dostosuję stronę do Twoich potrzeb</div>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer border-none bg-transparent">
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Progress */}
+          <div className="px-5 pb-1">
+            <div className="flex gap-1">
+              {WIZARD_QUESTIONS.map((_, i) => (
+                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-green-500' : 'bg-white/10'}`} />
+              ))}
+            </div>
+          </div>
+
+          {/* Question */}
+          <div className="px-5 py-4">
+            <h3 className="text-base font-semibold text-white mb-1">{current.question}</h3>
+            {current.options ? (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {current.options.map((opt) => {
+                  const selected = current.multi
+                    ? ((answers[current.stateKey] as string[]) || []).includes(opt)
+                    : answers[current.stateKey] === opt;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => toggleOption(opt)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
+                        selected
+                          ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white/80'
+                      }`}
+                    >
+                      {selected && <Check size={10} className="inline mr-1" />}
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <input
+                autoFocus
+                value={(answers[current.stateKey] as string) || ''}
+                onChange={(e) => setAnswers((a) => ({ ...a, [current.stateKey]: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+                placeholder={current.placeholder}
+                className="w-full mt-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-green-500/50 transition-colors"
+              />
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-white/10">
+            <span className="text-[10px] text-white/30 font-medium">
+              Pytanie {step + 1} z {total}
+            </span>
+            <div className="flex items-center gap-2">
+              {step > 0 && (
+                <button
+                  onClick={() => setStep((s) => s - 1)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer border-none bg-transparent"
+                >
+                  <ChevronLeft size={12} className="inline mr-0.5" /> Wstecz
+                </button>
+              )}
+              <button
+                onClick={handleAuto}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer border-none bg-transparent"
+              >
+                Auto-odpowiedź
+              </button>
+              <button
+                onClick={handleNext}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white text-black hover:bg-white/90 transition-colors cursor-pointer border-none"
+              >
+                {isLast ? 'Generuj' : 'Dalej'}
+                {!isLast && <ChevronRight size={12} className="inline ml-0.5" />}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// ============================================================================
+// THINKING STATE (pokazuje co agent robi)
+// ============================================================================
+const ThinkingState = ({ step }: { step: number }) => (
+  <div className="space-y-2 py-3">
+    {THINKING_STEPS.map((s, i) => {
+      const isActive = i === step;
+      const isDone = i < step;
+      return (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.15 }}
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all ${
+            isActive ? 'bg-white/5 text-white' : isDone ? 'text-white/40' : 'text-white/20'
+          }`}
+        >
+          {isDone ? (
+            <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+          ) : isActive ? (
+            <Loader2 size={14} className={`${s.color} animate-spin shrink-0`} />
+          ) : (
+            <div className="w-3.5 h-3.5 rounded-full border border-white/10 shrink-0" />
+          )}
+          <span className={isActive ? 'font-medium' : ''}>{s.label}</span>
+        </motion.div>
+      );
+    })}
+  </div>
+);
+
+// ============================================================================
+// MAIN BUILDER VIEW
 // ============================================================================
 export const BuilderFullView = ({
   initialPrompt = '',
   onBack,
   credits,
-  setCredits
+  setCredits,
 }: {
   theme: 'light' | 'dark';
   initialPrompt?: string;
@@ -52,186 +336,43 @@ export const BuilderFullView = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [genStep, setGenStep] = useState(0);
-  const GEN_MSGS = ['Analizuję brief i dane z Google…', 'Projektuję układ i dobieram zdjęcia…', 'Piszę treści i styluję sekcje…', 'Składam pełny projekt React + Vite…'];
-
-  useEffect(() => {
-    if (!isGenerating) return;
-    const id = setInterval(() => setGenStep((s) => (s + 1) % GEN_MSGS.length), 1800);
-    return () => clearInterval(id);
-  }, [isGenerating]);
-
-  // NIE generuj automatycznie - użytkownik musi kliknąć Generuj (naprawia "odrazu generuje bez komendy")
-  useEffect(() => {
-    if (initialPrompt) {
-      setBuilderPrompt(initialPrompt);
-      // wyciągnij nazwę firmy z promptu dla podglądu q1
-      const m = initialPrompt.match(/dla firmy\s*["„]([^"”]+)["”]/i);
-      if (m && m[1]) setQ1(m[1].trim());
-    }
-  }, [initialPrompt]);
-
-  const [q1, setQ1] = useState('Restauracja');
-  const [q2, setQ2] = useState('Nowoczesny, minimalistyczny');
-  const [q3, setQ3] = useState('Niebieski #2563eb + biały + czarny');
-  const [q4, setQ4] = useState<string[]>(['Hero', 'Oferta', 'Cennik', 'Kontakt']);
-  const [qAccent, setQAccent] = useState('Niebieski #2563eb');
-  const [qFont, setQFont] = useState('Inter + Playfair Display');
-  const [qLayout, setQLayout] = useState('Split hero (zdjęcie po prawej)');
-  const [qImages, setQImages] = useState('Prawdziwe zdjęcia z Unsplash');
-  const [qSections, setQSections] = useState<string[]>(['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt']);
+  const [showWizard, setShowWizard] = useState(false);
+  const [isProMode, setIsProMode] = useState(false);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [publishErr, setPublishErr] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
+  const [leftW, setLeftW] = useState(400);
+  const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLIFrameElement>(null);
 
-  // --- Zapisywanie projektów na koncie (backend /api/projects) ---
+  // Wizard answers
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({
+    niche: 'Restauracja',
+    accent: 'Niebieski #2563eb',
+    layout: 'Nowoczesny (serif + duże litery)',
+    sections: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt'],
+  });
+
+  // Projects
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState('');
   const [saveMsg, setSaveMsg] = useState('');
-  const [renamingId, setRenamingId] = useState<number | null>(null);
-  const [renameDraft, setRenameDraft] = useState('');
-
-  const loadProjects = async () => {
-    try {
-      const res = await apiFetch('/api/projects/');
-      if (res.ok) setSavedProjects((await res.json()) || []);
-    } catch { /* brak sesji - pomijamy */ }
-  };
-  useEffect(() => { loadProjects(); }, []);
-
-  const handleSaveProject = async () => {
-    if (!generatedSite) return;
-    setSaveMsg('');
-    try {
-      if (currentProjectId) {
-        const res = await apiFetch(`/api/projects/${currentProjectId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ name: generatedSite.title }),
-        });
-        if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail || `Błąd ${res.status}`);
-        setSaveMsg('Zapisano zmiany w projekcie');
-      } else {
-        const res = await apiFetch('/api/projects/', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: generatedSite.title,
-            domain: generatedSite.domain,
-            niche: generatedSite.category,
-            content: { files: generatedSite.files, meta: { title: generatedSite.title, headline: generatedSite.headline, subheadline: generatedSite.subheadline, ctaText: generatedSite.ctaText } },
-          }),
-        });
-        if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail || `Błąd ${res.status}`);
-        const saved = await res.json();
-        setCurrentProjectId(saved.id);
-        setSaveMsg('Projekt zapisany na koncie ✓');
-      }
-      await loadProjects();
-      setTimeout(() => setSaveMsg(''), 2500);
-    } catch (e: any) {
-      setSaveMsg(e.message || 'Zapis wymaga zalogowania');
-    }
-  };
-
-  const handleDownload = (type: 'html' | 'react') => {
-    if (!generatedSite) return;
-    const safeName = (generatedSite.title || 'strona').replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '_');
-    if (type === 'html') {
-      const html = generatedSite.files['main/frontend/preview.html'] || '';
-      if (!html) { alert('Brak pliku HTML'); return; }
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${safeName}.html`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    } else {
-      // Download React project as multiple files
-      const files: Record<string, string> = {};
-      for (const [k, v] of Object.entries(generatedSite.files)) {
-        if (k.startsWith('main/frontend/') && k !== 'main/frontend/preview.html') {
-          files[k.replace('main/frontend/', '')] = v;
-        }
-      }
-      if (Object.keys(files).length === 0) { alert('Brak plików React do pobrania'); return; }
-      // Download App.tsx as the main file
-      const appTsx = files['src/App.tsx'] || '';
-      if (appTsx) {
-        const blob = new Blob([appTsx], { type: 'text/typescript' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'App.tsx';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-      }
-      // Also download other files
-      for (const [fname, content] of Object.entries(files)) {
-        if (fname !== 'src/App.tsx' && content) {
-          const blob = new Blob([content], { type: 'text/plain' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = fname.split('/').pop() || fname;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        }
-      }
-    }
-  };
-
-  const commitTitle = async () => {
-    setEditingTitle(false);
-    const name = titleDraft.trim();
-    if (!name || !generatedSite || name === generatedSite.title) return;
-    setGeneratedSite({ ...generatedSite, title: name });
-    if (currentProjectId) {
-      try {
-        await apiFetch(`/api/projects/${currentProjectId}`, { method: 'PATCH', body: JSON.stringify({ name }) });
-        await loadProjects();
-      } catch { /* ok */ }
-    }
-  };
-
-  const handleRenameProject = async (id: number) => {
-    const name = renameDraft.trim();
-    setRenamingId(null);
-    if (!name) return;
-    try {
-      await apiFetch(`/api/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
-      await loadProjects();
-    } catch { /* ok */ }
-  };
-
-  const handleLoadProject = (p: any) => {
-    const meta = p.content?.meta || {};
-    setGeneratedSite({
-      title: p.name,
-      category: p.niche || '',
-      domain: p.domain,
-      headline: meta.headline || p.name,
-      subheadline: meta.subheadline || '',
-      ctaText: meta.ctaText || 'Kontakt',
-      files: p.content?.files || {},
-    });
-    setCurrentProjectId(p.id);
-    setSelectedFile('main/frontend/index.html');
-  };
-
-  const handleDeleteProject = async (id: number) => {
-    try {
-      await apiFetch(`/api/projects/${id}`, { method: 'DELETE' });
-      if (currentProjectId === id) setCurrentProjectId(null);
-      await loadProjects();
-    } catch { /* ok */ }
-  };
-
-  const toggleQ4 = (v: string) => setQ4((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
-  const [showWizard, setShowWizard] = useState(false);
-  const [wizardStep, setWizardStep] = useState(0);
-  const [isProMode, setIsProMode] = useState(false);
   const cost = isProMode ? 15 : 10;
 
-  // Przesuwalna granica miedzy panelem promptu a podgladem
-  const splitRef = useRef<HTMLDivElement>(null);
-  const [leftW, setLeftW] = useState(340);
-  const [isDraggingSplit, setIsDraggingSplit] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const previewRef = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    if (!isGenerating) return;
+    const id = setInterval(() => setGenStep((s) => (s + 1) % THINKING_STEPS.length), 2200);
+    return () => clearInterval(id);
+  }, [isGenerating]);
+
+  useEffect(() => {
+    if (initialPrompt) setBuilderPrompt(initialPrompt);
+  }, [initialPrompt]);
+
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)');
     const fn = () => setIsDesktop(mq.matches);
@@ -239,23 +380,29 @@ export const BuilderFullView = ({
     mq.addEventListener?.('change', fn);
     return () => mq.removeEventListener?.('change', fn);
   }, []);
+
   useEffect(() => {
     if (!isDraggingSplit) return;
     const move = (e: MouseEvent) => {
       if (!splitRef.current) return;
       const rect = splitRef.current.getBoundingClientRect();
-      setLeftW(Math.min(Math.max(e.clientX - rect.left, 260), Math.floor(rect.width * 0.65)));
+      setLeftW(Math.min(Math.max(e.clientX - rect.left, 320), Math.floor(rect.width * 0.55)));
     };
     const up = () => setIsDraggingSplit(false);
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
-    return () => {
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-    };
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
   }, [isDraggingSplit]);
 
-  // Auto-wykrywaj biznes z promptu
+  useEffect(() => { loadProjects(); }, []);
+
+  const loadProjects = async () => {
+    try {
+      const res = await apiFetch('/api/projects/');
+      if (res.ok) setSavedProjects((await res.json()) || []);
+    } catch {}
+  };
+
   const detectBusiness = (text: string): string => {
     const t = text.toLowerCase();
     if (t.includes('restaurac') || t.includes('kebab') || t.includes('kurczak') || t.includes('jedzenie') || t.includes('food') || t.includes('pizzeria') || t.includes('bistro')) return 'Restauracja';
@@ -266,47 +413,24 @@ export const BuilderFullView = ({
     if (t.includes('kwiaciarni') || t.includes('kwiat')) return 'Kwiaciarnia';
     return '';
   };
-  const detectedBusiness = detectBusiness(builderPrompt);
-  // Wizard kroki — pomijaj jeśli już wiadomo
-  const WIZARD_STEPS = [
-    ...(detectedBusiness ? [] : [{ title: 'Jaki to biznes?', options: ['Restauracja', 'Barber', 'Salon beauty', 'Siłownia', 'Warsztat', 'Kwiaciarnia', 'Inne'], stateKey: 'q1' }]),
-    { title: 'Jaki akcent kolorystyczny?', options: ['Niebieski #2563eb', 'Ciemny/grafit #111827', 'Złoty #d97706', 'Zielony #059669', 'Fioletowy #7c3aed', 'Czerwony #dc2626'], stateKey: 'qAccent' },
-    { title: 'Jaki styl strony?', options: ['Nowoczesny (serif + duze liter)', 'Ciemny (dark mode + neon)', 'Brutalisty (grube ramki)', 'Minimalistyczny (Inter + duzo bialego)'], stateKey: 'qLayout' },
-    { title: 'Które sekcje?', options: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt'], multi: true, stateKey: 'qSections' },
-  ];
 
-  const buildPrompt = (override?: string) => {
-    const extra = override || builderPrompt;
-    const sections = qSections.join(', ');
-    return `Branża: ${q1}. Styl: ${q2}. Akcent kolorystyczny: ${qAccent}. Fonty: ${qFont}. Layout: ${qLayout}. Zdjęcia: ${qImages}. Sekcje: ${sections}. ${extra ? `Dodatkowy opis: ${extra}.` : ''} Zbuduj nowoczesną, profesjonalną stronę.`;
+  const buildPrompt = () => {
+    const sections = ((answers.sections as string[]) || []).join(', ');
+    const niche = answers.niche || 'Restauracja';
+    return `Branża: ${niche}. Styl: ${answers.layout || 'Nowoczesny'}. Akcent: ${answers.accent || '#2563eb'}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
   };
 
-  const starterIdeas = [
-    { title: 'Luksusowa agencja nieruchomości', icon: Home },
-    { title: 'Nowoczesny landing page dla SaaS', icon: Zap },
-    { title: 'Restauracja z menu i rezerwacją', icon: Coffee },
-    { title: 'Portfolio agencji kreatywnej', icon: Briefcase }
-  ];
-
-  const handleGenerate = async (promptText?: string) => {
-    let p = buildPrompt(promptText);
-    // Jeśli prompt zawiera nazwę firmy (z Leada), użyj jej jako business_name
-    let bizName = q1;
-    const m = (promptText || builderPrompt || p).match(/dla firmy\s*["„]([^"”]+)["”]/i);
-    if (m && m[1]) bizName = m[1].trim();
-    // Nie wysyłaj całego buildPrompt drugi raz w extraPrompt - unikaj duplikacji
-    const extra = promptText && promptText !== p ? promptText : builderPrompt;
+  const handleGenerate = async () => {
+    const p = buildPrompt();
     if (!p.trim()) return;
     if (credits < cost) {
-      alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}. Sprawdź dostępne plany w sekcji Cennik.`);
+      alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
       return;
     }
     setIsGenerating(true);
     setGenStep(0);
-    setSelectedFile('src/App.tsx');
-    setShowWizard(false);
     const start = Date.now();
-    const MIN_MS = 3200;
+    const MIN_MS = 3500;
     let fetchResult: any = null;
     let fetchError: any = null;
     try {
@@ -314,30 +438,27 @@ export const BuilderFullView = ({
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
         headers: { 'X-User-Plan': plan },
-        timeoutMs: 9000,
+        timeoutMs: 12000,
         body: JSON.stringify({
-          business_name: bizName,
-          niche: q1,
+          business_name: answers.niche || 'Firma',
+          niche: answers.niche || 'Restauracja',
           description: p,
-          style: q2,
-          colors: q3,
-          sections: q4,
-          extraPrompt: extra,
-          accent_color: qAccent,
-          layout: qLayout,
-          fonts: qFont,
-          photo_style: qImages,
+          style: String(answers.layout || 'Nowoczesny'),
+          colors: String(answers.accent || '#2563eb'),
+          sections: (answers.sections as string[]) || ['Hero', 'Oferta', 'Cennik', 'Kontakt'],
+          extraPrompt: builderPrompt,
+          accent_color: String(answers.accent || '#2563eb'),
+          layout: String(answers.layout || 'Nowoczesny'),
+          fonts: 'Inter',
         }),
       } as any);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || errData.warning || `Błąd generowania: HTTP ${res.status}`);
+        throw new Error(errData.detail || errData.warning || `Błąd: HTTP ${res.status}`);
       }
-      const data = await res.json();
-      fetchResult = data;
+      fetchResult = await res.json();
     } catch (e: any) {
       fetchError = e;
-      console.error('[Builder] Generation error:', e);
     } finally {
       const elapsed = Date.now() - start;
       if (elapsed < MIN_MS) await new Promise((r) => setTimeout(r, MIN_MS - elapsed));
@@ -347,8 +468,8 @@ export const BuilderFullView = ({
         const meta = data.meta || {};
         setGeneratedSite({
           title: meta.title || p.slice(0, 28),
-          category: q1,
-          domain: `${(meta.title || bizName || q1).toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
+          category: String(answers.niche),
+          domain: `${(meta.title || 'strona').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
           headline: meta.headline || p,
           subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'AI'})`,
           ctaText: meta.ctaText || 'Skontaktuj się',
@@ -357,593 +478,377 @@ export const BuilderFullView = ({
         const first = Object.keys(files).find((f) => f.endsWith('index.html')) || Object.keys(files)[0];
         if (first) setSelectedFile(first);
         setCredits((c) => Math.max(0, c - cost));
-        if (data.warning) console.warn('[Builder] Warning:', data.warning);
       } else if (fetchError) {
-        const msg = fetchError.message || 'Błąd generowania - spróbuj ponownie';
         setGeneratedSite({
           title: p.slice(0, 25),
-          category: q1,
-          domain: 'mojastrona.sitemorph.pl',
+          category: String(answers.niche),
+          domain: 'blad.sitemorph.pl',
           headline: p,
-          subheadline: `Błąd: ${msg}`,
+          subheadline: `Błąd: ${fetchError.message}`,
           ctaText: 'Skontaktuj się',
-          files: {
-            'src/App.tsx': `export default function App(){return <div className="p-8"><h1>${p}</h1><p style="color:red">${msg}</p></div>}`,
-          },
+          files: {},
         });
       }
       setIsGenerating(false);
     }
   };
 
-  const handleWizardNext = () => {
-    if (wizardStep < WIZARD_STEPS.length - 1) {
-      setWizardStep((s) => s + 1);
-    } else {
+  const handleWizardComplete = (ans: Record<string, string | string[]>) => {
+    setAnswers(ans);
+    // Auto-generate after wizard
+    setTimeout(() => {
+      setBuilderPrompt((prev) => {
+        const niche = ans.niche || '';
+        return prev || `Strona dla ${niche}`;
+      });
       handleGenerate();
+    }, 400);
+  };
+
+  const handleSaveProject = async () => {
+    if (!generatedSite) return;
+    setSaveMsg('');
+    try {
+      if (currentProjectId) {
+        await apiFetch(`/api/projects/${currentProjectId}`, { method: 'PATCH', body: JSON.stringify({ name: generatedSite.title }) });
+        setSaveMsg('Zapisano ✓');
+      } else {
+        const res = await apiFetch('/api/projects/', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: generatedSite.title,
+            domain: generatedSite.domain,
+            niche: generatedSite.category,
+            content: { files: generatedSite.files, meta: { title: generatedSite.title, headline: generatedSite.headline, subheadline: generatedSite.subheadline, ctaText: generatedSite.ctaText } },
+          }),
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setCurrentProjectId(saved.id);
+          setSaveMsg('Zapisano na koncie ✓');
+        }
+      }
+      await loadProjects();
+      setTimeout(() => setSaveMsg(''), 2500);
+    } catch (e: any) {
+      setSaveMsg(e.message || 'Wymaga zalogowania');
     }
   };
 
-  const handleWizardAuto = () => {
-    const step = WIZARD_STEPS[wizardStep];
-    const opts = step.options;
-    if (step.multi) {
-      const shuffled = [...opts].sort(() => 0.5 - Math.random()).slice(0, 2 + Math.floor(Math.random() * 2));
-      shuffled.forEach((o) => toggleQ4(o));
+  const handleDownload = (type: 'html' | 'react') => {
+    if (!generatedSite) return;
+    const safeName = (generatedSite.title || 'strona').replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '_');
+    if (type === 'html') {
+      const html = generatedSite.files['main/frontend/preview.html'] || '';
+      if (!html) return;
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${safeName}.html`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     } else {
-      const pick = opts[Math.floor(Math.random() * opts.length)];
-      if (step.stateKey === 'q1') setQ1(pick);
-      else if (step.stateKey === 'qAccent') setQAccent(pick);
-      else if (step.stateKey === 'qLayout') {
-        // Map style names to layout + font
-        if (pick.startsWith('Ciemny')) { setQLayout('Dark mode (ciemne tło)'); setQFont('Space Grotesk + Lora'); }
-        else if (pick.startsWith('Brutalist')) { setQLayout('Split hero (zdjęcie po prawej)'); setQFont('Space Grotesk + Lora'); }
-        else if (pick.startsWith('Minimal')) { setQLayout('Centered (wszystko wyśrodkowane)'); setQFont('Inter (sans-serif only)'); }
-        else { setQLayout('Split hero (zdjęcie po prawej)'); setQFont('Inter + Playfair Display (serif)'); }
+      for (const [fname, content] of Object.entries(generatedSite.files)) {
+        if (content) {
+          const blob = new Blob([content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = fname.split('/').pop() || fname;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
       }
     }
-    // auto next
-    setTimeout(() => handleWizardNext(), 280);
   };
 
+  // Quick prompts for badges
+  const quickPrompts = [
+    { icon: Coffee, label: 'Restauracja', prompt: 'Restauracja z menu, galerią zdjęć i rezerwacją online' },
+    { icon: Briefcase, label: 'Landing page', prompt: 'Nowoczesny landing page dla startupu SaaS z sekcją cen' },
+    { icon: Home, label: 'Nieruchomości', prompt: 'Agencja nieruchomości z ofertami mieszkań i domów' },
+    { icon: Zap, label: 'Usługi', prompt: 'Firma usługowa z cennikiem i formularzem kontaktowym' },
+  ];
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="h-screen flex flex-col overflow-hidden select-none bg-[#fcfcf9] dark:bg-[#0a0a0a] text-[#2563eb] dark:text-white"
-    >
-      <header className="h-14 border-b px-4 flex items-center justify-between shrink-0 bg-white dark:bg-black  border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white">
-        <motion.button 
-          whileHover={{ x: -2 }}
-          onClick={onBack} 
-          className="flex items-center gap-2 text-[#2563eb] dark:text-white hover:text-emerald-400 font-black text-sm transition-colors cursor-pointer bg-transparent border-none"
-        >
-          <ArrowLeft size={16} />
+    <>
+      <style>{BORDER_BEAM_CSS}</style>
+      <QuestionnaireModal
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        onComplete={handleWizardComplete}
+        initialNiche={detectBusiness(builderPrompt)}
+      />
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="h-screen flex flex-col overflow-hidden select-none bg-[#0a0a0a] text-white"
+      >
+        {/* Header */}
+        <header className="h-12 border-b px-4 flex items-center justify-between shrink-0 bg-[#111111] border-white/[0.06]">
+          <motion.button whileHover={{ x: -2 }} onClick={onBack} className="flex items-center gap-2 text-white/70 hover:text-white font-semibold text-xs transition-colors cursor-pointer bg-transparent border-none">
+            <ArrowLeft size={14} />
+            <img src="/logo.svg" alt="SiteMorph" width="20" height="20" className="rounded-md" />
+            Kreator
+          </motion.button>
+          <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/[0.06]">
+            {(['preview', 'code'] as const).map((mode) => (
+              <button key={mode} onClick={() => setActiveMode(mode)} className={`relative flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer border-none ${activeMode === mode ? 'text-white' : 'text-white/40 hover:text-white/60'}`}>
+                {activeMode === mode && <motion.div layoutId="builderMode" transition={springTransition} className="absolute inset-0 bg-white/10 rounded-md" />}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  {mode === 'preview' ? <Monitor size={12} /> : <CodeIcon size={12} />}
+                  {mode === 'preview' ? 'Podgląd' : 'Kod'}
+                </span>
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="SiteMorph" width="24" height="24" className="rounded-lg shadow-sm" />
-            Kreator SiteMorph
-          </div>
-        </motion.button>
-
-        <div className="flex items-center gap-1 bg-[#F7F6F3] dark:bg-zinc-900 p-1 rounded-xl border border-[#EAEAEA] dark:border-white/[0.08]">
-          {(['preview', 'code'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setActiveMode(mode)}
-              className={`relative flex items-center gap-1.5 px-3.5 py-1 rounded-lg text-xs font-black transition-colors cursor-pointer border-none ${
-                activeMode === mode ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white'
-              }`}
-            >
-              {activeMode === mode && (
-                <motion.div
-                  layoutId="builderModePill"
-                  transition={springTransition}
-                  className="absolute inset-0 bg-[#111111] dark:bg-white rounded-lg shadow-sm"
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                {mode === 'preview' ? <Monitor size={14} /> : <CodeIcon size={14} />}
-                {mode === 'preview' ? 'Podgląd' : 'Kod'}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="text-[10px] font-black text-[#2563eb] dark:text-white bg-[#F7F6F3] dark:bg-zinc-900 px-2.5 py-1 rounded-md border border-[#EAEAEA] dark:border-white/[0.08] flex items-center gap-1.5">
-            <RefreshCw size={12} className={isGenerating ? 'animate-spin text-emerald-400' : ''} /> Autozapis
-          </div>
-          <Button
-            variant="primary" size="sm"
-            disabled={isGenerating || !generatedSite || publishing}
-            onClick={async () => {
+            <span className="text-[10px] text-white/30 font-medium">{credits} kr.</span>
+            <Button variant="primary" size="sm" disabled={isGenerating || !generatedSite} onClick={async () => {
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
               try {
-                const html = generatedSite.files['main/frontend/preview.html'] || generatedSite.files['main/frontend/index.html'] || generatedSite.files['index.html'] || '';
-                const res = await apiFetch('/api/publish', {
-                  method: 'POST',
-                  body: JSON.stringify({ html, title: generatedSite.title }),
-                });
+                const html = generatedSite.files['main/frontend/preview.html'] || '';
+                const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({ html, title: generatedSite.title }) });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
                 const apiOrigin = API_BASE || `${window.location.protocol}//${window.location.hostname}:8000`;
-                const full = `${apiOrigin}${data.url}`;
-                setPublishedUrl(full);
-                navigator.clipboard?.writeText(full).catch(()=>{});
-              } catch (e: any) {
-                setPublishErr(e.message || 'Błąd publikacji');
-              } finally { setPublishing(false) }
-            }}
-            className="font-black"
-          >
-            {publishing ? 'Publikuję…' : 'Opublikuj'}
-          </Button>
-        </div>
-      </header>
-
-      <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        <div
-          style={isDesktop ? { width: leftW } : undefined}
-          className="border-b md:border-b-0 md:border-r h-[46vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-[#2563eb] dark:text-white rounded-2xl shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
-        >
-          <div className="flex-1 p-4 overflow-y-auto no-scrollbar space-y-5">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-[#F7F6F3] dark:bg-zinc-900 text-[#2563eb] dark:text-white flex items-center justify-center mx-auto mb-3 border border-[#EAEAEA] dark:border-white/[0.08] shadow-sm">
-                <Globe size={24} />
-              </div>
-              <h3 className="font-black text-sm">Zbuduj swoją stronę</h3>
-              <p className="text-xs font-bold leading-relaxed opacity-80">
-                Kompletny serwis z treściami, grafikami i formularzem kontaktowym.
-              </p>
-            </div>
-
-            <div className="rounded-lg border p-3 bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/20">
-              <p className="text-[11px] font-bold leading-relaxed opacity-80">
-                Wklej dane firmy prosto z Google Maps (nazwa, adres, telefon, opinie) albo opisz własnymi słowami -
-                <span className="font-black"> Gemini Flash </span>
-                zbuduje kompletną stronę i nigdy nie będzie pytać o szczegóły.
-              </p>
-            </div>
+                setPublishedUrl(`${apiOrigin}${data.url}`);
+              } catch (e: any) { setPublishErr(e.message); } finally { setPublishing(false) }
+            }} className="font-semibold text-[11px]">
+              {publishing ? '...' : 'Opublikuj'}
+            </Button>
           </div>
+        </header>
 
-          <div className="p-3 border-t bg-neutral-50/50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800">
-            <div className="rounded-2xl border p-4 shadow-lg bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
-              <textarea
-                rows={5}
-                value={builderPrompt}
-                onChange={(e) => setBuilderPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    // ZAWSZE pokazuj wizard przed generowaniem
-                    setWizardStep(0); setShowWizard(true); if (detectedBusiness) setQ1(detectedBusiness);
-                  }
-                }}
-                placeholder="Wklej dane z Google Maps albo opisz firmę (Enter = generuj)..."
-                className="w-full bg-transparent border-none outline-none text-xs font-semibold leading-relaxed placeholder:text-blue-400 dark:placeholder:text-neutral-500 resize-y text-[#2563eb] dark:text-white min-h-[90px]"
-              />
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex gap-2">
-                  <motion.button whileHover={{ scale: 1.1 }} className="hover:text-emerald-400 cursor-pointer bg-transparent border-none text-inherit"><Paperclip size={14} /></motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} className="hover:text-emerald-400 cursor-pointer bg-transparent border-none text-inherit"><CodeIcon size={14} /></motion.button>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    // ZAWSZE pokazuj wizard przed generowaniem
-                    setWizardStep(0); setShowWizard(true); if (detectedBusiness) setQ1(detectedBusiness);
-                  }}
-                  className="w-7 h-7 bg-[#111111] dark:bg-white text-white dark:text-black rounded-lg flex items-center justify-center cursor-pointer border-none font-black shadow-md"
-                  title={builderPrompt.trim() ? `Generuj - ${cost} kredytów` : 'Otwórz kreator pytań'}
-                >
-                  <Send size={12} />
-                </motion.button>
-              </div>
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#EAEAEA] dark:border-white/[0.08] gap-1.5">
-                <span className="text-[10px] font-black opacity-60">{credits} kr.</span>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => setBuilderPrompt(p => p + (p ? ' ' : '') + ` Dodaj galerię 6 prawdziwych zdjęć z Unsplash dla branży ${q1} (https://source.unsplash.com/800x600/?${encodeURIComponent(q1)})`)} className="px-2 py-0.5 rounded-full text-[10px] font-black border bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:brightness-95 flex items-center gap-1">
-                    <ImageIcon size={10} /> Zdjęcia
-                  </button>
-                  <button onClick={() => setIsProMode(!isProMode)} className={`px-2 py-0.5 rounded-full text-[10px] font-black cursor-pointer border ${isProMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-transparent opacity-60 hover:opacity-100 border-[#EAEAEA] dark:border-neutral-700'}`}>
-                    PRO · {cost} kr
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          onMouseDown={(e) => { e.preventDefault(); setIsDraggingSplit(true); }}
-          className={`hidden md:flex w-[9px] shrink-0 cursor-col-resize items-center justify-center transition-colors ${isDraggingSplit ? 'bg-blue-100 dark:bg-neutral-900' : 'hover:bg-[#F7F6F3] dark:hover:bg-neutral-900/60'}`}
-          title="Przeciągnij, aby zmienić szerokość panelu"
-        >
-          <div className={`w-[3px] h-14 rounded-lg transition-colors ${isDraggingSplit ? 'bg-[#F7F6F3]0' : 'bg-blue-200 dark:bg-neutral-800'}`} />
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-hidden flex bg-[#fcfcf9] dark:bg-[#0a0a0a] p-2 gap-2">
-          <AnimatePresence mode="wait">
+        {/* Main */}
+        <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Left Panel — Agent Chat */}
+          <div style={isDesktop ? { width: leftW } : undefined} className="border-b md:border-b-0 md:border-r h-[45vh] md:h-auto flex flex-col overflow-hidden shrink-0 bg-[#111111] border-white/[0.06]">
             {isGenerating ? (
-              <motion.div 
-                key="loading"
-                initial={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
-                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
-                className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 relative overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
-                  className="w-12 h-12 rounded-2xl bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center shadow-lg"
-                >
-                  <Sparkles size={22} />
-                </motion.div>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={genStep}
-                    initial={{ opacity: 0, y: 8, filter: 'blur(6px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: -8, filter: 'blur(6px)' }}
-                    transition={{ duration: 0.22 }}
-                    className="text-xs font-black tracking-wide"
-                  >
-                    {GEN_MSGS[genStep]}
-                  </motion.div>
-                </AnimatePresence>
-                <div className="flex gap-1">
-                  {[0, 1, 2, 3].map((i) => (
-                    <motion.span
-                      key={i}
-                      animate={{ scale: genStep === i ? 1.6 : 1, opacity: genStep === i ? 1 : 0.3 }}
-                      className="w-1.5 h-1.5 rounded-full bg-[#111111] dark:bg-white"
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            ) : !generatedSite ? (
-              <motion.div 
-                key="empty"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 flex items-center justify-center p-6 bg-transparent"
-              >
-                <div className="text-center space-y-2 p-12 rounded-3xl border shadow-xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border bg-[#F7F6F3] dark:bg-zinc-900 border-[#EAEAEA] dark:border-white/[0.08]">
-                    <Monitor size={28} />
+              /* Thinking State */
+              <div className="flex-1 p-5 overflow-y-auto">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center">
+                    <Sparkles size={14} className="text-green-400" />
                   </div>
-                  <h3 className="text-base font-black">Brak podglądu</h3>
-                  <p className="text-xs font-bold max-w-xs opacity-80">Wpisz instrukcję w panelu po lewej, aby wygenerować pierwszy podgląd na żywo.</p>
-                </div>
-              </motion.div>
-            ) : activeMode === 'preview' ? (
-              <motion.div 
-                key="preview"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={springTransition}
-                className="flex-1 flex min-h-0 overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
-              >
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="h-9 border-b border-[#EAEAEA] dark:border-white/[0.06] flex items-center justify-between px-3 bg-[#F7F6F3]/40 dark:bg-neutral-950 text-[11px] font-bold shrink-0 gap-2">
-                    <span className="flex items-center gap-2 truncate"><Globe size={12} className="shrink-0" /> {generatedSite.domain} - Podgląd</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button onClick={() => { const on = !isEditMode; setIsEditMode(on); try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = on ? 'true' : 'false'; } catch {} }} className={`px-2.5 py-1 rounded-full text-[10px] font-black border flex items-center gap-1 ${isEditMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-[#F7F6F3]'}`}>
-                        <MousePointer2 size={11} /> {isEditMode ? 'Edycja: ON' : 'Kliknij by edytować'}
-                      </button>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black hidden sm:inline">LIVE</span>
-                    </div>
-                  </div>
-                  {(() => {
-                    const viteShell = generatedSite.files['main/frontend/index.html'] || '';
-                    const isViteShell = viteShell.includes('src/main.tsx');
-                    const previewHtml = generatedSite.files['main/frontend/preview.html'] || (isViteShell ? '' : viteShell) || generatedSite.files['index.html'] || '';
-                    const srcDoc = previewHtml || `<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${generatedSite.title}</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-white text-neutral-900"><div class="max-w-6xl mx-auto px-6 py-16 text-center"><h1 class="text-4xl font-black">${generatedSite.headline}</h1><p class="mt-3 text-neutral-600">${generatedSite.subheadline}</p><a href="#" class="inline-block mt-6 bg-black text-white px-6 py-3 rounded-full font-black">${generatedSite.ctaText}</a></div></body></html>`;
-                    return (
-                      <iframe
-                        ref={previewRef}
-                        title="Podgląd"
-                        className="flex-1 w-full border-0 bg-white"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                        srcDoc={srcDoc}
-                      />
-                    );
-                  })()}
-                </div>
-                <div className="hidden lg:flex w-64 border-l bg-white dark:bg-neutral-950 flex-col shrink-0 overflow-hidden">
-                  <div className="p-4 border-b border-[#EAEAEA] dark:border-white/[0.08] space-y-1">
-                    <div className="text-[11px] font-black tracking-wider uppercase opacity-60">Podgląd</div>
-                    {editingTitle ? (
-                      <input
-                        autoFocus
-                        value={titleDraft}
-                        onChange={(e) => setTitleDraft(e.target.value)}
-                        onBlur={commitTitle}
-                        onKeyDown={(e) => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
-                        className="w-full text-xs font-bold bg-[#F7F6F3] dark:bg-zinc-900 border border-[#EAEAEA] dark:border-white/[0.08] rounded-lg px-2 py-1 outline-none"
-                      />
-                    ) : (
-                      <button
-                        onClick={() => { setTitleDraft(generatedSite.title); setEditingTitle(true); }}
-                        title="Kliknij, aby zmienić nazwę"
-                        className="text-xs font-bold truncate hover:text-emerald-500 cursor-pointer bg-transparent border-none text-inherit w-full text-left flex items-center gap-1.5"
-                      >
-                        {generatedSite.title} <Pencil size={10} className="opacity-50 shrink-0" />
-                      </button>
-                    )}
-                    <div className="flex items-center gap-2 text-[11px]"><Eye size={12} className="opacity-60"/> 2 online</div>
-                  </div>
-                  <div className="p-3 space-y-3 flex-1 overflow-y-auto">
-                    <div className="text-[10px] font-black opacity-60">Dostosuj, co tylko chcesz</div>
-                    <p className="text-xs leading-relaxed opacity-80">Kliknij tekst w podglądzie (tryb edycji) lub poproś AI: „zmień nagłówek na…”, „dodaj zdjęcie”.</p>
-                    <button onClick={() => setIsEditMode(v => { const nv=!v; try{const d=previewRef.current?.contentDocument; if(d) d.body.contentEditable=nv?'true':'false';}catch{} return nv; })} className={`w-full py-2 rounded-xl text-xs font-black border ${isEditMode ? 'bg-[#111111] text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:bg-[#F7F6F3]'}`}>{isEditMode ? 'Wyłącz edycję' : 'Włącz edycję tekstu'}</button>
-                    <div className="pt-3 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-2">
-                      <div className="text-[10px] font-black opacity-60">Link do podglądu</div>
-                      <div className="text-[11px] font-mono truncate bg-[#F7F6F3] dark:bg-zinc-900 p-2 rounded-lg border border-[#EAEAEA] dark:border-white/[0.08]">{generatedSite.domain}</div>
-                      <button onClick={handleSaveProject} className="w-full py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5"><Save size={12}/> {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}</button>
-                      <button onClick={() => handleDownload('react')} className="w-full py-2 rounded-xl bg-[#111111] dark:bg-white text-white dark:text-black text-xs font-black flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"><Download size={12}/> Pobierz React</button>
-                      <button onClick={() => handleDownload('html')} className="w-full py-2 rounded-xl border border-[#EAEAEA] dark:border-white/[0.08] text-xs font-black flex items-center justify-center gap-1.5 hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors"><Download size={12}/> Pobierz HTML</button>
-                      {saveMsg && <p className="text-[10px] font-black text-emerald-500">{saveMsg}</p>}
-                    </div>
-                    <div className="pt-3 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-2">
-                      <div className="text-[10px] font-black opacity-60 flex items-center gap-1"><FolderOpen size={11}/> Twoje projekty</div>
-                      {savedProjects.length === 0 ? (
-                        <p className="text-[10px] font-bold opacity-60">Brak zapisanych projektów.</p>
-                      ) : savedProjects.map((p) => (
-                        <div key={p.id} className="rounded-lg border border-[#EAEAEA] dark:border-white/[0.08] bg-white dark:bg-neutral-900 p-2 space-y-1">
-                          {renamingId === p.id ? (
-                            <input
-                              autoFocus
-                              value={renameDraft}
-                              onChange={(e) => setRenameDraft(e.target.value)}
-                              onBlur={() => handleRenameProject(p.id)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameProject(p.id); if (e.key === 'Escape') setRenamingId(null); }}
-                              className="w-full text-[11px] font-bold bg-[#F7F6F3] dark:bg-neutral-950 border border-[#EAEAEA] dark:border-white/[0.08] rounded px-1.5 py-0.5 outline-none"
-                            />
-                          ) : (
-                            <button onClick={() => { setRenameDraft(p.name); setRenamingId(p.id); }} className="w-full text-left text-[11px] font-black truncate hover:text-emerald-500 flex items-center gap-1 cursor-pointer bg-transparent border-none text-inherit">
-                              {p.name} <Pencil size={9} className="opacity-40 shrink-0" />
-                            </button>
-                          )}
-                          <div className="flex gap-1">
-                            <button onClick={() => handleLoadProject(p)} className="flex-1 py-1 rounded-md text-[10px] font-black bg-[#F7F6F3] dark:bg-neutral-950 border border-[#EAEAEA] dark:border-white/[0.08] hover:bg-blue-100 cursor-pointer">Wczytaj</button>
-                            <button onClick={() => handleDeleteProject(p.id)} className="px-2 py-1 rounded-md text-[10px] font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-neutral-950 border border-transparent hover:border-rose-200 cursor-pointer bg-transparent"><Trash2 size={11} /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div>
+                    <div className="text-xs font-semibold text-white">SiteMorph Agent</div>
+                    <div className="text-[10px] text-white/40">Pracuję nad Twoją stroną...</div>
                   </div>
                 </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="code"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 flex font-mono text-xs overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800"
-              >
-                <div className="w-56 bg-[#F7F6F3] dark:bg-neutral-950 border-r border-[#EAEAEA] dark:border-neutral-900 p-3 space-y-1 overflow-y-auto no-scrollbar">
-                  <span className="text-[9px] font-black block mb-2 opacity-70 uppercase tracking-wider">Drzewo plikow - Vite</span>
-                  {Object.keys(generatedSite.files).map((fname) => (
-                    <button
-                      key={fname}
-                      onClick={() => setSelectedFile(fname)}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-bold truncate border ${selectedFile === fname ? 'bg-[#111111] dark:bg-white text-white dark:text-black border-transparent shadow-sm' : 'bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-white/[0.08] hover:border-blue-300'}`}
-                    >
-                      {fname}
+                <ThinkingState step={genStep} />
+              </div>
+            ) : generatedSite ? (
+              /* After Generation — summary */
+              <div className="flex-1 p-5 overflow-y-auto space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/20 border border-green-500/20 flex items-center justify-center">
+                    <CheckCircle2 size={14} className="text-green-400" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-white">Strona gotowa!</div>
+                    <div className="text-[10px] text-white/40">{generatedSite.title}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <button onClick={() => setIsEditMode((v) => { const nv = !v; try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = nv ? 'true' : 'false'; } catch {} return nv; })} className={`w-full py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${isEditMode ? 'bg-green-500/20 border-green-500/30 text-green-300' : 'bg-white/5 border-white/10 text-white/60 hover:text-white/80'}`}>
+                    <MousePointer2 size={12} className="inline mr-1.5" />
+                    {isEditMode ? 'Wyłącz edycję' : 'Edytuj tekst'}
+                  </button>
+                  <button onClick={handleSaveProject} className="w-full py-2 rounded-lg text-xs font-semibold bg-white text-black hover:bg-white/90 transition-colors cursor-pointer border-none">
+                    <Save size={12} className="inline mr-1.5" />
+                    {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
+                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDownload('html')} className="flex-1 py-2 rounded-lg text-[11px] font-semibold bg-white/5 border border-white/10 text-white/60 hover:text-white/80 transition-colors cursor-pointer">
+                      <Download size={11} className="inline mr-1" /> HTML
+                    </button>
+                    <button onClick={() => handleDownload('react')} className="flex-1 py-2 rounded-lg text-[11px] font-semibold bg-white/5 border border-white/10 text-white/60 hover:text-white/80 transition-colors cursor-pointer">
+                      <Download size={11} className="inline mr-1" /> React
+                    </button>
+                  </div>
+                  {saveMsg && <p className="text-[10px] text-green-400 text-center">{saveMsg}</p>}
+                </div>
+
+                <div className="pt-3 border-t border-white/[0.06]">
+                  <div className="text-[10px] text-white/30 font-semibold mb-2 uppercase tracking-wider">Projekty</div>
+                  {savedProjects.length === 0 ? (
+                    <p className="text-[10px] text-white/20">Brak zapisanych projektów</p>
+                  ) : savedProjects.slice(0, 5).map((p) => (
+                    <button key={p.id} onClick={() => {
+                      const meta = p.content?.meta || {};
+                      setGeneratedSite({ title: p.name, category: p.niche || '', domain: p.domain, headline: meta.headline || p.name, subheadline: meta.subheadline || '', ctaText: meta.ctaText || 'Kontakt', files: p.content?.files || {} });
+                      setCurrentProjectId(p.id);
+                    }} className="w-full text-left px-2 py-1.5 rounded-md text-[11px] text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer border-none bg-transparent truncate">
+                      {p.name}
                     </button>
                   ))}
                 </div>
-                <div className="flex-1 p-4 overflow-y-auto no-scrollbar bg-white dark:bg-black flex flex-col">
-                  <div className="flex items-center justify-between mb-2 text-[10px] font-black opacity-60 shrink-0">
-                    <span className="truncate">{selectedFile}</span>
-                    <button onClick={() => navigator.clipboard.writeText(generatedSite.files[selectedFile] || '')} className="px-2 py-1 rounded-full border bg-[#F7F6F3] dark:bg-zinc-900 border-[#EAEAEA] dark:border-white/[0.08] cursor-pointer">Kopiuj</button>
+              </div>
+            ) : (
+              /* Empty State — Agent Chat */
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 p-5 overflow-y-auto space-y-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center">
+                      <svg fill="none" height="24" viewBox="0 0 48 48" width="24">
+                        <path d="m6 24c11.4411 0 18-6.5589 18-18 0 11.4411 6.5589 18 18 18-11.4411 0-18 6.5589-18 18 0-11.4411-6.5589-18-18-18z" fill="url(#sm-grad)" fillRule="evenodd" />
+                        <defs><linearGradient id="sm-grad" x1="24" x2="24" y1="6" y2="42" gradientUnits="userSpaceOnUse"><stop stopColor="#22c55e" stopOpacity=".8" /><stop offset="1" stopColor="#3b82f6" stopOpacity=".5" /></linearGradient></defs>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-white/80">Cześć! 👋</h2>
+                      <h3 className="text-base font-semibold text-white">Opisz stronę, a ją zbuduję.</h3>
+                    </div>
                   </div>
-                  <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-words bg-neutral-950 text-lime-300 p-4 rounded-xl overflow-x-auto flex-1">{generatedSite.files[selectedFile] || ''}</pre>
+
+                  <p className="text-xs text-white/40 leading-relaxed">
+                    Wklej dane firmy prosto z Google Maps albo opisz własnymi słowami. Zbuduję kompletną stronę z treściami, zdjęciami i formularzem kontaktowym.
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {quickPrompts.map((qp) => (
+                      <button key={qp.label} onClick={() => setBuilderPrompt(qp.prompt)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/5 border border-white/[0.06] text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors cursor-pointer">
+                        <qp.icon size={11} className="text-white/40" />
+                        {qp.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chat Input — Border Beam */}
+                <div className="p-3 border-t border-white/[0.06]">
+                  <div className="sm-border-beam rounded-xl">
+                    <div className="relative rounded-xl bg-[#1a1d23] border border-white/[0.08] overflow-hidden">
+                      <textarea
+                        rows={3}
+                        value={builderPrompt}
+                        onChange={(e) => setBuilderPrompt(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            setShowWizard(true);
+                          }
+                        }}
+                        placeholder="Opisz stronę, którą chcesz zbudować..."
+                        className="w-full bg-transparent border-none outline-none text-sm text-white placeholder:text-white/25 resize-none px-4 pt-4 pb-2 min-h-[80px]"
+                      />
+                      <div className="flex items-center justify-between px-3 pb-3">
+                        <div className="flex items-center gap-1">
+                          <button className="p-1.5 rounded-md hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors cursor-pointer border-none bg-transparent">
+                            <Paperclip size={14} />
+                          </button>
+                          <button className="p-1.5 rounded-md hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors cursor-pointer border-none bg-transparent">
+                            <ImageIcon size={14} />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-white/20 font-medium">{cost} kr.</span>
+                          <button
+                            onClick={() => setShowWizard(true)}
+                            disabled={!builderPrompt.trim()}
+                            className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
+                          >
+                            <Send size={14} className="text-white" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Split Handle */}
+          <div
+            onMouseDown={(e) => { e.preventDefault(); setIsDraggingSplit(true); }}
+            className={`hidden md:flex w-2 shrink-0 cursor-col-resize items-center justify-center transition-colors ${isDraggingSplit ? 'bg-green-500/10' : 'hover:bg-white/5'}`}
+          >
+            <div className={`w-0.5 h-12 rounded-full transition-colors ${isDraggingSplit ? 'bg-green-500/40' : 'bg-white/10'}`} />
+          </div>
+
+          {/* Right Panel — Preview / Code */}
+          <div className="flex-1 min-h-0 overflow-hidden flex bg-[#0a0a0a] p-2">
+            <AnimatePresence mode="wait">
+              {isGenerating ? (
+                <motion.div key="loading" initial={{ opacity: 0, filter: 'blur(8px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center rounded-xl bg-[#111111] border border-white/[0.06]">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 grid place-items-center mb-3">
+                    <Sparkles size={18} className="text-green-400" />
+                  </motion.div>
+                  <div className="text-xs font-medium text-white/60">{THINKING_STEPS[genStep]?.label || 'Pracuję...'}</div>
+                </motion.div>
+              ) : !generatedSite ? (
+                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center rounded-xl bg-[#111111] border border-white/[0.06]">
+                  <div className="text-center space-y-2 p-8">
+                    <div className="w-14 h-14 rounded-xl bg-white/5 border border-white/[0.06] flex items-center justify-center mx-auto">
+                      <Monitor size={24} className="text-white/20" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white/40">Podgląd strony</h3>
+                    <p className="text-xs text-white/20 max-w-xs">Opisz stronę w panelu po lewej, aby wygenerować podgląd.</p>
+                  </div>
+                </motion.div>
+              ) : activeMode === 'preview' ? (
+                <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col min-h-0 rounded-xl overflow-hidden bg-[#111111] border border-white/[0.06]">
+                  <div className="h-8 border-b border-white/[0.06] flex items-center justify-between px-3 shrink-0">
+                    <span className="text-[10px] text-white/40 font-medium truncate">{generatedSite.domain}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[9px] font-semibold">LIVE</span>
+                    </div>
+                  </div>
+                  {(() => {
+                    const previewHtml = generatedSite.files['main/frontend/preview.html'] || '';
+                    const srcDoc = previewHtml || `<html><body style="background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter"><h1>${generatedSite.headline}</h1></body></html>`;
+                    return (
+                      <iframe ref={previewRef} title="Podgląd" className="flex-1 w-full border-0 bg-white" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" srcDoc={srcDoc} />
+                    );
+                  })()}
+                </motion.div>
+              ) : (
+                <motion.div key="code" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex rounded-xl overflow-hidden bg-[#111111] border border-white/[0.06]">
+                  <div className="w-48 bg-[#0d0d0d] border-r border-white/[0.06] p-2 space-y-0.5 overflow-y-auto">
+                    <span className="text-[9px] text-white/30 font-semibold block mb-1 uppercase tracking-wider">Pliki</span>
+                    {Object.keys(generatedSite.files).map((fname) => (
+                      <button key={fname} onClick={() => setSelectedFile(fname)} className={`w-full text-left px-2 py-1 rounded text-[10px] font-medium truncate border-none cursor-pointer ${selectedFile === fname ? 'bg-white/10 text-white' : 'bg-transparent text-white/40 hover:text-white/60 hover:bg-white/5'}`}>
+                        {fname.split('/').pop()}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 p-3 overflow-y-auto bg-[#0a0a0a]">
+                    <pre className="text-[10px] leading-relaxed whitespace-pre-wrap break-words text-green-300/80">{generatedSite.files[selectedFile] || ''}</pre>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Published URL Modal */}
+        <AnimatePresence>
+          {publishedUrl && (
+            <>
+              <motion.div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPublishedUrl(null)} />
+              <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                className="fixed right-0 top-0 bottom-0 w-[340px] max-w-[90vw] z-[61] bg-[#111111] border-l border-white/[0.06] shadow-2xl flex flex-col">
+                <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 size={18} className="text-green-400" />
+                    <span className="text-sm font-semibold text-white">Opublikowano!</span>
+                  </div>
+                  <button onClick={() => setPublishedUrl(null)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/10 text-white/40 cursor-pointer border-none bg-transparent"><X size={14} /></button>
+                </div>
+                <div className="p-5 space-y-3 flex-1">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/5 border border-white/[0.06]">
+                    <input readOnly value={publishedUrl} onFocus={(e) => e.currentTarget.select()} className="flex-1 bg-transparent text-xs font-medium text-white outline-none min-w-0" />
+                    <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className="px-2.5 py-1 rounded-md bg-white text-black text-[10px] font-semibold shrink-0 cursor-pointer border-none">Kopiuj</button>
+                  </div>
+                  {publishErr && <p className="text-xs text-red-400">{publishErr}</p>}
+                  <a href={publishedUrl} target="_blank" rel="noreferrer" className="block"><Button variant="primary" size="sm" className="w-full">Otwórz stronę</Button></a>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Panel boczny publikacji - wysuwa się z prawej */}
-      <AnimatePresence>
-        {publishedUrl && (
-          <>
-            <motion.div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPublishedUrl(null)} />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring' as const, stiffness: 380, damping: 34 }}
-              className="fixed right-0 top-0 bottom-0 w-[380px] max-w-[92vw] z-[61] bg-white dark:bg-neutral-950 border-l border-[#EAEAEA] dark:border-white/[0.08] shadow-2xl flex flex-col">
-              <div className="p-6 border-b border-[#EAEAEA] dark:border-white/[0.08] flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 grid place-items-center"><CheckCircle2 size={18} /></div>
-                  <div><h3 className="font-black text-sm">Opublikowano!</h3><p className="text-[11px] font-semibold opacity-60">Link działa na serio</p></div>
-                </div>
-                <button onClick={() => setPublishedUrl(null)} className="w-8 h-8 rounded-lg grid place-items-center hover:bg-neutral-100 dark:hover:bg-neutral-900"><X size={16} /></button>
-              </div>
-              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                <p className="text-xs font-semibold opacity-70 text-center">Wyślij klientowi - otworzy na telefonie i zobaczy stronę.</p>
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F7F6F3] dark:bg-zinc-900 border border-[#EAEAEA] dark:border-white/[0.08]">
-                  <input readOnly value={publishedUrl} onFocus={(e)=>e.currentTarget.select()} className="flex-1 bg-transparent text-[12px] font-bold outline-none min-w-0" />
-                  <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className="px-3 py-1.5 rounded-lg bg-[#111111] dark:bg-white text-white dark:text-black text-[11px] font-black shrink-0">Kopiuj</button>
-                </div>
-                {publishErr && <p className="text-xs font-bold text-rose-600">{publishErr}</p>}
-                <a href={publishedUrl} target="_blank" rel="noreferrer" className="block"><Button variant="primary" size="md" className="w-full">Otwórz stronę</Button></a>
-                <div className="pt-4 border-t border-[#EAEAEA] dark:border-white/[0.08] space-y-3">
-                  <div className="flex items-center justify-between text-xs"><span className="opacity-60">Status</span><span className="font-black text-emerald-600 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/> Live</span></div>
-                  <div className="flex items-center justify-between text-xs"><span className="opacity-60">Aktualnie na stronie</span><span className="font-black">-</span></div>
-                  <button onClick={handleSaveProject} className="w-full py-2 rounded-xl border text-xs font-bold hover:bg-neutral-50 dark:hover:bg-neutral-900">{currentProjectId ? 'Zapisz zmiany w projekcie' : 'Zapisz projekt na koncie'}</button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Wizard 4 pytań - tylko gdy prompt jest pusty */}
-      <AnimatePresence>
-        {showWizard && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowWizard(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.94, y: 12, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.96, y: 8, opacity: 0 }}
-              transition={{ type: 'spring' as const, stiffness: 320, damping: 24 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 shadow-2xl overflow-hidden"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-neutral-800">
-                <div>
-                  <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white">
-                    <Sparkles size={16} className="text-emerald-500" /> Konfiguracja strony
-                  </div>
-                  <p className="text-[11px] text-gray-400 mt-1">Dostosuj wygląd przed generowaniem</p>
-                </div>
-                <button onClick={() => setShowWizard(false)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer bg-transparent border-none text-gray-400 hover:text-gray-600 dark:hover:text-white">
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Progress bar */}
-              <div className="px-5 pt-4">
-                <div className="flex gap-1.5">
-                  {WIZARD_STEPS.map((_, i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= wizardStep ? 'bg-[#2563eb]' : 'bg-gray-100 dark:bg-neutral-800'}`} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-5 min-h-[280px]">
-                <h3 className="font-bold text-base text-gray-900 dark:text-white mb-1">{WIZARD_STEPS[wizardStep].title}</h3>
-                <p className="text-xs text-gray-400 mb-4">Wybierz jedną opcję</p>
-
-                <div className="space-y-2.5">
-                  {WIZARD_STEPS[wizardStep].options.map((opt) => {
-                    const sk = WIZARD_STEPS[wizardStep].stateKey;
-                    const isChecked = sk === 'q1' ? q1 === opt : sk === 'q2' ? q2 === opt : sk === 'qAccent' ? qAccent === opt : sk === 'qFont' ? qFont === opt : sk === 'qLayout' ? qLayout === opt : sk === 'qImages' ? qImages === opt : q4.includes(opt);
-
-                    // Color swatches
-                    if (sk === 'qAccent') {
-                      const colorMap: Record<string, string> = {
-                        'Niebieski #2563eb': '#2563eb', 'Ciemny/grafit #111827': '#111827',
-                        'Złoty #d97706': '#d97706', 'Zielony #059669': '#059669',
-                        'Fioletowy #7c3aed': '#7c3aed', 'Czerwony #dc2626': '#dc2626',
-                      };
-                      const hex = colorMap[opt] || '#2563eb';
-                      return (
-                        <label key={opt} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
-                          <input type="radio" checked={isChecked} onChange={() => setQAccent(opt)} className="sr-only" />
-                          <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-neutral-700 shrink-0" style={{ background: hex }} />
-                          <div>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{opt.split('#')[0].trim()}</span>
-                            <span className="text-xs text-gray-400 ml-2 font-mono">{hex}</span>
-                          </div>
-                          {isChecked && <div className="ml-auto w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-white dark:bg-black" /></div>}
-                        </label>
-                      );
-                    }
-
-                    // Font previews
-                    if (sk === 'qFont') {
-                      const fontMap: Record<string, string> = {
-                        'Inter + Playfair Display (serif)': "'Inter', sans-serif",
-                        'Inter (sans-serif only)': "'Inter', sans-serif",
-                        'DM Sans + Fraunces': "'DM Sans', sans-serif",
-                        'Space Grotesk + Lora': "'Space Grotesk', sans-serif",
-                        'Manrope + Cormorant': "'Manrope', sans-serif",
-                      };
-                      const displayFontMap: Record<string, string> = {
-                        'Inter + Playfair Display (serif)': "'Playfair Display', serif",
-                        'Inter (sans-serif only)': "'Inter', sans-serif",
-                        'DM Sans + Fraunces': "'Fraunces', serif",
-                        'Space Grotesk + Lora': "'Lora', serif",
-                        'Manrope + Cormorant': "'Cormorant', serif",
-                      };
-                      return (
-                        <label key={opt} className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
-                          <input type="radio" checked={isChecked} onChange={() => setQFont(opt)} className="sr-only" />
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="text-xl font-bold text-gray-900 dark:text-white mb-1" style={{ fontFamily: displayFontMap[opt] }}>Nagłówek</p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: fontMap[opt] }}>Tekst ciała strony wygląda tak</p>
-                            </div>
-                            {isChecked && <div className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center shrink-0 mt-1"><div className="w-2 h-2 rounded-full bg-white dark:bg-black" /></div>}
-                          </div>
-                        </label>
-                      );
-                    }
-
-                    // Layout previews
-                    if (sk === 'qLayout') {
-                      const layoutVisuals: Record<string, JSX.Element> = {
-                        'Split hero (zdjęcie po prawej)': (
-                          <div className="flex gap-2 h-16"><div className="flex-1 bg-gray-200 dark:bg-neutral-700 rounded-lg p-2"><div className="w-3/4 h-2 bg-gray-300 dark:bg-neutral-600 rounded mb-1" /><div className="w-1/2 h-1.5 bg-gray-300 dark:bg-neutral-600 rounded" /></div><div className="w-1/2 bg-blue-100 dark:bg-blue-900/30 rounded-lg" /></div>
-                        ),
-                        'Full-screen hero (zdjęcie na cały ekran)': (
-                          <div className="h-16 bg-gray-300 dark:bg-neutral-600 rounded-lg relative overflow-hidden"><div className="absolute inset-0 bg-black/40" /><div className="absolute inset-0 flex items-center justify-center"><div className="w-1/2 h-2 bg-white/60 rounded" /></div></div>
-                        ),
-                        'Centered (wszystko wyśrodkowane)': (
-                          <div className="h-16 bg-gray-50 dark:bg-neutral-800 rounded-lg flex flex-col items-center justify-center gap-1 p-2"><div className="w-1/2 h-2 bg-gray-300 dark:bg-neutral-600 rounded" /><div className="w-1/3 h-1.5 bg-gray-200 dark:bg-neutral-700 rounded" /></div>
-                        ),
-                        'Dark mode (ciemne tło)': (
-                          <div className="h-16 bg-gray-900 dark:bg-black rounded-lg flex flex-col items-center justify-center gap-1 p-2 border border-gray-700"><div className="w-1/2 h-2 bg-gray-600 rounded" /><div className="w-1/3 h-1.5 bg-gray-700 rounded" /></div>
-                        ),
-                      };
-                      return (
-                        <label key={opt} className={`block p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
-                          <input type="radio" checked={isChecked} onChange={() => setQLayout(opt)} className="sr-only" />
-                          {layoutVisuals[opt]}
-                          <p className="text-xs font-semibold text-gray-900 dark:text-white mt-2">{opt.split('(')[0].trim()}</p>
-                        </label>
-                      );
-                    }
-
-                    // Default option card
-                    return (
-                      <label key={opt} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-neutral-800 shadow-sm' : 'border-gray-100 dark:border-neutral-800 hover:border-gray-200 dark:hover:border-neutral-700'}`}>
-                        <input type={WIZARD_STEPS[wizardStep].multi ? 'checkbox' : 'radio'} checked={isChecked} onChange={() => {
-                          if (sk === 'q1') setQ1(opt);
-                          else if (sk === 'q2') setQ2(opt);
-                          else if (sk === 'qImages') setQImages(opt);
-                          else toggleQ4(opt);
-                        }} className="sr-only" />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{opt}</span>
-                        {isChecked && <div className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center shrink-0"><div className="w-2 h-2 rounded-full bg-white dark:bg-black" /></div>}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-950">
-                <span className="text-xs text-gray-400">Krok {wizardStep + 1} z {WIZARD_STEPS.length}</span>
-                <div className="flex gap-2">
-                  <button onClick={handleWizardAuto} className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors bg-transparent border-none cursor-pointer">Auto</button>
-                  <button onClick={handleWizardNext} className="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all hover:shadow-lg" style={{ background: '#2563eb' }}>
-                    {wizardStep === WIZARD_STEPS.length - 1 ? 'Generuj →' : 'Dalej →'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-    </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </>
   );
 };
