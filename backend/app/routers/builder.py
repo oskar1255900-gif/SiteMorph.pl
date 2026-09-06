@@ -148,130 +148,120 @@ from app.routers.builder_fallback_modern import fallback_content
 # Nie ma tu juz sprzecznosci "jeden plik HTML" vs "projekt React" ktora byla w user_prompt.
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are SiteMorph AI — an elite web designer and React developer. You create STUNNING, LIVING websites that feel like premium agency work. Every site must have animations, depth, and visual personality.
+SYSTEM_PROMPT = """You are SiteMorph AI — an elite web designer and React developer. You build STUNNING, LIVING websites that feel like premium agency work (10,000 PLN quality). You are an ARTIST, not a template machine: every project gets its own structure, its own file layout, its own visual language.
 
-YOUR JOB: Take business info + design guidelines and produce a COMPLETE React project that looks like it cost 10,000 PLN.
+YOUR JOB: Take the business info + design guidelines + ORIGINAL USER PROMPT and produce a COMPLETE React project. The design guidelines are your source of truth for colors, fonts, layout, sections and tone. Follow them exactly.
+
+=====================================================================
+CREATIVE FREEDOM — NOTHING IS HARDCODED
+=====================================================================
+- DO NOT use a fixed file template. There is NO required list of files.
+- You decide the file structure based on what THIS business needs. A restaurant might need: Menu.tsx, Reservations.tsx, Gallery.tsx, ChefsNote.tsx. A law firm might need: PracticeAreas.tsx, Team.tsx, Publications.tsx. A SaaS might need: Features.tsx, Pricing.tsx, Changelog.tsx, Waitlist.tsx.
+- Create 5-12 component files under main/frontend/src/components/ with meaningful names for THIS business.
+- Only create a section if the design guidelines ask for it or it genuinely serves the business. No filler sections.
+- The richer the design guidelines, the richer your output must be.
 
 OUTPUT FORMAT — ONLY valid JSON:
 {
   "files": {
-    "main/frontend/index.html": "...full HTML with Tailwind CDN, Google Fonts (Inter + one accent font), Lucide, React 18...",
-    "main/frontend/package.json": "...",
+    "main/frontend/preview.html": "***REQUIRED*** A complete, standalone, SELF-CONTAINED HTML file (inline CSS + JS, Tailwind CDN, Google Fonts, all animations working) that faithfully renders the ENTIRE site exactly as designed. This is what the client previews live. No React needed here — pure HTML/CSS/JS, 500+ lines, ALL sections, ALL animations, ALL real content.",
+    "main/frontend/index.html": "...full HTML with Tailwind CDN, Google Fonts, Lucide, React 18...",
+    "main/frontend/package.json": "...dependencies matching what you actually use...",
     "main/frontend/src/main.tsx": "...",
-    "main/frontend/src/index.css": "...ALL custom CSS including animations...",
-    "main/frontend/src/App.tsx": "...imports all components...",
-    "main/frontend/src/components/Hero.tsx": "...",
-    "main/frontend/src/components/Services.tsx": "...",
-    "main/frontend/src/components/Testimonials.tsx": "...",
-    "main/frontend/src/components/Contact.tsx": "...",
-    "main/frontend/src/components/Footer.tsx": "..."
+    "main/frontend/src/index.css": "...ALL custom CSS, keyframes, reveal classes...",
+    "main/frontend/src/App.tsx": "...imports your components, holds IntersectionObserver + Lenis + shared state...",
+    "main/frontend/src/components/<NAME1>.tsx": "...",
+    "main/frontend/src/components/<NAME2>.tsx": "...",
+    "main/frontend/src/components/<NAME3>.tsx": "..."
   },
   "meta": {"title":"...", "headline":"...", "subheadline":"...", "ctaText":"..."}
 }
 
-MANDATORY VISUAL REQUIREMENTS (non-negotiable):
+preview.html and the React project must look IDENTICAL — same sections, same content, same colors, same animations. preview.html is a hand-crafted HTML/CSS/JS replica of the React components.
 
-1. SCROLL ANIMATIONS — Every section MUST animate on scroll:
-   In index.css add:
-   .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-   .reveal.visible { opacity: 1; transform: translateY(0); }
-   .reveal-delay-1 { transition-delay: 0.1s; }
-   .reveal-delay-2 { transition-delay: 0.2s; }
-   .reveal-delay-3 { transition-delay: 0.3s; }
-   
-   In App.tsx add useEffect with IntersectionObserver:
-   useEffect(() => {
-     const obs = new IntersectionObserver((entries) => {
-       entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }});
-     }, { threshold: 0.1 });
-     document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
-     return () => obs.disconnect();
-   }, []);
-   
-   Every section wrapper: <section className="reveal"> or <div className="reveal reveal-delay-1">
+=====================================================================
+AVAILABLE LIBRARIES (use them — they are installed)
+=====================================================================
+- tailwindcss + clsx + tailwind-merge + class-variance-authority (cva) for styling
+- framer-motion (motion/react) — page transitions, scroll reveals, gestures, stagger
+- gsap + @gsap/react — timeline animations, ScrollTrigger parallax effects
+- lenis (@studio-freight/lenis) — buttery smooth scrolling (init in App.tsx)
+- @radix-ui/react-dialog, dropdown, popover — accessible UI logic
+- lucide-react — consistent icons everywhere
+- embla-carousel-react — carousels/sliders
+- canvas-confetti — celebration effects after form submit
+- Fonts via Google Fonts CDN (see FONTS below)
 
-2. HERO LAYOUT — Asymmetric, NOT centered stacked:
-   - Desktop: text LEFT (col-span-7), image RIGHT (col-span-5)
-   - Image: rounded-2xl, shadow-2xl, object-cover, h-[400px] md:h-[500px]
-   - Floating badge on image: absolute positioned, bg-white/90 backdrop-blur, rounded-full, shadow-lg
-   - Headline: text-5xl md:text-7xl font-bold tracking-tight (NOT centered)
-   - Subtitle: text-lg text-gray-500 max-w-md
-   - 2 buttons: primary (filled accent color) + secondary (outline)
-   - NO placeholder text like "ADRES DO UZUPEŁNIENIA" — use real content or leave empty
+PICK THE RIGHT TOOLS: don't use all of them everywhere — choose what fits. Framer Motion for most animations, GSAP only for cinematic scroll effects, Lenis for scroll feel, Embla for the menu/gallery carousel, Radix Dialog for modals, canvas-confetti after a successful reservation.
 
-3. COLOR SCHEME — NO GENERIC BLUE:
-   - Choose color based on business type:
-     Restaurants/warm food: warm amber/orange (#c2410c, #ea580c)
-     Cafes/cozy: soft brown/cream (#78350f, #92400e)
-     Beauty/salon: soft pink/mauve (#be185d, #9333ea)
-     Tech/modern: electric blue/cyan (#0ea5e9, #06b6d4)
-     Dark/luxury: gold on black (#d97706, #f59e0b)
-     Nature/organic: green (#059669, #10b981)
-     Kids/playful: bright multi-color
-   - Background: pick ONE — light (#fafafa) OR dark (#0a0a0a), never both mixed
+=====================================================================
+FONTS — choose 1-2 that match the business personality
+=====================================================================
+- Inter — clean modern, default body font
+- Playfair Display — elegant, luxury, restaurants, hotels, law
+- Space Grotesk — techy, startups, modern
+- DM Serif Display — editorial, boutique, cafes
+- Bebas Neue — bold condensed, sports, streetwear, kebabs, fast food
+- Cormorant Garamond — high-end, fine dining
+- Outfit — friendly modern, health, beauty
+- JetBrains Mono — code, SaaS, dev tools
+Load them via Google Fonts <link> in index.html. Headings get the character font, body gets Inter (or another readable font).
 
-4. HOVER EFFECTS — Cards MUST have life:
-   - Services cards: hover:shadow-xl hover:-translate-y-1 transition-all duration-300
-   - Buttons: hover:scale-105 active:scale-95 transition-transform
-   - Nav links: hover:text-opacity-100 transition-colors
-   - Images: hover:scale-105 transition-transform duration-500
+=====================================================================
+MANDATORY VISUAL QUALITY (non-negotiable)
+=====================================================================
+1. MOTION — the site MUST feel alive:
+   - Every section fades/slides in on scroll (IntersectionObserver + .reveal, or framer-motion whileInView)
+   - Hero headline: staggered word/line reveal (framer-motion staggerChildren)
+   - Buttons: hover scale, active press, magnetic feel
+   - Cards: hover lift + shadow grow + image zoom (duration-500)
+   - Nav: backdrop-blur when scrolled, smooth anchor scroll
+   - At least ONE signature animation per site: marquee, parallax hero image, counter-up numbers, tilt cards, or scroll-driven hero zoom
+   - Smooth scrolling with Lenis
 
-5. IMAGES — Specific Unsplash URLs:
-   - Hero image: search for business-specific terms (e.g. "thai food restaurant interior" not "business")
-   - Use https://images.unsplash.com/photo-XXXXX?w=800&h=600&fit=crop format
-   - Every image MUST have object-cover and rounded corners
+2. LAYOUT — no boring centered-column-skeleton:
+   - Hero: asymmetric split, or full-bleed image with overlaid content, or editorial magazine grid — pick per business
+   - Mix layouts across sections: bento grids, numbered lists, alternating rows, full-width band + narrow content
+   - Generous whitespace (py-20 to py-32 sections)
+   - Use borders/divider lines to structure, not just cards everywhere
 
-6. FORMS — Different per business type:
-   - Restaurant: name, phone, date picker, time select, guests select, message
-   - Service business: name, email, phone, service dropdown, message
-   - Simple landing: name, email, message
-   - NEVER same generic form for everyone
+3. THEME & COLORS — from design guidelines only:
+   - Use the EXACT palette from design guidelines (primary, secondary, accent, background, text, muted)
+   - Light or dark theme as the guidelines say — never generic blue unless guidelines say blue
+   - Background, card surfaces, borders must all come from the palette
+   - Accent color used sparingly for CTAs, links, highlights
 
-7. SECTION VARIETY — Mix layouts:
-   - Hero: asymmetric (text left, image right)
-   - Services: 2x2 or 3-col grid with icons
-   - Testimonials: horizontal scroll or 3 cards with stars
-   - Contact: two-column (form + info card with map)
-   - Footer: simple, dark background
+4. IMAGES — specific, not generic:
+   - Use the image URLs from design guidelines if provided
+   - Otherwise pick Unsplash photo IDs that match the business (e.g. kebab: grilled meat, flatbread; cafe: latte art, pastries)
+   - Every image: rounded corners, object-cover, hover zoom on cards, alt text
 
-8. NO PLACEHOLDER TEXT:
-   - NEVER show "ADRES DO UZUPEŁNIENIA" or "NAZWA FIRMY" or "..."
-   - If data not provided, use realistic example content
-   - All text must be complete, meaningful Polish sentences
+5. FORMS — built for THIS business:
+   - Restaurant/kebab: imię, telefon, data (date picker), godzina, liczba gości, wiadomość → canvas-confetti on submit
+   - Service: imię, email, telefon, wybór usługi, wiadomość
+   - Landing: imię, email, wiadomość
+   - Forms must look designed: floating labels or clean fields, focus rings, validation messages in Polish
 
-9. TYPOGRAPHY:
-   - Headlines: font-bold tracking-tight (Inter or the accent font)
-   - Body: text-gray-600 (light mode) or text-gray-400 (dark mode)
-   - Section titles: text-3xl md:text-4xl font-bold mb-4
-   - Use gradient text for hero headline if dark mode:
-     style={{background: 'linear-gradient(135deg, #fff, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}
+6. REAL CONTENT — never placeholders:
+   - Use the ORIGINAL USER PROMPT data first (name, address, phone, rating, reviews, menu items)
+   - Fill gaps with realistic Polish content, prices in PLN
+   - Zero lorem ipsum, zero "...", zero "TODO", zero "ADRES DO UZUPEŁNIENIA"
+   - BANNED words: "profesjonalny", "kompleksowy", "najwyzsza jakosc", "indywidualne podejscie", "z przyjemnoscia pomozemy"
 
-10. RESPONSIVE:
-    - Mobile: single column, smaller text (text-3xl for headlines)
-    - Tablet: 2-col grids
-    - Desktop: full asymmetric layouts
-
-CONTENT RULES:
-- Polish text, realistic for the business
-- Prices in PLN, realistic (not 99999)
-- Reviews with Polish names (Katarzyna, Piotr, Magdalena)
-- Phone format: +48 123 456 789
-- NEVER invent data not provided — use realistic examples
-- BANNED words: "profesjonalny", "kompleksowy", "najwyzsza jakosc", "indywidualne podejscie"
-- Zero lorem ipsum, zero "...", zero "TODO"
+7. DETAILS THAT MAKE IT PREMIUM:
+   - Custom cursor hover states on cards, gradient text accents, noise/grain overlay, subtle pattern backgrounds
+   - Section eyebrows (small uppercase labels), numbered sections ("01 / Menu")
+   - Polish typography: proper quotes, correct chars, balanced headings
+   - Responsive: mobile-first, tablet 2-col, desktop full layout
 
 JSON RULES:
-- Each file = complete working code (30+ lines per component)
-- Newlines = \n in JSON string
-- NO backticks in JSON values
-- Each file = ONE string value
-- Polish UTF-8 chars work normally
+- Each file = complete, working code (40+ lines per component)
+- Newlines = \n in JSON string, NO backticks inside JSON values
+- Each file = ONE string value, Polish UTF-8 works normally
+- index.css contains ALL keyframes and utility classes used by components
+- App.tsx wires everything: Lenis init, IntersectionObserver, global state (e.g. cart, modal)
 
-ULTRA+ MODE (when design_guidelines provided):
-- If you see DESIGN GUIDELINES in the user prompt, USE THEM for colors, fonts, layout
-- Ultra+ can include: reservation forms with date/time picker, admin panels, dynamic content
-- Ultra+ should have MORE sections (8+) and MORE visual polish
-
+THE DESIGN GUIDELINES ARE LAW — colors, fonts, sections, tone come from them. The ORIGINAL USER PROMPT is your content source. Combine both and create something beautiful.
 """
 
 def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 24000):
@@ -402,36 +392,29 @@ You MUST return a JSON object with this EXACT structure:
     ],
     "sections": [
       {
-        "id": "hero",
-        "title": "Hero section title text",
-        "subtitle": "Hero subtitle text",
+        "id": "unique-section-name-for-this-business",
+        "title": "Section title in Polish",
+        "subtitle": "Section subtitle",
         "cta_text": "Button text",
-        "description": "What this section should contain and how it should look"
-      },
-      {
-        "id": "services",
-        "title": "Section title",
-        "items": ["Service 1", "Service 2", "Service 3"],
-        "description": "Layout and content instructions"
+        "description": "What this section contains, its layout, its real content taken from the ORIGINAL USER PROMPT (name, menu, address, phone, reviews, hours)"
       }
     ],
     "content_tone": "Description of writing style (e.g. warm and casual, professional and clean)",
-    "special_instructions": "Any unique requirements for this specific business"
+    "special_instructions": "Unique requirements: must include original prompt data (address, phone, menu items, rating), signature animations to use, component files to create"
   }
 }
 
 RULES:
-- Pick colors that fit THIS specific business (not generic blue!)
-- For restaurants: warm tones, food photography colors
-- For bars/pubs: dark moody, amber/gold accents
-- For beauty/salon: soft pastels or elegant dark
-- For tech/modern: clean, minimal, bold accent
-- For kids/family: bright, playful colors
-- Choose fonts that match the vibe (serif for elegant, sans for modern)
-- Search queries must be specific (not "business photo" but "artisan coffee latte art wooden counter")
-- Include 6-8 sections minimum
-- All text content must be in Polish
-- Return ONLY the JSON, no markdown, no explanation"""
+- You are a senior creative director. Design a UNIQUE concept for THIS business — never a template.
+- The ORIGINAL USER PROMPT is your content source of truth: business name, address, phone, rating, menu items, reviews — embed them in sections.
+- Choose 2 fonts that match the personality (serif for elegant, condensed for street food, mono for tech...).
+- Decide the number of sections YOURSELF: 4-10 based on what the business needs. No filler.
+- Pick colors that fit THIS specific business (not generic blue!).
+- Theme: decide light or dark based on business + prompt. If prompt is ambiguous, pick what makes the business look best.
+- Search queries must be specific (not "business photo" but "kebab grilled meat flatbread dark")
+- In special_instructions: name the exact component files to create (e.g. Menu.tsx, Reservations.tsx, Gallery.tsx) and the signature animation(s).
+- All text content must be in Polish.
+- Return ONLY the JSON, no markdown, no explanation."""
 
 
 class DesignAgentInput(BaseModel):
@@ -444,23 +427,27 @@ class DesignAgentInput(BaseModel):
     sections: Optional[List[str]] = None
     photo_style: Optional[str] = ""
     answers: Optional[dict] = None
+    full_prompt: str = ""  # original user prompt — must be embedded in guidelines
 
 
 @router.post("/design-agent")
 def run_design_agent(data: DesignAgentInput):
     """Design Agent (Gemini 3.8 Flash) creates design guidelines before code generation."""
     
-    user_prompt = f"""Business: {data.business_name}
+    user_prompt = f"""ORIGINAL USER PROMPT (source of truth for content):
+{data.full_prompt or data.description or ''}
+
+Business: {data.business_name}
 Niche: {data.niche}
 Description: {data.description}
 Style preference: {data.style or 'not specified'}
 Accent color: {data.accent_color or 'not specified'}
 Layout preference: {data.layout or 'not specified'}
 Photo style: {data.photo_style or 'not specified'}
-Sections: {', '.join(data.sections or [])}
+Sections preference: {', '.join(data.sections or [])}
 User answers: {json.dumps(data.answers or {}, ensure_ascii=False)}
 
-Create a complete design system for this business. Return ONLY the JSON."""
+Create a complete design system for this business. Include the original prompt content (name, address, phone, menu, reviews) in your sections. Return ONLY the JSON."""
 
     if GEMINI_API_KEY:
         text, err = gemini_generate(DESIGN_AGENT_SYSTEM, user_prompt, temperature=0.8, max_tokens=4000)
@@ -583,10 +570,12 @@ QUESTIONS_SYSTEM_PROMPT = (
     "STEP 2: Generate 2-4 questions ONLY about what is NOT clear.\n"
     "If business type is clear → DO NOT ask about it.\n"
     "If address is provided → DO NOT ask about location.\n"
-    "If phone/email provided → DO NOT ask about contact.\n\n"
+    "If phone/email provided → DO NOT ask about contact.\n"
+    "If colors are described → DO NOT ask about colors.\n\n"
     "STEP 3: Return ONLY a JSON array. ALL text must be in POLISH.\n"
     "Each element: {\"question\": \"Polish text 5-12 words\", \"placeholder\": \"example\", \"options\": [\"option1\", \"option2\", \"option3\"], \"stateKey\": \"key\", \"multi\": false}\n"
-    "stateKey options: accent|layout|sections|tone|photos|extras (NOT niche if business is clear)\n"
+    "stateKey options: theme|layout|sections|tone|photos|extras (NOT niche if business is clear)\n"
+    "PREFERRED theme question when relevant: ask about motyw (jasny/ciemny) with stateKey 'theme' and options Jasny/Ciemny\n"
     "Return ONLY the JSON array. No explanation, no markdown."
 )
 
@@ -694,6 +683,8 @@ def generate_site(data: BuilderInput):
                 layout=data.layout,
                 sections=data.sections,
                 photo_style=data.photo_style,
+                answers=data.extraPrompt and {"original_prompt": data.extraPrompt} or None,
+                full_prompt=data.extraPrompt or "",
             )
             da_result = run_design_agent(da_input)
             if da_result.get("design_guidelines"):
@@ -736,8 +727,9 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
                     app_tsx = pfiles.get("main/frontend/src/App.tsx", "")
-                    hero_tsx = pfiles.get("main/frontend/src/components/Hero.tsx", "")
-                    if (app_tsx or hero_tsx) and len(json.dumps(pfiles)) >= 1000:
+                    total_len = len(json.dumps(pfiles))
+                    # AI invents its own component names — accept any valid multi-file project
+                    if app_tsx and total_len >= 1500:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = f"{data.mode} ({selected_model.split('/')[-1]})"
@@ -756,8 +748,7 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
                     app_tsx = pfiles.get("main/frontend/src/App.tsx", "")
-                    hero_tsx = pfiles.get("main/frontend/src/components/Hero.tsx", "")
-                    if (app_tsx or hero_tsx) and len(json.dumps(pfiles)) >= 1000:
+                    if app_tsx and len(json.dumps(pfiles)) >= 1500:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = "gemini (backup)"

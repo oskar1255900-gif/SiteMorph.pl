@@ -276,10 +276,9 @@ export const BuilderFullView = ({
 
   // Wizard answers
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({
-    niche: 'Restauracja',
-    accent: 'Niebieski #2563eb',
-    layout: 'Nowoczesny (serif + duże litery)',
-    sections: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt'],
+    theme: 'Ciemny',
+    layout: 'Nowoczesny',
+    sections: ['Hero', 'Oferta', 'Kontakt'],
   });
 
   // Projects
@@ -326,7 +325,7 @@ export const BuilderFullView = ({
   const generateWithAnswers = async (ans: Record<string, string | string[]>, promptOverride?: string) => {
     const sections = ((ans.sections as string[]) || []).join(', ');
     const niche = String(ans.niche || 'Firma');
-    const p = promptOverride || `Branża: ${niche}. Styl: ${ans.layout || 'Nowoczesny'}. Akcent: ${ans.accent || ''}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
+    const p = promptOverride || `Branża: ${niche}. Motyw: ${ans.theme || 'Ciemny'}. Styl: ${ans.layout || 'Nowoczesny'}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
     if (!p.trim()) return;
     if (credits < cost) {
       alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
@@ -348,10 +347,10 @@ export const BuilderFullView = ({
           niche,
           description: p,
           style: String(ans.layout || 'Nowoczesny'),
-          colors: String(ans.accent || ''),
+          colors: String(ans.theme || 'Ciemny'),
           sections: (ans.sections as string[]) || ['Hero', 'Oferta', 'Kontakt'],
           extraPrompt: builderPrompt,
-          accent_color: String(ans.accent || ''),
+          accent_color: '',
           layout: String(ans.layout || 'Nowoczesny'),
           fonts: 'Inter',
           mode: builderMode,
@@ -404,7 +403,7 @@ export const BuilderFullView = ({
     // Build prompt directly from passed answers (state is stale)
     const sections = ((ans.sections as string[]) || []).join(', ');
     const niche = String(ans.niche || 'Firma');
-    const prompt = `Branża: ${niche}. Styl: ${ans.layout || 'Nowoczesny'}. Akcent: ${ans.accent || ''}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
+    const prompt = `Branża: ${niche}. Motyw: ${ans.theme || 'Ciemny'}. Styl: ${ans.layout || 'Nowoczesny'}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
     // Auto-generate with correct answers
     setTimeout(() => generateWithAnswers(ans, prompt), 300);
   };
