@@ -265,7 +265,7 @@ export const BuilderFullView = ({
   const [genStep, setGenStep] = useState(0);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [isProMode, setIsProMode] = useState(false);
+  const [builderMode, setBuilderMode] = useState<'normal' | 'ultra'>('normal');
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -289,8 +289,7 @@ export const BuilderFullView = ({
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [saveMsg, setSaveMsg] = useState('');
-  const [aiThinking, setAiThinking] = useState<any>(null);
-  const cost = isProMode ? 15 : 10;
+  const cost = builderMode === 'ultra' ? 15 : 10;
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -379,6 +378,7 @@ export const BuilderFullView = ({
           accent_color: String(answers.accent || '#2563eb'),
           layout: String(answers.layout || 'Nowoczesny'),
           fonts: 'Inter',
+          mode: builderMode,
         }),
       } as any);
       if (!res.ok) {
@@ -395,7 +395,6 @@ export const BuilderFullView = ({
         const data = fetchResult;
         const files: Record<string, string> = data.files || {};
         const meta = data.meta || {};
-        if (data.thinking) setAiThinking(data.thinking);
         setGeneratedSite({
           title: meta.title || p.slice(0, 28),
           category: String(answers.niche),
@@ -574,8 +573,6 @@ export const BuilderFullView = ({
                   </div>
                 </div>
 
-                {aiThinking && <AIThinkingDisplay thinking={aiThinking} />}
-
                 <div className="space-y-2">
                   <button onClick={() => setIsEditMode((v) => { const nv = !v; try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = nv ? 'true' : 'false'; } catch {} return nv; })} className={`w-full py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${isEditMode ? 'bg-green-500/20 border-green-500/30 text-green-300' : 'bg-white/5 border-white/10 text-white/60 hover:text-white/80'}`}>
                     <MousePointer2 size={12} className="inline mr-1.5" />
@@ -681,6 +678,10 @@ export const BuilderFullView = ({
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
+                          <button onClick={() => setBuilderMode(builderMode === 'normal' ? 'ultra' : 'normal')}
+                            className={`px-2 py-0.5 rounded text-[9px] font-semibold cursor-pointer border transition-all ${builderMode === 'ultra' ? 'bg-purple-500/20 border-purple-500/30 text-purple-300' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}>
+                            {builderMode === 'ultra' ? 'ULTRA' : 'NORMAL'}
+                          </button>
                           <span className="text-[10px] text-white/20 font-medium">{cost} kr.</span>
                           <button
                             onClick={() => { setWizardStep(0); setShowWizard(true); }}

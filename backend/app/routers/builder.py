@@ -142,6 +142,7 @@ class BuilderInput(BaseModel):
     fonts: Optional[str] = None
     photo_style: Optional[str] = None
     image_urls: Optional[List[str]] = None
+    mode: Optional[str] = "normal"  # normal = qwen3-coder, ultra = fable-5.1
 
 
 from app.routers.builder_fallback_modern import fallback_content
@@ -278,6 +279,53 @@ CRITICAL JSON RULES
 - Include Polish characters normally — ą ć ę ł ń ó ś ź ż"""
 
 
+def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 24000):
+    """Generate using OpenRouter with any model."""
+    if not OPENROUTER_API_KEY:
+        return None, "Brak OPENROUTER_API_KEY"
+    per_try_timeout = 15 if os.getenv("VERCEL") else 450
+    try:
+        r = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": OPENROUTER_SITE_URL,
+                "X-Title": OPENROUTER_APP_NAME,
+            },
+            json={
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": min(max_tokens, 24000),
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            },
+            timeout=per_try_timeout,
+        )
+        print(f"[SiteMorph][OpenRouter] {model} -> HTTP {r.status_code}", flush=True)
+        if r.status_code != 200:
+            return None, f"{model}: HTTP {r.status_code} - {r.text[:200]}"
+        data = r.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return None, f"{model}: brak choices"
+        text = choices[0].get("message", {}).get("content", "")
+        if not text.strip():
+            return None, f"{model}: pusta odpowiedz"
+        return text, None
+    except Exception as e:
+        return None, f"{model}: {str(e)[:150]}"
+
+
+# Model mapping: normal = fast/cheap, ultra = best quality
+MODEL_MAP = {
+    "normal": "qwen/qwen3-coder-plus:free",   # Free, 1M context, coding-focused
+    "ultra": "anthropic/claude-fable-5-1",      # Best quality, autonomous coding
+}
+
+
 @router.post("/generate")
 def generate_site(data: BuilderInput):
     try:
@@ -328,8 +376,31 @@ Wygeneruj kompletne strone HTML. Zwroc JSON z files["main/frontend/preview.html"
         parsed_files = None
         parsed_meta = None
 
-        # 1) GEMINI = PRIMARY
-        if GEMINI_API_KEY:
+        # Select model based on mode
+        selected_model = MODEL_MAP.get(data.mode or "normal", MODEL_MAP["normal"])
+        print(f"[SiteMorph] Mode: {data.mode} -> Model: {selected_model}", flush=True)
+
+        # 1) PRIMARY: Use selected model via OpenRouter
+        if OPENROUTER_API_KEY:
+            text, err = openrouter_generate_model(selected_model, SYSTEM_PROMPT, user_prompt, max_tokens=GEMINI_MAX_TOKENS)
+            if text:
+                try:
+                    parsed = extract_json(text)
+                    pfiles = parsed.get("files") or {}
+                    ph = pfiles.get("main/frontend/preview.html", "")
+                    if ph and len(ph) >= 2000:
+                        parsed_files = pfiles
+                        parsed_meta = parsed.get("meta", {})
+                        provider = f"{data.mode} ({selected_model.split('/')[-1]})"
+                    else:
+                        warning = f"Za krotka strona ({len(ph)} znakow) - probuje backup"
+                except Exception as e:
+                    warning = f"Nieparsowalna odpowiedz ({str(e)[:120]})"
+            else:
+                warning = f"Model niedostepny: {err}"
+
+        # 2) GEMINI = BACKUP, tylko jesli OpenRouter nie dal wyniku
+        if parsed_files is None and GEMINI_API_KEY:
             text, err = gemini_generate(SYSTEM_PROMPT, user_prompt, max_tokens=GEMINI_MAX_TOKENS)
             if text:
                 try:
@@ -339,32 +410,11 @@ Wygeneruj kompletne strone HTML. Zwroc JSON z files["main/frontend/preview.html"
                     if ph and len(ph) >= 2000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
-                        provider = "gemini"
+                        provider = "gemini (backup)"
                     else:
-                        warning = f"Gemini zwrocil za krotka strone ({len(ph)} znakow) - probuje backup"
+                        warning = (warning + " | " if warning else "") + f"Gemini: za krotka ({len(ph)})"
                 except Exception as e:
-                    warning = f"Gemini: nieparsowalna odpowiedz ({str(e)[:120]})"
-            else:
-                warning = f"Gemini niedostepny: {err}"
-
-        # 2) OPENROUTER (GLM-5.2 free) = BACKUP, tylko jesli Gemini nie dal wyniku
-        if parsed_files is None and OPENROUTER_API_KEY:
-            text, err = openrouter_generate(SYSTEM_PROMPT, user_prompt, max_tokens=OPENROUTER_MAX_TOKENS)
-            if text:
-                try:
-                    parsed = extract_json(text)
-                    pfiles = parsed.get("files") or {}
-                    ph = pfiles.get("main/frontend/preview.html", "")
-                    if ph and len(ph) >= 2000:
-                        parsed_files = pfiles
-                        parsed_meta = parsed.get("meta", {})
-                        provider = "openrouter"
-                    else:
-                        warning = (warning + " | " if warning else "") + f"OpenRouter zwrocil za krotka strone ({len(ph)} znakow)"
-                except Exception as e:
-                    warning = (warning + " | " if warning else "") + f"OpenRouter: nieparsowalna odpowiedz ({str(e)[:120]})"
-            else:
-                warning = (warning + " | " if warning else "") + f"OpenRouter niedostepny: {err}"
+                    warning = (warning + " | " if warning else "") + f"Gemini: {str(e)[:120]}"
 
         # 3) Fallback lokalny — ostatnia deska ratunku
         fb = fallback_content(data)
