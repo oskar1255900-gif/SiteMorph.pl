@@ -29,7 +29,7 @@ OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "16000"))
+GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "24000"))
 
 
 def extract_json(text: str) -> dict:
@@ -56,7 +56,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     Jeden szybki call na Gemini 3.7 Flash, timeout dopasowany do limitu platformy hostingowej."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    per_try_timeout = 8 if os.getenv("VERCEL") else 25
+    per_try_timeout = 15 if os.getenv("VERCEL") else 90
     try:
         r = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
@@ -152,12 +152,20 @@ from app.routers.builder_fallback_modern import fallback_content
 # Nie ma tu juz sprzecznosci "jeden plik HTML" vs "projekt React" ktora byla w user_prompt.
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """Generujes kompletne strony HTML dla lokalnych polskich biznesow (fryzjer, restauracja, warsztat itd). Kazda strona musi wygladac jak zrobiona recznie przez dobra agencje - NIE jak typowy szablon AI.
+SYSTEM_PROMPT = """Jestes ekspertem web designu. Generujes KOMPLETNE, PRODUKCYJNE strony React dla lokalnych polskich biznesow. Kazda strona musi wygladac jak zrobiona przez topowa agencje designu - z animacjami, prawdziwymi zdjeciami, i dopracowanym detalem.
 
 ZWROC WYLACZNIE poprawny JSON (bez markdown, bez tekstu przed/po):
 {
   "files": {
-    "main/frontend/preview.html": "<!doctype html>...pelny HTML..."
+    "main/frontend/index.html": "<!doctype html>...",
+    "main/frontend/src/App.tsx": "pelny kod React...",
+    "main/frontend/src/main.tsx": "import React...",
+    "main/frontend/src/index.css": "style CSS...",
+    "main/frontend/src/components/Hero.tsx": "komponent Hero...",
+    "main/frontend/src/components/Menu.tsx": "komponent Menu...",
+    "main/frontend/src/components/Contact.tsx": "komponent Kontakt...",
+    "main/frontend/src/components/Footer.tsx": "komponent Stopka...",
+    "main/frontend/package.json": "..."
   },
   "meta": {
     "title": "Nazwa Firmy",
@@ -167,45 +175,69 @@ ZWROC WYLACZNIE poprawny JSON (bez markdown, bez tekstu przed/po):
   }
 }
 
-JSON string HTML: uzywaj TYLKO cudzyslowow podwojnych w atrybutach HTML. Nowe linie jako \n. Caly HTML to JEDNA linia w JSON.
+KRYTYCZNE ZASADY JSON:
+- Uzywaj TYLKO cudzyslowow podwojnych " w atrybutach HTML/JSX
+- Nowe linie jako \n w stringach JSON
+- Nie uzywaj backtickow w stringach JSON
+- Caly kazdy plik to JEDNA linia tekstu w JSON
+- KAZDY PLIK musi byc pelny, kompletny - nie skracaj, nie dodawaj "..."
+- Uzywaj polskich znakow: ą, ć, ę, ł, ń, ó, ś, ź, ż normalnie w tekstach
 
-TECHNIE:
-- Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>
-- Google Fonts: Inter + Instrument Serif
-- Lucide Icons: <script src="https://unpkg.com/lucide@latest"></script> + lucide.createIcons()
-- Sekcje: sticky header, hero, oferta (3-6 kart), cennik, opinie (3), KONTAKT Z FORMULARZEM, stopka
-- Animacje: scroll-reveal (.reveal + IntersectionObserver)
-- MINIMUM 200 linii HTML
-- Responsive mobile-first (Tailwind sm/md/lg)
-- FORMULARZ: imie, email, textarea + przycisk "Wyslij" (action="#")
+STACK TECHNICZNY (każdy plik):
+- React 18 + TypeScript + Vite
+- Tailwind CSS (CDN: <script src="https://cdn.tailwindcss.com"></script>)
+- Google Fonts: Inter (400-900) + Instrument Serif
+- Lucide React: <script src="https://unpkg.com/lucide@latest"></script> + lucide.createIcons()
+- Animacje: Framer Motion lub CSS @keyframes (scroll-reveal, fade-in, slide-up)
+- Zdjecia: <img src="https://source.unsplash.com/800x600/?FRAZA" /> z KONKRETNA fraza dla branzy
 
-DESIGN:
-- Jeden kolor akcentu konsekwentnie
-- H1 max 2 linie, podtytul max 20 slow
-- Hero: asymetryczny (tekst lewo, zdjecie prawo) > centrowany
-- CTA max 2-3 slowa w jednej linii
-- Karty: rounded-2xl, shadow-sm, hover:translateY(-4px)
-- Max-width 1240px, 80-120px odstepu miedzy sekcjami
-- Nie mieszaj jasnych i ciemnych sekcji
+KAZDY KOMPONENT MUSI:
+- Miec pelne, responsywne style (Tailwind sm/md/lg)
+- Miec animacje wejścia (opacity 0→1, translateY 20→0, transition 0.5s)
+- Uzywac prawdziwych zdjec z Unsplash (nie placeholder)
+- Miec hover efekty na kartach i przyciskach
+- Byc po polsku z poprawnymi polskimi znakami
 
-ZDJECIA:
-- Unsplash: https://source.unsplash.com/800x600/?fraza
-- Fraza = KONKRETNA dla branzy (hair-salon nie "business")
+SEKCJE STRONY (kazda jako osobny komponent):
+1. HERO: duzy naglowek (48-72px bold), podtytul (16px/1.6), 2 CTA, zdjecie po prawej, asymetryczny layout
+2. OFERTA/MENU: 3-6 kart z ikonami, opisami, cenami. Hover: translateY(-4px) + shadow
+3. CENNIK: 3 karty z pakietami (Basic/Standard/Premium), przycisk "Wybieram"
+4. OPINIE: 3-4 cytaty z gwiazdkami, imionami, rola klienta
+5. KONTAKT: formularz (imie, email, telefon, textarea + "Wyslij") + mapa/adres
+6. STOPKA: logo, linki, social media, copyright
+
+DESIGN (stosuj WSZYSTKIE):
+- Jeden kolor akcentu na cala strone (nie mieszaj)
+- Tlo: jasne (#fafafa) lub ciemne (#0a0a0a) - NIE mieszaj motywow
+- H1: 48-72px, font-weight 800, max 2 linie
+- Karty: rounded-2xl, shadow-lg, hover:translateY(-4px) transition 0.3s
+- Przyciski: rounded-full, font-semibold, hover:scale(1.02)
+- Max-width 1240px, padding 80-120px miedzy sekcjami
+- Sekcje maja sie RYZNICOWAC - nie 3x ten sam layout
 
 TRESC:
-- Wyciagnij WSZYSTKIE fakty z DESCRIPTION i uzyj ich doslownie
-- NIGDY nie wymyslaj telefonu/adresu/email jesli klient nie podal - "[numer telefonu]" itp
-- Ceny: jesli podal - uzyj. Jesli nie - realistyczne dla branzy w Polsce
-- Opinie: 3 krotkie, polskie imiona, naturalne
-- Pisz jak czlowiek o swojej firmie, NIE jak agencja
-- ZAKAZANE: "profesjonalny", "kompleksowy", "najwyzsza jakosc", "wieloletnie doswiadczenie"
-- Zero lorem ipsum, zero pytan do klienta, zero "..." lub TODO
+- Wyciagnij WSZYSTKIE fakty z DESCRIPTION i uzyj ich
+- NIGDY nie wymyslaj telefonu/adresu jesli klient nie podal
+- Ceny: realistyczne dla branzy w Polsce
+- Opinie: 3-4 z polskimi imionami, naturalne
+- Pisz jak czlowiek, NIE jak agencja (zero "profesjonalny", "kompleksowy")
+- Zero lorem ipsum, zero TODO, zero "..."
 
-ANTI-SLOP:
-- Nie powtarzaj tego samego ukladu 3x z rzedu
-- Nie dawaj "paska Zaufali nam" w hero
-- Nie mieszaj 5 roznych CTA - jedna nazwa akcji
-- Hero = naglowek + podtytul + max 2 CTA. Reszta w osobnych sekcjach"""
+FORMULARZ KONTAKTOWY (w komponencie Contact.tsx):
+- Imie (input text, required)
+- Email (input email, required)
+- Telefon (input tel)
+- Wiadomosc (textarea, required)
+- Przycisk "Wyslij" (submit)
+- action="#" method="POST"
+- Style: nowoczesny, rounded-xl, dark inputs na jasnym tle
+
+ANIMACJE (w kazdym komponencie):
+- scroll-reveal: IntersectionObserver + CSS transition
+- Hero: tekst fade-in z opoznieniem, zdjecie slide-in z prawej
+- Karty: staggered fade-in (0.1s delay miedzy kartami)
+- Przyciski: scale(1.02) na hover
+- Sekcje: opacity 0→1 translateY(20px)→0 przy scrollu"""
 
 
 @router.post("/generate")
@@ -266,7 +298,7 @@ Wygeneruj kompletne strone HTML. Zwroc JSON z files["main/frontend/preview.html"
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
                     ph = pfiles.get("main/frontend/preview.html", "")
-                    if ph and len(ph) >= 1500:
+                    if ph and len(ph) >= 2000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = "gemini"
@@ -285,7 +317,7 @@ Wygeneruj kompletne strone HTML. Zwroc JSON z files["main/frontend/preview.html"
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
                     ph = pfiles.get("main/frontend/preview.html", "")
-                    if ph and len(ph) >= 1500:
+                    if ph and len(ph) >= 2000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = "openrouter"

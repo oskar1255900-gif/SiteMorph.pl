@@ -86,7 +86,7 @@ const THINKING_STEPS = [
 ];
 
 // ============================================================================
-// QUESTIONNAIRE (agent pyta sie krok po kroku)
+// WIZARD QUESTIONNAIRE DATA
 // ============================================================================
 interface WizardQuestion {
   question: string;
@@ -104,183 +104,83 @@ const WIZARD_QUESTIONS: WizardQuestion[] = [
 ];
 
 // ============================================================================
-// QUESTIONNAIRE MODAL (agent pyta sie)
+// INLINE WIZARD (pojawia sie nad inputem, nie jako modal)
 // ============================================================================
-const QuestionnaireModal = ({
-  open,
-  onClose,
-  onComplete,
-  initialNiche,
+const InlineWizard = ({
+  step, setStep, answers, setAnswers, onGenerate, onClose,
 }: {
-  open: boolean;
-  onClose: () => void;
-  onComplete: (answers: Record<string, string | string[]>) => void;
-  initialNiche?: string;
+  step: number; setStep: (s: number) => void;
+  answers: Record<string, string | string[]>;
+  setAnswers: (a: Record<string, string | string[]>) => void;
+  onGenerate: () => void; onClose: () => void;
 }) => {
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({
-    niche: initialNiche || '',
-    accent: 'Niebieski #2563eb',
-    layout: 'Nowoczesny (serif + duże litery)',
-    sections: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt'],
-  });
-
-  useEffect(() => {
-    if (initialNiche) setAnswers((a) => ({ ...a, niche: initialNiche }));
-  }, [initialNiche]);
-
   const current = WIZARD_QUESTIONS[step];
   const total = WIZARD_QUESTIONS.length;
   const isLast = step === total - 1;
 
   const handleNext = () => {
-    if (isLast) {
-      onComplete(answers);
-      onClose();
-    } else {
-      setStep((s) => s + 1);
-    }
+    if (isLast) onGenerate();
+    else setStep(step + 1);
   };
-
   const handleAuto = () => {
     if (current.options) {
       if (current.multi) {
         const shuffled = [...current.options].sort(() => 0.5 - Math.random()).slice(0, 3);
-        setAnswers((a) => ({ ...a, [current.stateKey]: shuffled }));
+        setAnswers({ ...answers, [current.stateKey]: shuffled });
       } else {
         const pick = current.options[Math.floor(Math.random() * current.options.length)];
-        setAnswers((a) => ({ ...a, [current.stateKey]: pick }));
+        setAnswers({ ...answers, [current.stateKey]: pick });
       }
     }
     setTimeout(handleNext, 200);
   };
-
   const toggleOption = (opt: string) => {
     if (current.multi) {
-      setAnswers((a) => {
-        const arr = (a[current.stateKey] as string[]) || [];
-        const next = arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt];
-        return { ...a, [current.stateKey]: next };
-      });
+      const arr = (answers[current.stateKey] as string[]) || [];
+      setAnswers({ ...answers, [current.stateKey]: arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt] });
     } else {
-      setAnswers((a) => ({ ...a, [current.stateKey]: opt }));
+      setAnswers({ ...answers, [current.stateKey]: opt });
       setTimeout(handleNext, 300);
     }
   };
 
-  if (!open) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ y: 40, opacity: 0, scale: 0.96 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 40, opacity: 0, scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md rounded-2xl bg-[#1a1d23] border border-white/10 shadow-2xl overflow-hidden"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center">
-                <Sparkles size={16} className="text-green-400" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-white/90">Agent ma pytania</div>
-                <div className="text-[10px] text-white/40">Dostosuję stronę do Twoich potrzeb</div>
-              </div>
-            </div>
-            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer border-none bg-transparent">
-              <X size={14} />
-            </button>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+      className="mx-3 mb-2 rounded-xl bg-[#1a1d23] border border-white/10 overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <div className="flex items-center gap-2">
+          <Sparkles size={12} className="text-green-400" />
+          <span className="text-[11px] font-semibold text-white/80">Agent ma pytania</span>
+          <span className="text-[10px] text-white/30">{step + 1}/{total}</span>
+        </div>
+        <button onClick={onClose} className="w-5 h-5 rounded flex items-center justify-center hover:bg-white/10 text-white/30 cursor-pointer border-none bg-transparent"><X size={10} /></button>
+      </div>
+      <div className="px-4 pb-1"><div className="flex gap-0.5">{WIZARD_QUESTIONS.map((_, i) => <div key={i} className={`h-0.5 flex-1 rounded-full transition-all ${i <= step ? 'bg-green-500' : 'bg-white/10'}`} />)}</div></div>
+      <div className="px-4 py-3">
+        <div className="text-sm font-semibold text-white mb-2">{current.question}</div>
+        {current.options ? (
+          <div className="flex flex-wrap gap-1.5">
+            {current.options.map((opt) => {
+              const sel = current.multi ? ((answers[current.stateKey] as string[]) || []).includes(opt) : answers[current.stateKey] === opt;
+              return <button key={opt} onClick={() => toggleOption(opt)} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer border ${sel ? 'bg-green-500/20 border-green-500/40 text-green-300' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80'}`}>{sel && <Check size={9} className="inline mr-0.5" />}{opt}</button>;
+            })}
           </div>
-
-          {/* Progress */}
-          <div className="px-5 pb-1">
-            <div className="flex gap-1">
-              {WIZARD_QUESTIONS.map((_, i) => (
-                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-green-500' : 'bg-white/10'}`} />
-              ))}
-            </div>
-          </div>
-
-          {/* Question */}
-          <div className="px-5 py-4">
-            <h3 className="text-base font-semibold text-white mb-1">{current.question}</h3>
-            {current.options ? (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {current.options.map((opt) => {
-                  const selected = current.multi
-                    ? ((answers[current.stateKey] as string[]) || []).includes(opt)
-                    : answers[current.stateKey] === opt;
-                  return (
-                    <button
-                      key={opt}
-                      onClick={() => toggleOption(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-                        selected
-                          ? 'bg-green-500/20 border-green-500/40 text-green-300'
-                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white/80'
-                      }`}
-                    >
-                      {selected && <Check size={10} className="inline mr-1" />}
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <input
-                autoFocus
-                value={(answers[current.stateKey] as string) || ''}
-                onChange={(e) => setAnswers((a) => ({ ...a, [current.stateKey]: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && handleNext()}
-                placeholder={current.placeholder}
-                className="w-full mt-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-green-500/50 transition-colors"
-              />
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between px-5 py-3 border-t border-white/10">
-            <span className="text-[10px] text-white/30 font-medium">
-              Pytanie {step + 1} z {total}
-            </span>
-            <div className="flex items-center gap-2">
-              {step > 0 && (
-                <button
-                  onClick={() => setStep((s) => s - 1)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer border-none bg-transparent"
-                >
-                  <ChevronLeft size={12} className="inline mr-0.5" /> Wstecz
-                </button>
-              )}
-              <button
-                onClick={handleAuto}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer border-none bg-transparent"
-              >
-                Auto-odpowiedź
-              </button>
-              <button
-                onClick={handleNext}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white text-black hover:bg-white/90 transition-colors cursor-pointer border-none"
-              >
-                {isLast ? 'Generuj' : 'Dalej'}
-                {!isLast && <ChevronRight size={12} className="inline ml-0.5" />}
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        ) : (
+          <input autoFocus value={(answers[current.stateKey] as string) || ''} onChange={(e) => setAnswers({ ...answers, [current.stateKey]: e.target.value })}
+            onKeyDown={(e) => e.key === 'Enter' && handleNext()} placeholder={current.placeholder}
+            className="w-full px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-green-500/50" />
+        )}
+      </div>
+      <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06]">
+        <div className="flex gap-1">
+          {step > 0 && <button onClick={() => setStep(step - 1)} className="px-2 py-1 rounded text-[10px] text-white/40 hover:text-white/70 cursor-pointer border-none bg-transparent"><ChevronLeft size={10} className="inline" /> Wstecz</button>}
+          <button onClick={handleAuto} className="px-2 py-1 rounded text-[10px] text-white/40 hover:text-white/70 cursor-pointer border-none bg-transparent">Auto</button>
+        </div>
+        <button onClick={handleNext} className="px-3 py-1 rounded-lg text-[11px] font-semibold bg-white text-black hover:bg-white/90 cursor-pointer border-none">
+          {isLast ? 'Generuj' : 'Dalej'} {!isLast && <ChevronRight size={10} className="inline" />}
+        </button>
+      </div>
+    </motion.div>
   );
 };
 
@@ -337,6 +237,7 @@ export const BuilderFullView = ({
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [genStep, setGenStep] = useState(0);
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
   const [isProMode, setIsProMode] = useState(false);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
@@ -568,12 +469,7 @@ export const BuilderFullView = ({
   return (
     <>
       <style>{BORDER_BEAM_CSS}</style>
-      <QuestionnaireModal
-        open={showWizard}
-        onClose={() => setShowWizard(false)}
-        onComplete={handleWizardComplete}
-        initialNiche={detectBusiness(builderPrompt)}
-      />
+      {/* Inline questionnaire appears above input when showWizard is true */}
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -715,6 +611,18 @@ export const BuilderFullView = ({
                   </div>
                 </div>
 
+                {/* Inline Questionnaire — nad inputem */}
+                {showWizard && (
+                  <InlineWizard
+                    step={wizardStep}
+                    setStep={setWizardStep}
+                    answers={answers}
+                    setAnswers={setAnswers}
+                    onGenerate={() => { setShowWizard(false); handleWizardComplete(answers); }}
+                    onClose={() => setShowWizard(false)}
+                  />
+                )}
+
                 {/* Chat Input — Border Beam */}
                 <div className="p-3 border-t border-white/[0.06]">
                   <div className="sm-border-beam rounded-xl">
@@ -726,7 +634,7 @@ export const BuilderFullView = ({
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            setShowWizard(true);
+                            setWizardStep(0); setShowWizard(true);
                           }
                         }}
                         placeholder="Opisz stronę, którą chcesz zbudować..."
@@ -744,7 +652,7 @@ export const BuilderFullView = ({
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-white/20 font-medium">{cost} kr.</span>
                           <button
-                            onClick={() => setShowWizard(true)}
+                            onClick={() => { setWizardStep(0); setShowWizard(true); }}
                             disabled={!builderPrompt.trim()}
                             className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
                           >
