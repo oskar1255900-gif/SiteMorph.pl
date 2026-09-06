@@ -68,17 +68,7 @@ async function fetchWizardQuestions(businessName: string, description: string): 
 // ============================================================================
 
 
-// ============================================================================
-// THINKING STEPS (symulacja agenta)
-// ============================================================================
-const THINKING_STEPS = [
-  { icon: Search, label: 'Design Agent: analizuję branżę i szukam inspiracji...', color: 'text-blue-400' },
-  { icon: Globe, label: 'Design Agent: tworzę design guidelines (kolory, fonty, layout)...', color: 'text-purple-400' },
-  { icon: ImageIcon, label: 'Design Agent: dobieram zdjęcia z Unsplash...', color: 'text-pink-400' },
-  { icon: FileText, label: 'Code Agent: piszę treści po polsku...', color: 'text-amber-400' },
-  { icon: Terminal, label: 'Code Agent: składam HTML + CSS + JavaScript...', color: 'text-green-400' },
-  { icon: Check, label: 'Finalizuję i waliduję kod...', color: 'text-emerald-400' },
-];
+// Thinking steps removed — generation is silent
 
 // ============================================================================
 // WIZARD QUESTIONNAIRE DATA
@@ -212,7 +202,7 @@ const AIThinkingDisplay = ({ thinking }: { thinking: any }) => {
 
 const ThinkingState = ({ step }: { step: number }) => (
   <div className="space-y-2 py-3">
-    {THINKING_STEPS.map((s, i) => {
+    {[].map((s: any, i: number) => {
       const isActive = i === step;
       const isDone = i < step;
       return (
@@ -290,7 +280,7 @@ export const BuilderFullView = ({
 
   useEffect(() => {
     if (!isGenerating) return;
-    const id = setInterval(() => setGenStep((s) => (s + 1) % THINKING_STEPS.length), 2200);
+    const id = setInterval(() => setGenStep((s) => (s + 1) % 6), 2200);
     return () => clearInterval(id);
   }, [isGenerating]);
 
@@ -713,7 +703,7 @@ export const BuilderFullView = ({
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 grid place-items-center mb-3">
                     <Sparkles size={18} className="text-green-400" />
                   </motion.div>
-                  <div className="text-xs font-medium text-white/60">{THINKING_STEPS[genStep]?.label || 'Pracuję...'}</div>
+                  <div className="text-xs font-medium text-white/60">'Tworzę stronę...'</div>
                 </motion.div>
               ) : !generatedSite ? (
                 <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center rounded-xl bg-[#111111] border border-white/[0.06]">
