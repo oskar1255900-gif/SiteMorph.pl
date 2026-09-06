@@ -56,7 +56,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     Jeden szybki call na Gemini 3.7 Flash, timeout dopasowany do limitu platformy hostingowej."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    per_try_timeout = 15 if os.getenv("VERCEL") else 90
+    per_try_timeout = 15 if os.getenv("VERCEL") else 450
     try:
         r = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",

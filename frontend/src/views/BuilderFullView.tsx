@@ -331,7 +331,7 @@ export const BuilderFullView = ({
     setIsGenerating(true);
     setGenStep(0);
     const start = Date.now();
-    const MIN_MS = 3500;
+    const MIN_MS = 5000;
     let fetchResult: any = null;
     let fetchError: any = null;
     try {
@@ -339,7 +339,7 @@ export const BuilderFullView = ({
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
         headers: { 'X-User-Plan': plan },
-        timeoutMs: 12000,
+        timeoutMs: 480000,
         body: JSON.stringify({
           business_name: answers.niche || 'Firma',
           niche: answers.niche || 'Restauracja',
