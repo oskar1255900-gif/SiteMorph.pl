@@ -42,7 +42,13 @@ try:
                         pass
     Base.metadata.create_all(bind=engine)
 except Exception:
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        # Startup nigdy nie moze hard-crashowac przez DB — serwerless na Vercelu
+        # dostalby FUNCTION_INVOCATION_FAILED na KAZDY request, nawet te bez DB
+        # (np. bramka hasla /api/admin/gate/*). Endpointy DB i tak zwroca 500 per request.
+        print("Startup: baza danych niedostepna (tworzenie tabel pominiete)", flush=True)
 
 app = FastAPI(title="SiteMorph API", version="1.0.0")
 
