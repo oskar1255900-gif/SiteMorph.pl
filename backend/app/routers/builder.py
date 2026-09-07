@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any, Tuple
+import html
 import json
 import os
 import re
+import shutil
+import subprocess
 import time
 import uuid
 import requests
+from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
@@ -66,9 +70,15 @@ REFINE_NORMAL = os.getenv("SITEMORPH_REFINE_NORMAL", "1") == "1"
 REFINE_PREMIUM = os.getenv("SITEMORPH_REFINE_PREMIUM", "1") == "1"
 QUALITY_TARGET = float(os.getenv("SITEMORPH_QUALITY_TARGET", "8.6"))
 
-# If your live preview still expects a self-contained preview.html, keep this on.
-# If your frontend previews the actual Vite project, set it to 0 and save one AI call.
-GENERATE_STANDALONE_PREVIEW = os.getenv("SITEMORPH_STANDALONE_PREVIEW", "1") == "1"
+# When True an AI model rewrites the React project into a self-contained
+# preview.html replica (only needed where a real Vite build cannot run, e.g.
+# Vercel serverless). When False (default, local backend has node/npm) the REAL
+# React project is compiled with Vite and inlined into preview.html, so the live
+# preview shows exactly what was generated — no AI-made copy, no extra AI call.
+GENERATE_STANDALONE_PREVIEW = os.getenv(
+    "SITEMORPH_STANDALONE_PREVIEW",
+    "0" if not os.getenv("VERCEL") else "1",
+) == "1"
 
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "").strip()
 
@@ -1332,6 +1342,216 @@ def ensure_preview_entry(files: Dict[str, str], title: str) -> None:
 
 
 # =============================================================================
+# REAL REACT BUILD — compile the actual generated Vite project and inline it
+# into ONE self-contained HTML so the live preview (and publish) show the real
+# React app, not a hand-made AI replica. Used whenever node/npm is available.
+# =============================================================================
+
+
+BUILD_ROOT = Path(__file__).resolve().parents[2] / ".sitemorph_builds"
+BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+MAX_BUILD_DIRS = 8
+
+
+def _npm_cmd() -> Optional[List[str]]:
+    """Return [node, npm-cli.js] — robust on Windows without shell=True."""
+    node = shutil.which("node")
+    if not node:
+        return None
+    npm_cli = os.path.join(os.path.dirname(node), "node_modules", "npm", "bin", "npm-cli.js")
+    if not os.path.exists(npm_cli):
+        return None
+    return [node, npm_cli]
+
+
+def _strip_project_prefix(path: str) -> str:
+    for pre in ("main/frontend/", "frontend/", "app/"):
+        if path.startswith(pre):
+            return path[len(pre):]
+    return path.lstrip("/")
+
+
+def _ensure_build_essentials(proj: Path) -> None:
+    """Guarantee package.json / vite / tailwind / index.html are buildable even
+    when the AI output omitted them. Never removes what the AI wrote."""
+    pkg_path = proj / "package.json"
+    pkg = {}
+    if pkg_path.exists():
+        try:
+            pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
+        except Exception:
+            pkg = {}
+    deps = pkg.setdefault("dependencies", {})
+    dev = pkg.setdefault("devDependencies", {})
+    runtime = {
+        "react": "^18.2.0", "react-dom": "^18.2.0",
+        "clsx": "^2.1.0", "tailwind-merge": "^2.2.0",
+        "class-variance-authority": "^0.7.0",
+        "framer-motion": "^11.0.0", "gsap": "^3.12.0",
+        "@gsap/react": "^2.1.0", "@studio-freight/lenis": "^1.0.0",
+        "@formkit/auto-animate": "^0.8.0", "lucide-react": "^0.300.0",
+        "@fontsource/inter": "^5.0.0", "@fontsource/playfair-display": "^5.0.0",
+        "embla-carousel-react": "^8.0.0", "canvas-confetti": "^1.9.0",
+        "@radix-ui/react-dialog": "^1.0.0",
+    }
+    for k, v in runtime.items():
+        deps.setdefault(k, v)
+    for k, v in {
+        "vite": "^5.4.0", "@vitejs/plugin-react": "^4.3.0",
+        "typescript": "^5.3.0", "tailwindcss": "^3.4.0",
+        "postcss": "^8.4.0", "autoprefixer": "^10.4.0",
+    }.items():
+        dev.setdefault(k, v)
+    pkg.setdefault("type", "module")
+    pkg["scripts"] = {"dev": "vite", "build": "vite build", "preview": "vite preview"}
+    pkg_path.write_text(json.dumps(pkg, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Our own vite.config forces relative base + a single inline chunk so the
+    # built output can be inlined into one HTML file afterwards.
+    (proj / "vite.config.ts").write_text(
+        "import { defineConfig } from 'vite';\n"
+        "import react from '@vitejs/plugin-react';\n"
+        "export default defineConfig({\n"
+        "  base: './',\n"
+        "  plugins: [react()],\n"
+        "  build: { outDir: 'dist', rollupOptions: { output: { inlineDynamicImports: true } } },\n"
+        "});\n",
+        encoding="utf-8",
+    )
+
+    if not (proj / "postcss.config.js").exists():
+        (proj / "postcss.config.js").write_text(
+            "export default { plugins: { tailwindcss: {}, autoprefixer: {} } };\n",
+            encoding="utf-8",
+        )
+    if not (proj / "tailwind.config.js").exists():
+        (proj / "tailwind.config.js").write_text(
+            "/** @type {import('tailwindcss').Config} */\n"
+            "export default { content: ['./index.html', './src/**/*.{ts,tsx}'],"
+            " theme: { extend: {} }, plugins: [] };\n",
+            encoding="utf-8",
+        )
+
+    html_path = proj / "index.html"
+    if html_path.exists():
+        idx = html_path.read_text(encoding="utf-8")
+        if "main.tsx" not in idx and "main.jsx" not in idx:
+            idx = idx.replace("</body>", '    <script type="module" src="/src/main.tsx"></script>\n  </body>')
+            html_path.write_text(idx, encoding="utf-8")
+
+
+def _run(cmd: List[str], cwd: Path, timeout: int) -> Tuple[int, str]:
+    proc = subprocess.run(
+        cmd,
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
+    return proc.returncode, ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
+
+
+def _inline_assets(dist: Path, html: str) -> str:
+    """Inline the single JS chunk and CSS emitted by Vite into the HTML."""
+
+    def _file(href: str) -> str:
+        if href.startswith(('http://', 'https://', 'data:', '//')):
+            return ''
+        p = (dist / href.lstrip('./')).resolve()
+        try:
+            p.relative_to(dist.resolve())
+        except Exception:
+            return ''
+        if p.exists():
+            return p.read_text(encoding="utf-8", errors="replace")
+        return ''
+
+    def _js(m):
+        c = _file(m.group(1))
+        return '<script type="module">' + c + '</script>' if c else m.group(0)
+
+    def _css(m):
+        c = _file(m.group(1))
+        return '<style>' + c + '</style>' if c else m.group(0)
+
+    html = re.sub('<script[^>]*type="module"[^>]*src="([^"]+)"[^>]*></script>', _js, html)
+    html = re.sub('<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>', _css, html)
+    return html
+
+
+def build_single_file_preview(files: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
+    """Compile the real React project into ONE self-contained HTML string.
+    Returns (html, None) on success, (None, build_error) on failure."""
+    npm = _npm_cmd()
+    if not npm:
+        return None, "node/npm niedostępne na tym backendzie"
+
+    pid = uuid.uuid4().hex[:10]
+    proj = BUILD_ROOT / pid / "app"
+    proj.mkdir(parents=True, exist_ok=True)
+    try:
+        for path, content in (files or {}).items():
+            rel = _strip_project_prefix(path)
+            if not rel or not isinstance(content, str) or "preview.html" in rel:
+                continue
+            dest = proj / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(content, encoding="utf-8")
+
+        _ensure_build_essentials(proj)
+
+        rc, log = _run(npm + ["install", "--no-audit", "--no-fund", "--loglevel=error"], proj, 480)
+        if rc != 0:
+            return None, "npm install:" + log[-2500:]
+
+        vite_js = proj / "node_modules" / "vite" / "bin" / "vite.js"
+        if not vite_js.exists():
+            return None, "vite nie został zainstalowany"
+        rc, log = _run([npm[0], str(vite_js), "build"], proj, 300)
+        if rc != 0:
+            return None, "vite build:" + log[-2500:]
+
+        dist = proj / "dist"
+        index = dist / "index.html"
+        if not index.exists():
+            return None, "Build OK, ale brak dist/index.html"
+        html_str = _inline_assets(dist, index.read_text(encoding="utf-8"))
+        if "<html" not in html_str.lower():
+            return None, "Nieprawidłowy HTML po buildzie"
+        return html_str, None
+    except subprocess.TimeoutExpired:
+        return None, "Timeout podczas npm install / vite build"
+    except Exception as e:
+        return None, f"Build exception: {str(e)[:400]}"
+    finally:
+        dirs = sorted(BUILD_ROOT.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+        for d in dirs[MAX_BUILD_DIRS:]:
+            shutil.rmtree(d, ignore_errors=True)
+
+
+def _has_real_react_app(files: Dict[str, str]) -> bool:
+    return any(
+        k.endswith(("/src/main.tsx", "/src/main.jsx", "/src/App.tsx"))
+        for k in (files or {})
+    )
+
+
+def _build_error_page(business: str, log: str) -> str:
+    esc = html.escape(log[-1800:])
+    return f"""<!doctype html>
+<html lang="pl">
+<head><meta charset="UTF-8"/><title>{html.escape(business or 'SiteMorph')} — błąd builda</title></head>
+<body style="margin:0;background:#0b0e14;color:#e5e7eb;font-family:ui-monospace,Consolas,monospace;padding:32px">
+  <h2 style="color:#f87171;font-family:system-ui,sans-serif;font-size:16px">⚠ Błąd kompilacji wygenerowanego projektu React</h2>
+  <p style="color:#9ca3af;font-family:system-ui,sans-serif;font-size:13px">Zmień prompt / odpowiedz inaczej i wygeneruj ponownie, albo popraw ten błąd:</p>
+  <pre style="white-space:pre-wrap;font-size:12px;line-height:1.5;color:#fbbf24">{esc}</pre>
+</body></html>
+"""
+
+
+# =============================================================================
 # QUESTIONS AGENT
 # =============================================================================
 
@@ -1713,22 +1933,40 @@ def generate_site(data: BuilderInput):
                 warning_parts.append(f"Revision skipped/failed: {revision_err}")
 
         # ---------------------------------------------------------------------
-        # 8) STANDALONE PREVIEW (SEPARATE FROM REAL REACT PROJECT)
+        # 8) LIVE PREVIEW — build the REAL React project into preview.html.
+        #    Only on platforms without node/npm (e.g. Vercel) do we ask an AI
+        #    model to hand-craft a preview.html replica instead.
         # ---------------------------------------------------------------------
-        preview_html, preview_err = make_standalone_preview(
-            data,
-            art_direction,
-            parsed_files,
-        )
-        if preview_html:
-            parsed_files["main/frontend/preview.html"] = preview_html
+        if not GENERATE_STANDALONE_PREVIEW and _has_real_react_app(parsed_files):
+            built_html, build_err = build_single_file_preview(parsed_files)
+            if built_html:
+                parsed_files["main/frontend/preview.html"] = built_html
+            elif build_err:
+                # Show the compile error in the preview so it is visible and fixable
+                parsed_files["main/frontend/preview.html"] = _build_error_page(
+                    parsed_meta.get("title") or data.business_name, build_err
+                )
+                warning_parts.append("Real React build failed: " + build_err.replace("\n", " | ")[:240])
+            else:
+                ensure_preview_entry(
+                    parsed_files,
+                    parsed_meta.get("title") or data.business_name,
+                )
         else:
-            ensure_preview_entry(
+            preview_html, preview_err = make_standalone_preview(
+                data,
+                art_direction,
                 parsed_files,
-                parsed_meta.get("title") or data.business_name,
             )
-            if preview_err not in {None, "disabled"}:
-                warning_parts.append(f"Standalone preview fallback: {preview_err}")
+            if preview_html:
+                parsed_files["main/frontend/preview.html"] = preview_html
+            else:
+                ensure_preview_entry(
+                    parsed_files,
+                    parsed_meta.get("title") or data.business_name,
+                )
+                if preview_err not in {None, "disabled"}:
+                    warning_parts.append(f"Standalone preview fallback: {preview_err}")
 
         meta = parsed_meta or fb.get("meta") or {}
         hero = {

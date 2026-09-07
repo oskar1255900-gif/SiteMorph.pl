@@ -25,3 +25,6 @@ Thumbs.db
 *.log
 backend/*.log
 
+
+# Lokalne buildy wygenerowanych projektow React (preview)
+backend/.sitemorph_builds/
