@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SandpackLayout, SandpackPreview, SandpackProvider } from '@codesandbox/sandpack-react';
 import {
   Sparkles,
   CheckCircle2,
@@ -18,7 +19,6 @@ import {
   ArrowLeft,
   Image as ImageIcon,
 
-  MousePointer2,
   Save,
 
 
@@ -38,7 +38,7 @@ import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
 import { ThinkingSteps } from './ThinkingSteps';
 
-// Fetch AI-generated questions from backend (Gemini 3.8 Flash)
+// Fetch AI-generated questions from backend (DeepSeek V4 Pro)
 async function fetchWizardQuestions(businessName: string, description: string, fullPrompt: string): Promise<{questions: WizardQuestion[], detectedNiche?: string}> {
   try {
     const res = await apiFetch('/api/builder/generate-questions', {
@@ -48,7 +48,7 @@ async function fetchWizardQuestions(businessName: string, description: string, f
     });
     if (res.ok) {
       const data = await res.json();
-      if (data.questions && Array.isArray(data.questions) && data.questions.length >= 1) {
+      if (Array.isArray(data.questions)) {
         const mapped = data.questions.map((q: any) => ({
           question: q.question || 'Pytanie?',
           placeholder: q.placeholder || '',
@@ -84,8 +84,19 @@ interface WizardQuestion {
 }
 
 const DEFAULT_WIZARD_QUESTIONS: WizardQuestion[] = [
-  { question: 'Jaki styl strony?', placeholder: '', options: ['Nowoczesny i minimalistyczny', 'Ciemny i premium', 'Ciepły i przytulny', 'Odwazny i kolorowy'], stateKey: 'layout' },
-  { question: 'Które sekcje na stronie?', placeholder: '', options: ['Hero', 'Oferta', 'Cennik', 'Opinie', 'Kontakt', 'Galeria', 'O nas', 'FAQ'], stateKey: 'sections', multi: true },
+  {
+    question: 'Czy chcesz wskazać konkretny styl?',
+    placeholder: '',
+    options: ['Dobierz automatycznie', 'Minimalistyczny', 'Editorial', 'Ciepły i przytulny', 'Odważny i energiczny'],
+    stateKey: 'layout',
+  },
+  {
+    question: 'Które sekcje są dla Ciebie najważniejsze?',
+    placeholder: '',
+    options: ['Menu', 'Oferta', 'Cennik', 'Galeria', 'Opinie', 'O nas', 'Kontakt', 'FAQ'],
+    stateKey: 'sections',
+    multi: true,
+  },
 ];
 
 // ============================================================================
@@ -124,15 +135,11 @@ const InlineWizard = ({
     else setStep(step + 1);
   };
   const handleAuto = () => {
-    if (current.options) {
-      if (current.multi) {
-        const shuffled = [...current.options].sort(() => 0.5 - Math.random()).slice(0, 3);
-        setAnswers({ ...answers, [current.stateKey]: shuffled });
-      } else {
-        const pick = current.options[Math.floor(Math.random() * current.options.length)];
-        setAnswers({ ...answers, [current.stateKey]: pick });
-      }
-    }
+    // "Auto" means: do not force a visual decision. Let Brand Strategist + Art Director infer it.
+    setAnswers({
+      ...answers,
+      [current.stateKey]: current.multi ? [] : '',
+    });
     setTimeout(handleNext, 200);
   };
   const toggleOption = (opt: string) => {
@@ -238,6 +245,71 @@ const InlineWizard = ({
 
 
 // ============================================================================
+// LIVE REACT PREVIEW
+// ============================================================================
+
+type SandpackSetup = {
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+};
+
+function makeSandpackFiles(files: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+
+  Object.entries(files || {}).forEach(([fullPath, code]) => {
+    if (!fullPath.startsWith('main/frontend/')) return;
+    if (fullPath === 'main/frontend/preview.html') return; // export-only, never the live preview
+
+    let relative = fullPath.slice('main/frontend'.length);
+    if (!relative.startsWith('/')) relative = `/${relative}`;
+    out[relative] = code;
+  });
+
+  return out;
+}
+
+function makeSandpackSetup(files: Record<string, string>): SandpackSetup {
+  try {
+    const raw = files['main/frontend/package.json'];
+    const pkg = raw ? JSON.parse(raw) : {};
+    return {
+      dependencies: pkg.dependencies || {},
+      devDependencies: pkg.devDependencies || {},
+    };
+  } catch {
+    return {
+      dependencies: {
+        react: '^18.2.0',
+        'react-dom': '^18.2.0',
+        'framer-motion': '^11.0.0',
+        'lucide-react': '^0.468.0',
+      },
+      devDependencies: {
+        vite: '^5.0.0',
+        typescript: '^5.0.0',
+        '@vitejs/plugin-react': '^4.0.0',
+      },
+    };
+  }
+}
+
+function cleanAutoValue(value: unknown): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return '';
+  const low = text.toLowerCase();
+  if (
+    low === 'auto' ||
+    low === 'automatycznie' ||
+    low === 'dobierz automatycznie' ||
+    low === 'zdecyduj za mnie' ||
+    low === 'bez preferencji'
+  ) {
+    return '';
+  }
+  return text;
+}
+
+// ============================================================================
 // MAIN BUILDER VIEW
 // ============================================================================
 export const BuilderFullView = ({
@@ -267,18 +339,14 @@ export const BuilderFullView = ({
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [publishErr, setPublishErr] = useState('');
-  const [isEditMode, setIsEditMode] = useState(false);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [leftW, setLeftW] = useState(400);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
-  const previewRef = useRef<HTMLIFrameElement>(null);
 
   // Wizard answers
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({
-    theme: 'Ciemny',
-    layout: 'Nowoczesny',
-    sections: ['Hero', 'Oferta', 'Kontakt'],
+    sections: [],
   });
 
   // Projects
@@ -323,76 +391,118 @@ export const BuilderFullView = ({
   };
 
   const generateWithAnswers = async (ans: Record<string, string | string[]>, promptOverride?: string) => {
-    const sections = ((ans.sections as string[]) || []).join(', ');
-    const niche = String(ans.niche || 'Firma');
-    const p = promptOverride || `Branża: ${niche}. Motyw: ${ans.theme || 'Ciemny'}. Styl: ${ans.layout || 'Nowoczesny'}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
-    if (!p.trim()) return;
+    const originalPrompt = (promptOverride || builderPrompt || '').trim();
+    if (!originalPrompt) return;
+
+    const selectedSections = Array.isArray(ans.sections) ? (ans.sections as string[]) : [];
+    const niche = cleanAutoValue(ans.niche);
+    const layout = cleanAutoValue(ans.layout);
+    const themePreference = cleanAutoValue(ans.theme);
+    const tone = cleanAutoValue(ans.tone);
+    const photoStyle = cleanAutoValue(ans.photos);
+    const accent = cleanAutoValue(ans.accent);
+    const fonts = cleanAutoValue(ans.fonts);
+
     if (credits < cost) {
       alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
       return;
     }
+
     setIsGenerating(true);
     const start = Date.now();
-    const MIN_MS = 7500;
+    const MIN_MS = 3000;
     let fetchResult: any = null;
     let fetchError: any = null;
+
     try {
-      const plan = (() => { try { return localStorage.getItem('sitemorph-plan') || 'Starter' } catch { return 'Starter' } })();
+      const plan = (() => {
+        try { return localStorage.getItem('sitemorph-plan') || 'Starter'; }
+        catch { return 'Starter'; }
+      })();
+
       const res = await apiFetch('/api/builder/generate', {
         method: 'POST',
         headers: { 'X-User-Plan': plan },
         timeoutMs: 480000,
         body: JSON.stringify({
-          business_name: niche,
+          // Do not fake a business name. DeepSeek extracts it from the raw prompt.
+          business_name: '',
           niche,
-          description: p,
-          style: String(ans.layout || 'Nowoczesny'),
-          colors: String(ans.theme || 'Ciemny'),
-          sections: (ans.sections as string[]) || ['Hero', 'Oferta', 'Kontakt'],
-          extraPrompt: builderPrompt,
-          accent_color: '',
-          layout: String(ans.layout || 'Nowoczesny'),
-          fonts: 'Inter',
+
+          // Raw user prompt stays intact and is the factual source of truth.
+          description: originalPrompt,
+          extraPrompt: originalPrompt,
+
+          // Only explicit wizard choices are sent. Empty means "infer intelligently".
+          style: [layout, tone].filter(Boolean).join(', '),
+          colors: themePreference,
+          sections: selectedSections,
+          accent_color: accent,
+          layout,
+          fonts,
+          photo_style: photoStyle,
+          answers: ans,
+
+          // Backend currently keeps these modes for pricing/refinement compatibility,
+          // but every AI stage uses DeepSeek V4 Pro.
           mode: builderMode,
         }),
       } as any);
+
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || errData.warning || `Błąd: HTTP ${res.status}`);
       }
+
       fetchResult = await res.json();
     } catch (e: any) {
       fetchError = e;
     } finally {
       const elapsed = Date.now() - start;
       if (elapsed < MIN_MS) await new Promise((r) => setTimeout(r, MIN_MS - elapsed));
+
       if (fetchResult && !fetchError) {
         const data = fetchResult;
         const files: Record<string, string> = data.files || {};
         const meta = data.meta || {};
+        const parsedBusiness = data.business_brief?.business || {};
+        const parsedNiche = parsedBusiness.subcategory || parsedBusiness.category || niche || 'Firma';
+
         setGeneratedSite({
-          title: meta.title || p.slice(0, 28),
-          category: niche,
-          domain: `${(meta.title || 'strona').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
-          headline: meta.headline || p,
-          subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'AI'})`,
+          title: meta.title || parsedBusiness.name || originalPrompt.slice(0, 28),
+          category: parsedNiche,
+          domain: `${(meta.title || parsedBusiness.name || 'strona')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '')
+            .replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
+          headline: meta.headline || parsedBusiness.name || originalPrompt,
+          subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'DeepSeek V4 Pro'})`,
           ctaText: meta.ctaText || 'Skontaktuj się',
           files,
         });
-        const first = Object.keys(files).find((f) => f.endsWith('index.html')) || Object.keys(files)[0];
+
+        const first =
+          Object.keys(files).find((f) => f.endsWith('/src/App.tsx')) ||
+          Object.keys(files).find((f) => f.endsWith('/src/index.css')) ||
+          Object.keys(files).find((f) => f.endsWith('index.html')) ||
+          Object.keys(files)[0];
+
         if (first) setSelectedFile(first);
         setCredits((c) => Math.max(0, c - cost));
       } else if (fetchError) {
         setGeneratedSite({
-          title: p.slice(0, 25),
-          category: niche,
+          title: originalPrompt.slice(0, 25),
+          category: niche || 'Firma',
           domain: 'blad.sitemorph.pl',
-          headline: p,
+          headline: originalPrompt,
           subheadline: `Błąd: ${fetchError.message}`,
           ctaText: 'Skontaktuj się',
           files: {},
         });
       }
+
       setIsGenerating(false);
     }
   };
@@ -400,12 +510,10 @@ export const BuilderFullView = ({
   const handleWizardComplete = (ans: Record<string, string | string[]>) => {
     setAnswers(ans);
     setShowWizard(false);
-    // Build prompt directly from passed answers (state is stale)
-    const sections = ((ans.sections as string[]) || []).join(', ');
-    const niche = String(ans.niche || 'Firma');
-    const prompt = `Branża: ${niche}. Motyw: ${ans.theme || 'Ciemny'}. Styl: ${ans.layout || 'Nowoczesny'}. Sekcje: ${sections}. ${builderPrompt ? `Opis: ${builderPrompt}` : ''} Zbuduj nowoczesną stronę.`;
-    // Auto-generate with correct answers
-    setTimeout(() => generateWithAnswers(ans, prompt), 300);
+
+    // The original raw prompt is passed unchanged.
+    // Empty/auto wizard values do not become fake design instructions.
+    setTimeout(() => generateWithAnswers(ans, builderPrompt), 300);
   };
 
   const handleSaveProject = async () => {
@@ -484,6 +592,7 @@ export const BuilderFullView = ({
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
               try {
+                // preview.html is export-only; live preview renders the real React files via Sandpack.
                 const html = generatedSite.files['main/frontend/preview.html'] || '';
                 const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({ html, title: generatedSite.title }) });
                 const data = await res.json();
@@ -516,10 +625,6 @@ export const BuilderFullView = ({
                 </div>
 
                 <div className="space-y-2">
-                  <button onClick={() => setIsEditMode((v) => { const nv = !v; try { const doc = previewRef.current?.contentDocument; if (doc) doc.body.contentEditable = nv ? 'true' : 'false'; } catch {} return nv; })} className={`w-full py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${isEditMode ? 'bg-green-500/20 border-green-500/30 text-green-300' : (theme === 'dark' ? 'bg-white/5 border-white/10 text-white/60 hover:text-white/80' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-700')}`}>
-                    <MousePointer2 size={12} className="inline mr-1.5" />
-                    {isEditMode ? 'Wyłącz edycję' : 'Edytuj tekst'}
-                  </button>
                   <button onClick={handleSaveProject} className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-white/90' : 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'}`}>
                     <Save size={12} className="inline mr-1.5" />
                     {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
@@ -627,16 +732,30 @@ export const BuilderFullView = ({
                           <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/20' : 'text-gray-400'}`}>{cost} kr.</span>
                           <button
                             onClick={async () => {
-                            if (!builderPrompt.trim()) return;
-                            setWizardStep(0);
-                            setWizardLoading(true);
-                            setWizardQuestions(DEFAULT_WIZARD_QUESTIONS);
-                            setShowWizard(true);
-                            const result = await fetchWizardQuestions('', builderPrompt, builderPrompt);
-                            if (result.questions.length > 0) setWizardQuestions(result.questions);
-                            if (result.detectedNiche) setAnswers(a => ({ ...a, niche: result.detectedNiche! }));
-                            setWizardLoading(false);
-                          }}
+                              if (!builderPrompt.trim()) return;
+
+                              setWizardStep(0);
+                              setWizardLoading(true);
+                              setWizardQuestions([]);
+                              setShowWizard(true);
+
+                              const result = await fetchWizardQuestions('', builderPrompt, builderPrompt);
+                              const nextAnswers = result.detectedNiche
+                                ? { ...answers, niche: result.detectedNiche }
+                                : { ...answers };
+
+                              setAnswers(nextAnswers);
+                              setWizardLoading(false);
+
+                              if (result.questions.length > 0) {
+                                setWizardQuestions(result.questions);
+                                setShowWizard(true);
+                              } else {
+                                // Rich prompt: no forced design questions. Go straight to the AI pipeline.
+                                setShowWizard(false);
+                                generateWithAnswers(nextAnswers, builderPrompt);
+                              }
+                            }}
                             disabled={!builderPrompt.trim()}
                             className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
                           >
@@ -688,10 +807,59 @@ export const BuilderFullView = ({
                     </div>
                   </div>
                   {(() => {
-                    const previewHtml = generatedSite.files['main/frontend/preview.html'] || '';
-                    const srcDoc = previewHtml || `<html><body style="background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter"><h1>${generatedSite.headline}</h1></body></html>`;
+                    const hasReactProject = Boolean(generatedSite.files['main/frontend/src/App.tsx']);
+
+                    if (!hasReactProject) {
+                      const emergencyHtml = generatedSite.files['main/frontend/preview.html'] || `
+                        <html>
+                          <body style="margin:0;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif">
+                            <h1>${generatedSite.headline}</h1>
+                          </body>
+                        </html>`;
+                      return (
+                        <iframe
+                          title="Awaryjny podgląd"
+                          className="flex-1 w-full border-0 bg-white"
+                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                          srcDoc={emergencyHtml}
+                        />
+                      );
+                    }
+
+                    const liveFiles = makeSandpackFiles(generatedSite.files);
+                    const setup = makeSandpackSetup(generatedSite.files);
+
                     return (
-                      <iframe ref={previewRef} title="Podgląd" className={`flex-1 w-full border-0 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'}`} sandbox="allow-scripts allow-same-origin allow-popups allow-forms" srcDoc={srcDoc} />
+                      <SandpackProvider
+                        key={generatedSite.domain}
+                        template="vite-react-ts"
+                        files={liveFiles}
+                        customSetup={setup}
+                        options={{
+                          autorun: true,
+                          recompileMode: 'immediate',
+                        }}
+                        style={{ height: '100%', width: '100%' }}
+                      >
+                        <SandpackLayout
+                          style={{
+                            height: '100%',
+                            width: '100%',
+                            border: 0,
+                            borderRadius: 0,
+                          }}
+                        >
+                          <SandpackPreview
+                            style={{ height: '100%', width: '100%' }}
+                            showNavigator={false}
+                            showOpenInCodeSandbox={false}
+                            showOpenNewtab={false}
+                            showRefreshButton
+                            showRestartButton
+                            showSandpackErrorOverlay
+                          />
+                        </SandpackLayout>
+                      </SandpackProvider>
                     );
                   })()}
                 </motion.div>

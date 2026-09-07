@@ -33,35 +33,27 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 
-GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY") or "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "90000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "180"))
 
-# Main generation modes. Kept exactly in the spirit of your current builder.
+# One DeepSeek model powers every AI stage in SiteMorph.
+# Keep the mode names for frontend/pricing compatibility, but they all resolve
+# to the same model. Quality differences can still come from refinement policy.
+DEEPSEEK_MODEL = os.getenv("SITEMORPH_DEEPSEEK_MODEL", "deepseek/deepseek-v4-pro")
+
 MODEL_MAP = {
-    "normal": os.getenv("SITEMORPH_MODEL_NORMAL", "qwen/qwen3.8-max:free"),
-    "ultra": os.getenv("SITEMORPH_MODEL_ULTRA", "deepseek/deepseek-v4-pro"),
-    "ultra+": os.getenv("SITEMORPH_MODEL_ULTRA_PLUS", "anthropic/claude-fable-5"),
+    "normal": DEEPSEEK_MODEL,
+    "ultra": DEEPSEEK_MODEL,
+    "ultra+": DEEPSEEK_MODEL,
 }
 
-# Live-verified free models on this XKIRO key (bonus credits do not unlock
-# premium tiers). Resilience chain used whenever the chosen model fails with
-# 403 premium / 429 / 5xx — tried in order until one produces a valid project.
-FREE_FALLBACK_MODELS = [
-    os.getenv("SITEMORPH_FALLBACK_MODEL_1", "qwen/qwen3.8-max:free"),
-    os.getenv("SITEMORPH_FALLBACK_MODEL_2", "deepseek/deepseek-v4-pro"),
-    os.getenv("SITEMORPH_FALLBACK_MODEL_3", "deepseek/deepseek-v4-flash"),
-    os.getenv("SITEMORPH_FALLBACK_MODEL_4", "minimax/minimax-m3:free"),
-]
-
-# Specialist agents. These do not replace the main website model.
-ART_DIRECTOR_MODEL = os.getenv("SITEMORPH_ART_DIRECTOR_MODEL", "deepseek/deepseek-v4-pro")
-CRITIC_MODEL = os.getenv("SITEMORPH_CRITIC_MODEL", "deepseek/deepseek-v4-pro")
-QUESTIONS_MODEL = os.getenv("SITEMORPH_QUESTIONS_MODEL", "deepseek/deepseek-v4-flash")
-PREVIEW_MODEL = os.getenv("SITEMORPH_PREVIEW_MODEL", "qwen/qwen3.8-max:free")
+PROMPT_PARSER_MODEL = DEEPSEEK_MODEL
+BRAND_STRATEGIST_MODEL = DEEPSEEK_MODEL
+ART_DIRECTOR_MODEL = DEEPSEEK_MODEL
+CRITIC_MODEL = DEEPSEEK_MODEL
+QUESTIONS_MODEL = DEEPSEEK_MODEL
+PREVIEW_MODEL = DEEPSEEK_MODEL
 
 # One automatic critique/revision pass gives a large quality improvement, but costs
 # another generation request. Disable with SITEMORPH_ENABLE_REFINEMENT=0 if needed.
@@ -103,6 +95,7 @@ class BuilderInput(BaseModel):
     fonts: Optional[str] = None
     photo_style: Optional[str] = None
     image_urls: Optional[List[str]] = None
+    answers: Optional[dict] = None
     mode: Optional[str] = "normal"
 
 
@@ -189,8 +182,7 @@ def xkiro_generate_model(
         return None, "Brak XKIRO_API_KEY"
 
     try:
-        # Some models reject max_tokens above their real output ceiling (HTTP 400).
-        output_cap = 65000 if ("luna" in model or "fable" in model) else MAX_OUTPUT_TOKENS
+        output_cap = MAX_OUTPUT_TOKENS
         r = requests.post(
             f"{XKIRO_BASE_URL}/chat/completions",
             headers={
@@ -235,51 +227,6 @@ def xkiro_generate_model(
     except Exception as e:
         return None, f"{model}: {str(e)[:240]}"
 
-
-def gemini_generate(
-    system_prompt: str,
-    user_prompt: str,
-    temperature: float = 0.72,
-    max_tokens: int = MAX_OUTPUT_TOKENS,
-) -> Tuple[Optional[str], Optional[str]]:
-    """Gemini backup provider. It is not the main SiteMorph generator."""
-    if not GEMINI_API_KEY:
-        return None, "Brak GEMINI_API_KEY"
-
-    try:
-        r = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
-            params={"key": GEMINI_API_KEY},
-            json={
-                "systemInstruction": {"parts": [{"text": system_prompt}]},
-                "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-                "generationConfig": {
-                    "temperature": temperature,
-                    "maxOutputTokens": min(max_tokens, MAX_OUTPUT_TOKENS, 65536),
-                    "responseMimeType": "application/json",
-                },
-            },
-            timeout=AI_TIMEOUT,
-        )
-
-        print(f"[SiteMorph][Gemini] {GEMINI_MODEL} -> HTTP {r.status_code}", flush=True)
-
-        if r.status_code != 200:
-            return None, f"{GEMINI_MODEL}: HTTP {r.status_code} - {r.text[:400]}"
-
-        candidates = r.json().get("candidates") or []
-        if not candidates:
-            return None, f"{GEMINI_MODEL}: brak candidates"
-
-        parts = candidates[0].get("content", {}).get("parts", []) or []
-        text = "".join(part.get("text", "") for part in parts if isinstance(part, dict))
-        if not text.strip():
-            return None, f"{GEMINI_MODEL}: pusta odpowiedz"
-
-        return text, None
-
-    except Exception as e:
-        return None, f"{GEMINI_MODEL}: {str(e)[:240]}"
 
 
 # =============================================================================
@@ -343,49 +290,427 @@ def collect_design_images(queries: List[str], max_total: int = 8) -> List[Dict[s
 
 
 # =============================================================================
-# ART DIRECTOR
+# PROMPT PARSER -> BRAND STRATEGIST -> ART DIRECTOR
 # =============================================================================
 
 
+def _original_prompt_from(data: Any) -> str:
+    """Return the raw user prompt. It is the factual source of truth."""
+    return (
+        getattr(data, "full_prompt", "")
+        or getattr(data, "extraPrompt", "")
+        or getattr(data, "description", "")
+        or getattr(data, "business_name", "")
+        or ""
+    ).strip()
+
+
+def _normalize_auto(value: Any) -> str:
+    """Wizard 'auto' values are not real design preferences."""
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    low = text.lower()
+    if low in {
+        "auto",
+        "automatycznie",
+        "dobierz automatycznie",
+        "zdecyduj za mnie",
+        "bez preferencji",
+        "not specified",
+    }:
+        return ""
+    return text
+
+
+def _explicit_preferences(data: Any) -> Dict[str, Any]:
+    answers = getattr(data, "answers", None) or {}
+    return {
+        "style": _normalize_auto(getattr(data, "style", "")),
+        "colors": _normalize_auto(getattr(data, "colors", "")),
+        "accent_color": _normalize_auto(getattr(data, "accent_color", "")),
+        "layout": _normalize_auto(getattr(data, "layout", "")),
+        "fonts": _normalize_auto(getattr(data, "fonts", "")),
+        "photo_style": _normalize_auto(getattr(data, "photo_style", "")),
+        "sections": list(getattr(data, "sections", None) or []),
+        "wizard_answers": answers,
+    }
+
+
+PROMPT_PARSER_SYSTEM = r"""
+You are SiteMorph Prompt Parser.
+
+Your ONLY job is to convert a raw, often messy website prompt into a factual business brief.
+The prompt may contain copied Google Maps text, icons, navigation labels, review blocks,
+menu text, owner descriptions, URLs and image URLs.
+
+DO NOT design the website yet.
+DO NOT choose a palette.
+DO NOT invent facts.
+DO NOT "improve" phone numbers, addresses, ratings, opening hours, prices or reviews.
+Ignore UI garbage such as "Wyznacz trasę", "Zapisz", "Udostępnij", map icons and
+other interface labels unless they contain actual business information.
+
+The ORIGINAL USER PROMPT is the source of truth.
+
+Extract:
+- exact brand/business name
+- category and more specific subcategory
+- description / owner description
+- city and exact address
+- phone, email, website/order links
+- rating, review count, price range, opening hours
+- real products/menu items and prices when present
+- real reviews when present
+- requested sections
+- explicit design preferences ONLY when the user truly states them
+- visual/brand signals that are factual clues from the prompt
+  (for example: sakura garden, Japanese atmosphere, handmade ceramics, brutalist interior)
+- conversion actions such as order, book, call, visit
+- image URLs present in the prompt
+
+If a field is unknown, use an empty string, empty array or null.
+Never replace an unknown with a plausible value.
+
+Return ONLY valid JSON:
+{
+  "business": {
+    "name": "",
+    "category": "",
+    "subcategory": "",
+    "description": "",
+    "owner_description": "",
+    "location": {"city": "", "address": ""},
+    "phone": "",
+    "email": "",
+    "website": "",
+    "order_links": [],
+    "rating": null,
+    "reviews_count": null,
+    "price_range": "",
+    "opening_hours": ""
+  },
+  "products_services": [
+    {"name": "", "description": "", "price": "", "image_url": ""}
+  ],
+  "reviews": [
+    {"author": "", "rating": null, "text": ""}
+  ],
+  "requested_sections": [],
+  "explicit_design_preferences": {
+    "colors": [],
+    "theme": "",
+    "style": "",
+    "fonts": "",
+    "layout": "",
+    "motion": "",
+    "photo_style": ""
+  },
+  "brand_signals": [],
+  "conversion_actions": [],
+  "image_urls_from_prompt": [],
+  "important_content": [],
+  "unknowns": []
+}
+"""
+
+
+def _guess_business_name(original: str, fallback: str = "") -> str:
+    text = (original or "").strip()
+    patterns = [
+        r"(?:zrób|zrob|stwórz|stworz)\s+(?:mi\s+)?stron(?:ę|e)\s*:?\s*([^\n\r]+)",
+        r"(?:strona|website)\s+(?:dla|for)\s*:?\s*([^\n\r]+)",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            candidate = re.sub(r"\s+", " ", m.group(1)).strip(" -*:")
+            if 2 <= len(candidate) <= 140:
+                return candidate
+    first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
+    if first and len(first) <= 140:
+        return re.sub(r"^(?:zrób|zrob|stwórz|stworz)\s+(?:mi\s+)?stron(?:ę|e)\s*:?\s*", "", first, flags=re.I).strip()
+    return fallback or ""
+
+
+def _fallback_business_brief(data: Any) -> Dict[str, Any]:
+    original = _original_prompt_from(data)
+    name_hint = _normalize_auto(getattr(data, "business_name", ""))
+    niche_hint = _normalize_auto(getattr(data, "niche", ""))
+    name = name_hint or _guess_business_name(original)
+    requested = list(getattr(data, "sections", None) or [])
+    prefs = _explicit_preferences(data)
+
+    phone_match = re.search(r"(?<!\d)(?:\+?48[\s-]?)?\d{3}[\s-]?\d{3}[\s-]?\d{3}(?!\d)", original)
+    rating_match = re.search(r"(?<!\d)([1-5][,.]\d)\s*\((\d+)\)", original)
+    address_match = re.search(
+        r"([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ .'-]+\s+\d+[A-Za-z]?,?\s+\d{2}-\d{3}\s+[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ .'-]+)",
+        original,
+    )
+
+    return {
+        "business": {
+            "name": name,
+            "category": niche_hint,
+            "subcategory": niche_hint,
+            "description": getattr(data, "description", "") or "",
+            "owner_description": "",
+            "location": {"city": "", "address": address_match.group(1).strip() if address_match else ""},
+            "phone": phone_match.group(0).strip() if phone_match else "",
+            "email": "",
+            "website": "",
+            "order_links": [],
+            "rating": float(rating_match.group(1).replace(",", ".")) if rating_match else None,
+            "reviews_count": int(rating_match.group(2)) if rating_match else None,
+            "price_range": "",
+            "opening_hours": "",
+        },
+        "products_services": [],
+        "reviews": [],
+        "requested_sections": requested,
+        "explicit_design_preferences": {
+            "colors": [prefs["colors"]] if prefs["colors"] else [],
+            "theme": prefs["colors"],
+            "style": prefs["style"],
+            "fonts": prefs["fonts"],
+            "layout": prefs["layout"],
+            "motion": "",
+            "photo_style": prefs["photo_style"],
+        },
+        "brand_signals": [],
+        "conversion_actions": [],
+        "image_urls_from_prompt": [],
+        "important_content": [],
+        "unknowns": [],
+    }
+
+
+def parse_business_prompt(data: Any) -> Dict[str, Any]:
+    original = _original_prompt_from(data)
+    fallback = _fallback_business_brief(data)
+
+    if not XKIRO_API_KEY or not original:
+        return fallback
+
+    prompt = f"""ORIGINAL USER PROMPT:
+{original}
+
+STRUCTURED HINTS FROM THE APP (use only when non-empty):
+- business_name_hint: {_normalize_auto(getattr(data, 'business_name', ''))}
+- niche_hint: {_normalize_auto(getattr(data, 'niche', ''))}
+- requested_sections_hint: {json.dumps(list(getattr(data, 'sections', None) or []), ensure_ascii=False)}
+- wizard/preferences: {json.dumps(_explicit_preferences(data), ensure_ascii=False)}
+
+Extract the factual brief. JSON only.
+"""
+
+    text, err = xkiro_generate_model(
+        PROMPT_PARSER_MODEL,
+        PROMPT_PARSER_SYSTEM,
+        prompt,
+        temperature=0.12,
+        max_tokens=8000,
+        timeout=FAST_AI_TIMEOUT,
+    )
+    if text:
+        try:
+            parsed = extract_json(text)
+            if isinstance(parsed, dict) and isinstance(parsed.get("business"), dict):
+                return parsed
+        except Exception as e:
+            print(f"[PromptParser] parse error: {e}", flush=True)
+    elif err:
+        print(f"[PromptParser] {err}", flush=True)
+
+    return fallback
+
+
+BRAND_STRATEGIST_SYSTEM = r"""
+You are SiteMorph Brand Strategist.
+
+You receive a factual business brief and the raw user preferences.
+Your task is to understand the semantic and emotional world of THIS EXACT brand
+before any visual design is chosen.
+
+You do NOT design page sections yet and you do NOT write code.
+
+Analyze:
+- what is actually being sold
+- physical/product character: soft, precise, handmade, technical, fresh, heavy, playful...
+- cultural context and references that genuinely exist in the brief
+- likely audience and purchase context
+- price/positioning signals
+- emotional goal of the experience
+- physical environment or atmosphere described by owner/reviews
+- visual associations naturally connected to the product and place
+- appropriate materials, textures and photography
+- color families that make semantic sense
+- typography personality
+- motion personality
+- visual directions that would feel wrong for this brand
+
+PRIORITY:
+1. Explicit user design preferences ALWAYS win.
+2. Existing brand assets and factual brand signals.
+3. Semantic reasoning from product/culture/audience/environment.
+4. General industry knowledge.
+5. Generic trends LAST.
+
+Never randomly choose "premium black + gold", dark mode, blue SaaS, neon,
+glassmorphism, bento or Inter just because they are familiar.
+
+Example reasoning:
+A Japanese mochi donut + matcha shop with sakura, bright dessert photography
+and a Japanese garden suggests softness, rounded tactile product forms,
+warm cream/milk-white, sakura pink, matcha green, charcoal text,
+restrained Japanese whitespace and playful but controlled motion.
+Black/gold luxury or yellow/black industrial would be semantically wrong
+unless explicitly requested.
+
+Return ONLY valid JSON:
+{
+  "brand_strategy": {
+    "one_sentence_positioning": "",
+    "brand_personality": [],
+    "audience": [],
+    "purchase_context": [],
+    "emotional_goals": [],
+    "product_character": [],
+    "cultural_context": [],
+    "physical_environment": [],
+    "visual_associations": [],
+    "materials_textures": [],
+    "photography_direction": "",
+    "color_direction": [],
+    "typography_direction": "",
+    "motion_personality": "",
+    "positioning": "",
+    "conversion_priority": "",
+    "avoid": [],
+    "reasoning_summary": ""
+  }
+}
+"""
+
+
+def _fallback_brand_strategy(brief: Dict[str, Any], data: Any) -> Dict[str, Any]:
+    business = brief.get("business") or {}
+    signals = brief.get("brand_signals") or []
+    category = business.get("subcategory") or business.get("category") or _normalize_auto(getattr(data, "niche", ""))
+    return {
+        "one_sentence_positioning": f"Strona dla marki {business.get('name') or 'lokalnej firmy'} dopasowana do jej realnej oferty.",
+        "brand_personality": [],
+        "audience": [],
+        "purchase_context": [],
+        "emotional_goals": ["zaufanie", "czytelność", "chęć wykonania głównej akcji"],
+        "product_character": [],
+        "cultural_context": signals,
+        "physical_environment": [],
+        "visual_associations": signals,
+        "materials_textures": [],
+        "photography_direction": f"Autentyczna fotografia związana z {category or 'biznesem'}, spójne światło i kolor.",
+        "color_direction": [],
+        "typography_direction": "Dobierz charakter pisma do osobowości produktu; nie używaj domyślnego fontu bez powodu.",
+        "motion_personality": "Ruch ma wynikać z charakteru marki i być oszczędny.",
+        "positioning": "",
+        "conversion_priority": (brief.get("conversion_actions") or ["kontakt"])[0],
+        "avoid": ["generic SaaS template", "random black/gold", "random neon", "design unrelated to the business"],
+        "reasoning_summary": "Fallback strategiczny — bez losowego narzucania stylu.",
+    }
+
+
+def create_brand_strategy(data: Any, business_brief: Dict[str, Any]) -> Dict[str, Any]:
+    fallback = _fallback_brand_strategy(business_brief, data)
+    if not XKIRO_API_KEY:
+        return fallback
+
+    prompt = f"""FACTUAL BUSINESS BRIEF:
+{json.dumps(business_brief, ensure_ascii=False, indent=2)}
+
+EXPLICIT APP/WIZARD PREFERENCES:
+{json.dumps(_explicit_preferences(data), ensure_ascii=False, indent=2)}
+
+Create the brand strategy. Do not invent business facts. JSON only.
+"""
+    text, err = xkiro_generate_model(
+        BRAND_STRATEGIST_MODEL,
+        BRAND_STRATEGIST_SYSTEM,
+        prompt,
+        temperature=0.42,
+        max_tokens=6500,
+        timeout=FAST_AI_TIMEOUT,
+    )
+    if text:
+        try:
+            parsed = extract_json(text)
+            strategy = parsed.get("brand_strategy") or parsed
+            if isinstance(strategy, dict):
+                return strategy
+        except Exception as e:
+            print(f"[BrandStrategist] parse error: {e}", flush=True)
+    elif err:
+        print(f"[BrandStrategist] {err}", flush=True)
+    return fallback
+
+
 ART_DIRECTOR_SYSTEM = r"""
-You are the SiteMorph Art Director, a senior digital creative director who designs
-real commercial websites that agencies can sell to local businesses.
+You are SiteMorph Art Director — a senior digital creative director designing
+real, sellable websites for specific businesses.
 
-You DO NOT write code. You create an unusually concrete art direction and page
-blueprint that another model can execute without inventing a generic template.
+You receive:
+1. the factual business brief,
+2. the brand strategy,
+3. explicit user preferences.
 
-Your enemy is AI SLOP.
+You DO NOT write code.
+You turn strategy into ONE coherent visual concept and a concrete page blueprint.
 
-AI SLOP includes, unless the business concept genuinely calls for it:
-- generic centered hero + two buttons + three equal feature cards
+Your enemy is AI SLOP:
+- generic centered hero + two buttons + three equal cards
 - identical rounded cards in every section
-- random bento grids
-- gradient text used as decoration
-- purple/blue neon blobs
+- random bento
+- decorative gradient text
+- purple/blue blobs
 - glassmorphism everywhere
-- giant rounded pills everywhere
-- icon circles for every bullet
-- arbitrary dashboard/SaaS aesthetics on local businesses
-- every section using the same fade-up animation
-- meaningless marquees, counters or parallax
-- filler copy such as "najwyższa jakość" or "indywidualne podejście"
+- giant pills/rounded-3xl everywhere
+- icon circles everywhere
+- generic SaaS styling on local businesses
+- every section using the same fade-up
+- meaningless marquee/counters/parallax
+- fake facts or fake testimonials
 
-A premium business website needs a clear visual idea, hierarchy, restraint,
-photography direction, typography, section rhythm and motion language.
+DESIGN PRINCIPLES:
+- Every viewport should have one dominant visual idea.
+- Typography is identity, not just readability.
+- Color must be explainable by the brand strategy.
+- Empty space is part of composition.
+- Consecutive sections should not repeat the same visual structure.
+- Photography must have a consistent lighting/framing/color direction.
+- Shapes, borders, buttons and image crops must share one shape language.
+- Motion must express the brand personality.
+- Premium means concept + restraint + detail, not more effects.
+- The website should look like THIS BUSINESS could realistically own it.
 
-You receive the original user prompt and business information. Preserve factual
-business data from the user. Never invent addresses, phone numbers, ratings,
-opening hours, legal claims, awards or testimonials that were not supplied.
-You may write normal marketing copy, labels and section copy consistent with the
-business, but mark unknown factual details as omitted rather than fabricating them.
+PRIORITY:
+1. Explicit user instructions.
+2. Factual brand signals/assets.
+3. Brand strategy.
+4. Good design principles.
+5. Generic defaults only as a last resort.
 
-Return ONLY valid JSON with exactly this top-level structure:
+If the user explicitly asks for black/yellow, respect it even for mochi.
+If the user did NOT specify colors, do NOT invent a random trend; infer them from
+the strategy and explain them through the concept.
+
+Return ONLY valid JSON:
 {
   "art_direction": {
-    "brand_name": "...",
-    "business_goal": "...",
-    "creative_concept": "...",
-    "design_story": "2-4 sentences explaining the visual idea",
+    "brand_name": "",
+    "business_goal": "",
+    "creative_concept": "",
+    "design_story": "",
     "theme": "light|dark|mixed",
     "palette": {
       "background": "#HEX",
@@ -393,299 +718,337 @@ Return ONLY valid JSON with exactly this top-level structure:
       "text": "#HEX",
       "muted_text": "#HEX",
       "primary": "#HEX",
+      "secondary": "#HEX",
       "accent": "#HEX",
       "border": "#HEX"
     },
     "typography": {
       "display_font": "Google Font name",
       "body_font": "Google Font name",
-      "display_character": "...",
-      "body_character": "...",
-      "h1_desktop": "...",
-      "h1_mobile": "...",
-      "heading_rules": "..."
+      "display_character": "",
+      "body_character": "",
+      "h1_desktop": "",
+      "h1_mobile": "",
+      "heading_rules": ""
     },
     "composition": {
-      "container": "...",
-      "hero": "very concrete composition description",
-      "section_rhythm": "...",
-      "alignment_logic": "...",
-      "grid_logic": "...",
-      "mobile_strategy": "..."
+      "container": "",
+      "hero": "very concrete composition",
+      "section_rhythm": "",
+      "alignment_logic": "",
+      "grid_logic": "",
+      "whitespace_strategy": "",
+      "mobile_strategy": ""
     },
     "shape_language": {
-      "radius_system": "...",
-      "borders": "...",
-      "buttons": "...",
-      "cards": "when cards are allowed and when not",
-      "image_treatment": "..."
+      "concept": "",
+      "radius_system": "",
+      "borders": "",
+      "buttons": "",
+      "cards": "",
+      "image_treatment": "",
+      "decorative_motifs": ""
     },
     "motion_language": {
-      "personality": "...",
-      "hero_motion": "...",
-      "scroll_motion": "...",
-      "hover_motion": "...",
-      "signature_interaction": "one distinctive, business-appropriate idea",
-      "reduced_motion": "what happens for prefers-reduced-motion"
+      "personality": "",
+      "hero_motion": "",
+      "scroll_motion": "",
+      "hover_motion": "",
+      "signature_interaction": "",
+      "reduced_motion": ""
     },
     "photography": {
-      "direction": "...",
-      "hero_query": "specific English Unsplash query",
-      "supporting_queries": ["specific query", "specific query", "specific query"],
-      "avoid": ["...", "..."]
+      "direction": "",
+      "hero_query": "specific English image query",
+      "supporting_queries": ["", "", ""],
+      "avoid": []
     },
     "content_voice": {
-      "tone": "...",
-      "headline_style": "...",
-      "cta_style": "...",
-      "banned_phrases": ["...", "..."]
+      "tone": "",
+      "headline_style": "",
+      "cta_style": "",
+      "banned_phrases": []
     },
     "page_blueprint": [
       {
         "id": "hero",
-        "purpose": "...",
+        "purpose": "",
         "layout": "very concrete layout",
-        "content": "what real content belongs here",
-        "visual_focus": "...",
-        "motion": "..."
+        "content": "which real facts/products belong here",
+        "visual_focus": "",
+        "motion": "",
+        "mobile_behavior": ""
       }
     ],
-    "must_avoid": [
-      "specific visual patterns that would make THIS site feel generic"
-    ],
-    "premium_details": [
-      "small deliberate details that fit THIS concept"
-    ],
+    "must_avoid": [],
+    "premium_details": [],
     "component_plan": ["Header.tsx", "Hero.tsx"],
-    "quality_bar": "one paragraph describing what would make the result sellable"
+    "quality_bar": ""
   }
 }
 
 Rules:
-1. Make the concept specific to this business. A barber, kebab shop, architect,
-   dentist, florist and lawyer must NOT feel like reskinned versions of one site.
-2. Choose 4-9 page sections based on actual business needs. No filler section.
-3. Do not prescribe effects just because they are trendy.
-4. Motion must be purposeful and limited to a coherent language.
-5. Use no more than two primary font families.
-6. Prefer 2-3 border-radius values across the whole design instead of random radii.
-7. Explicitly say when cards, gradients, glassmorphism, bento, marquee or counters
-   should NOT be used.
-8. Preserve every relevant fact from the original user prompt.
-9. All website-facing copy/content notes must be in Polish. Search queries may be English.
-10. Return JSON only.
+- Pick 4-9 sections from actual business needs; no filler.
+- Do not repeat identical 3-card grids unless the content truly requires comparison.
+- Use at most two font families.
+- Choose a coherent radius/border system.
+- Preserve every factual detail from the business brief.
+- All website-facing content notes are Polish; image queries can be English.
+- JSON only.
 """
 
 
-def build_art_director_prompt(data: DesignAgentInput) -> str:
-    original = data.full_prompt or data.description or ""
-    return f"""ORIGINAL USER PROMPT — SOURCE OF TRUTH FOR BUSINESS FACTS:
-{original}
+def _fallback_art_direction(
+    data: Any,
+    business_brief: Dict[str, Any],
+    brand_strategy: Dict[str, Any],
+) -> Dict[str, Any]:
+    business = business_brief.get("business") or {}
+    prefs = _explicit_preferences(data)
+    text_blob = " ".join(
+        [
+            _original_prompt_from(data),
+            business.get("name") or "",
+            business.get("category") or "",
+            business.get("subcategory") or "",
+            " ".join(business_brief.get("brand_signals") or []),
+        ]
+    ).lower()
 
-STRUCTURED INPUT:
-- Business name: {data.business_name}
-- Niche: {data.niche}
-- Description: {data.description}
-- Style preference: {data.style or 'not specified'}
-- Color preference: {data.colors or 'not specified'}
-- Accent preference: {data.accent_color or 'not specified'}
-- Layout preference: {data.layout or 'not specified'}
-- Font preference: {data.fonts or 'not specified'}
-- Photo preference: {data.photo_style or 'not specified'}
-- Requested sections: {', '.join(data.sections or []) or 'not specified'}
-- Wizard answers: {json.dumps(data.answers or {}, ensure_ascii=False)}
+    # Semantic emergency palette. This is only used when DeepSeek is unavailable.
+    if any(k in text_blob for k in ["mochi", "matcha", "sakura", "japo", "japan"]):
+        palette = {
+            "background": "#FFF9F5",
+            "surface": "#FFFFFF",
+            "text": "#2A2523",
+            "muted_text": "#756C68",
+            "primary": "#E99BAF",
+            "secondary": "#C9D9A5",
+            "accent": "#B94C68",
+            "border": "#EEDFD9",
+        }
+        concept = "Soft Japanese dessert editorial"
+        display_font = "Zen Maru Gothic"
+        body_font = "Manrope"
+        shape_concept = "Miękkie, koliste formy inspirowane mochi; subtelna geometria i dużo oddechu."
+    elif any(k in text_blob for k in ["barber", "mechanik", "warsztat", "auto"]):
+        palette = {
+            "background": "#F3F2EE",
+            "surface": "#FFFFFF",
+            "text": "#171717",
+            "muted_text": "#6B6964",
+            "primary": "#202020",
+            "secondary": "#D9D4CA",
+            "accent": "#B84B31",
+            "border": "#D8D5CF",
+        }
+        concept = "Utility editorial"
+        display_font = "Archivo"
+        body_font = "Inter"
+        shape_concept = "Mocne linie, techniczna precyzja, mało zaokrągleń."
+    else:
+        palette = {
+            "background": "#F7F5F0",
+            "surface": "#FFFFFF",
+            "text": "#171717",
+            "muted_text": "#68645E",
+            "primary": "#2A2926",
+            "secondary": "#DAD5CB",
+            "accent": "#8A5A44",
+            "border": "#DDD8CE",
+        }
+        concept = "Brand-led editorial business site"
+        display_font = "Manrope"
+        body_font = "Inter"
+        shape_concept = "Prosty, spójny system form; zaokrąglenia tylko tam, gdzie wspierają charakter marki."
 
-Create a sellable, concrete art direction. Respect explicit user preferences even
-when you would personally choose something else. Do not ask questions. Return JSON only.
-"""
+    # Explicit user colors/theme override emergency inference.
+    explicit_colors = prefs.get("colors") or ""
+    if explicit_colors:
+        concept += f" — z bezwzględnym uwzględnieniem preferencji użytkownika: {explicit_colors}"
 
-
-def _fallback_art_direction(data: DesignAgentInput) -> Dict[str, Any]:
-    """A restrained fallback. Deliberately avoids the old 3-card-template look."""
-    dark = any(
-        word in f"{data.style} {data.colors}".lower()
-        for word in ["dark", "ciem", "czarn", "black"]
-    )
-
-    accent = data.accent_color or "#B45309"
-    bg = "#0D0D0D" if dark else "#F6F3EC"
-    surface = "#171717" if dark else "#FFFFFF"
-    text = "#F6F2E9" if dark else "#171717"
-    muted = "#A7A29A" if dark else "#625F59"
-    border = "#2B2B2B" if dark else "#D9D4CB"
+    brand_name = business.get("name") or _normalize_auto(getattr(data, "business_name", "")) or "Marka"
+    requested = business_brief.get("requested_sections") or list(getattr(data, "sections", None) or [])
+    section_ids = [str(x).strip().lower() for x in requested if str(x).strip()]
+    default_blueprint = [
+        {
+            "id": "hero",
+            "purpose": "Natychmiast pokazać charakter marki i główną akcję.",
+            "layout": "Asymetryczny hero oparty o jeden dominujący motyw wizualny i realny produkt/usługę.",
+            "content": "Nazwa, krótki brandowy headline, opis oparty na faktach, główne CTA.",
+            "visual_focus": "Typografia + fotografia produktu/miejsca.",
+            "motion": "Jedna kontrolowana animacja wejścia zgodna z osobowością marki.",
+            "mobile_behavior": "Zachować dominantę wizualną i kolejność treści bez ściskania elementów.",
+        },
+        {
+            "id": "offer",
+            "purpose": "Pokazać najważniejsze produkty/usługi.",
+            "layout": "Układ wynikający z rodzaju oferty: lista editorial, gallery grid lub rytmiczne wiersze; nie domyślne 3 karty.",
+            "content": "Tylko realne produkty/usługi z briefu.",
+            "visual_focus": "Produkt/usługa.",
+            "motion": "Subtelny reveal wybranych elementów.",
+            "mobile_behavior": "Czytelny scroll bez poziomego overflow.",
+        },
+        {
+            "id": "proof",
+            "purpose": "Zbudować zaufanie realnymi opiniami/ratingiem, jeśli są dostępne.",
+            "layout": "Jedna mocna opinia lub rating + kontekst, bez sztucznego gridu 3 testimonial cards.",
+            "content": "Tylko realne dane.",
+            "visual_focus": "Dowód społeczny.",
+            "motion": "Minimalny.",
+            "mobile_behavior": "Duża czytelność cytatów i ratingu.",
+        },
+        {
+            "id": "contact",
+            "purpose": "Doprowadzić do wizyty, telefonu, rezerwacji lub zamówienia.",
+            "layout": "Dane + CTA; formularz tylko gdy ma sens.",
+            "content": "Realny adres/telefon/godziny/linki, jeśli są dostępne.",
+            "visual_focus": "Konwersja.",
+            "motion": "Bez zbędnych efektów.",
+            "mobile_behavior": "CTA dostępne kciukiem, dane w jednej czytelnej kolumnie.",
+        },
+    ]
 
     return {
-        "brand_name": data.business_name,
-        "business_goal": "Zbudować wiarygodność i doprowadzić użytkownika do kontaktu lub zakupu.",
-        "creative_concept": "Editorial local business",
-        "design_story": (
-            "Strona oparta na mocnej typografii, dobrym rytmie i jednej dominującej fotografii. "
-            "Zamiast powtarzających się kart używa sekcji typograficznych, linii podziału i zmian skali."
-        ),
-        "theme": "dark" if dark else "light",
-        "palette": {
-            "background": bg,
-            "surface": surface,
-            "text": text,
-            "muted_text": muted,
-            "primary": text,
-            "accent": accent,
-            "border": border,
-        },
+        "brand_name": brand_name,
+        "business_goal": brand_strategy.get("conversion_priority") or "Doprowadzić do głównej akcji biznesowej.",
+        "creative_concept": concept,
+        "design_story": brand_strategy.get("reasoning_summary") or "Projekt wynika z charakteru marki, produktu i odbiorcy, a nie z gotowego szablonu.",
+        "theme": "light",
+        "palette": palette,
         "typography": {
-            "display_font": "Manrope",
-            "body_font": "Inter",
-            "display_character": "mocna, współczesna, oszczędna",
-            "body_character": "czytelna i neutralna",
-            "h1_desktop": "clamp(56px, 7vw, 112px)",
-            "h1_mobile": "clamp(42px, 13vw, 68px)",
-            "heading_rules": "krótkie nagłówki, mocny kontrast skali, bez gradientowego tekstu",
+            "display_font": display_font,
+            "body_font": body_font,
+            "display_character": brand_strategy.get("typography_direction") or "charakterystyczna dla marki",
+            "body_character": "czytelna i spokojna",
+            "h1_desktop": "clamp(58px, 7vw, 108px)",
+            "h1_mobile": "clamp(40px, 12vw, 64px)",
+            "heading_rules": "Krótko, duży kontrast skali, bez przypadkowego gradient text.",
         },
         "composition": {
-            "container": "max-width 1320px, szerokie marginesy zależne od viewportu",
-            "hero": "asymetryczny hero z tekstem i jedną dużą fotografią; CTA nie konkuruje z nagłówkiem",
-            "section_rhythm": "naprzemiennie gęstsze i bardzo przestronne sekcje",
-            "alignment_logic": "główna oś tekstowa wyrównana do lewej, pojedyncze przełamania dla zdjęć",
-            "grid_logic": "grid tylko tam, gdzie treść naprawdę jest porównywalna",
-            "mobile_strategy": "zachować hierarchię, nie tylko złożyć wszystko w identyczną jedną kolumnę",
+            "container": "max-width 1320px, responsywne marginesy",
+            "hero": "Jedna dominująca kompozycja dopasowana do marki; nie domyślny centered SaaS hero.",
+            "section_rhythm": "Naprzemiennie sekcje gęstsze i przestronne; bez powtarzania tej samej konstrukcji.",
+            "alignment_logic": "Spójna oś i świadome przełamania dla fotografii.",
+            "grid_logic": "Grid tylko gdy zawartość tego wymaga.",
+            "whitespace_strategy": "Dużo kontrolowanego oddechu wokół dominanty.",
+            "mobile_strategy": "Zachować hierarchię i rytm zamiast tylko stackować desktop.",
         },
         "shape_language": {
-            "radius_system": "0px, 8px i 18px; bez losowych dużych zaokrągleń",
-            "borders": "cienkie linie strukturalne zamiast cienia na każdej powierzchni",
-            "buttons": "proste, czytelne CTA; pill tylko jeśli pasuje do marki",
-            "cards": "używać wyłącznie dla elementów wymagających grupowania",
-            "image_treatment": "duże kadry, object-cover, spójne proporcje i subtelny zoom hover",
+            "concept": shape_concept,
+            "radius_system": "2-3 wartości maksymalnie",
+            "borders": "Subtelne linie strukturalne zamiast cienia na każdym elemencie.",
+            "buttons": "CTA dopasowane do charakteru marki, nie automatyczne pills.",
+            "cards": "Tylko gdy semantyka treści wymaga grupowania.",
+            "image_treatment": "Spójne kadry i światło, jeden język cropów.",
+            "decorative_motifs": "Tylko motywy wynikające z marki.",
         },
         "motion_language": {
-            "personality": "spokojna, precyzyjna, premium",
-            "hero_motion": "delikatny reveal tekstu i minimalny scale obrazu",
-            "scroll_motion": "clip/reveal dla wybranych bloków zamiast fade-up wszystkiego",
-            "hover_motion": "2-4px translation lub scale 1.02 tylko na elementach interaktywnych",
-            "signature_interaction": "jedna sekcja z kontrolowanym parallaxem obrazu",
-            "reduced_motion": "wyłączyć parallax i transformacje, zachować natychmiastową czytelność",
+            "personality": brand_strategy.get("motion_personality") or "spokojna i celowa",
+            "hero_motion": "Jedna wyrazista, ale kontrolowana animacja wejścia.",
+            "scroll_motion": "Wybrane reveal/mask, nie fade-up na każdym divie.",
+            "hover_motion": "Drobna reakcja tylko elementów interaktywnych.",
+            "signature_interaction": "Jedna interakcja wynikająca z produktu lub fotografii.",
+            "reduced_motion": "Wyłącz transformacje/parallax i zachowaj natychmiastową czytelność.",
         },
         "photography": {
-            "direction": f"autentyczna fotografia związana z branżą {data.niche or 'local business'}",
-            "hero_query": f"{data.niche or 'local business'} authentic editorial photography",
+            "direction": brand_strategy.get("photography_direction") or "Autentyczna, spójna fotografia marki.",
+            "hero_query": f"{business.get('subcategory') or business.get('category') or 'local business'} editorial product photography",
             "supporting_queries": [
-                f"{data.niche or 'local business'} detail close up",
-                f"{data.niche or 'local business'} interior natural light",
-                f"{data.niche or 'local business'} people candid work",
+                f"{business.get('subcategory') or business.get('category') or 'local business'} detail natural light",
+                f"{business.get('subcategory') or business.get('category') or 'local business'} interior atmosphere",
+                f"{business.get('subcategory') or business.get('category') or 'local business'} product close up",
             ],
-            "avoid": ["generic corporate stock", "fake handshake photography"],
+            "avoid": ["generic corporate stock", "mismatched lighting", "unrelated stock imagery"],
         },
         "content_voice": {
-            "tone": "konkretny, ludzki, bez korpomowy",
-            "headline_style": "krótkie zdania opisujące realną korzyść lub charakter miejsca",
-            "cta_style": "konkretna czynność: Zadzwoń, Umów wizytę, Zobacz menu",
+            "tone": "konkretny, brandowy, naturalny",
+            "headline_style": "krótki i związany z realnym charakterem marki",
+            "cta_style": "konkretna czynność: Zamów, Zobacz menu, Umów, Zadzwoń, Odwiedź",
             "banned_phrases": ["najwyższa jakość", "indywidualne podejście", "kompleksowa oferta"],
         },
-        "page_blueprint": [
-            {
-                "id": "hero",
-                "purpose": "natychmiast wyjaśnić markę i główną akcję",
-                "layout": "asymetryczna kompozycja tekst + fotografia",
-                "content": "nazwa, mocny headline, krótki opis, główne CTA",
-                "visual_focus": "typografia i hero image",
-                "motion": "kontrolowany reveal + image scale",
-            },
-            {
-                "id": "offer",
-                "purpose": "pokazać najważniejszą ofertę bez generowania sztucznych kart",
-                "layout": "numerowana lista lub naprzemienne wiersze z liniami podziału",
-                "content": "realne usługi/produkty wynikające z promptu",
-                "visual_focus": "hierarchia typograficzna",
-                "motion": "subtelne reveal przy wejściu",
-            },
-            {
-                "id": "proof",
-                "purpose": "zbudować zaufanie tylko prawdziwymi danymi z promptu",
-                "layout": "duża liczba/opinia/fotografia zależnie od dostępnych danych",
-                "content": "rating, opinie lub konkretne cechy tylko jeśli podane",
-                "visual_focus": "jedna mocna informacja",
-                "motion": "minimalny",
-            },
-            {
-                "id": "contact",
-                "purpose": "doprowadzić do konwersji",
-                "layout": "dane + prosty formularz dopasowany do branży",
-                "content": "tylko podane dane kontaktowe + formularz",
-                "visual_focus": "CTA i czytelność",
-                "motion": "bez zbędnych efektów",
-            },
-        ],
+        "page_blueprint": default_blueprint,
         "must_avoid": [
-            "trzy identyczne karty jako domyślna oferta",
-            "gradientowy tekst",
-            "glassmorphism",
-            "losowe bento",
-            "dekoracyjne blob-y",
-            "fade-up na każdym elemencie",
+            "generic centered hero + 3 cards",
+            "random black/gold",
+            "random blue/purple SaaS",
+            "glassmorphism without brand reason",
+            "gradient text without brand reason",
+            "bento for decoration",
+            "fake facts/testimonials",
         ],
-        "premium_details": [
-            "spójne focus states",
-            "dopasowany cursor/hover tylko na klikalnych elementach",
-            "staranna typografia mobilna",
-            "subtelne linie i rytm pionowy",
-        ],
+        "premium_details": ["spójny focus/hover", "dopieszczona typografia mobilna", "świadomy rytm pionowy"],
         "component_plan": ["Header.tsx", "Hero.tsx", "Offer.tsx", "Proof.tsx", "Contact.tsx", "Footer.tsx"],
-        "quality_bar": "Ma wyglądać jak projekt wykonany dla tej konkretnej firmy, nie jak demo biblioteki komponentów.",
+        "quality_bar": "Ma wyglądać jak projekt wykonany dla tej konkretnej firmy, a nie demo generatora AI.",
     }
+
+
+def build_art_director_prompt(
+    data: Any,
+    business_brief: Dict[str, Any],
+    brand_strategy: Dict[str, Any],
+) -> str:
+    return f"""ORIGINAL USER PROMPT — SOURCE OF TRUTH:
+{_original_prompt_from(data)}
+
+FACTUAL BUSINESS BRIEF:
+{json.dumps(business_brief, ensure_ascii=False, indent=2)}
+
+BRAND STRATEGY:
+{json.dumps(brand_strategy, ensure_ascii=False, indent=2)}
+
+EXPLICIT USER/WIZARD PREFERENCES:
+{json.dumps(_explicit_preferences(data), ensure_ascii=False, indent=2)}
+
+Turn this into one coherent, sellable art direction.
+Respect explicit user preferences even if your own taste differs.
+Do not ask questions. JSON only.
+"""
+
+
+def create_art_direction(
+    data: Any,
+    business_brief: Dict[str, Any],
+    brand_strategy: Dict[str, Any],
+) -> Tuple[Dict[str, Any], str]:
+    fallback = _fallback_art_direction(data, business_brief, brand_strategy)
+    if not XKIRO_API_KEY:
+        return fallback, "fallback-art-direction"
+
+    text, err = xkiro_generate_model(
+        ART_DIRECTOR_MODEL,
+        ART_DIRECTOR_SYSTEM,
+        build_art_director_prompt(data, business_brief, brand_strategy),
+        temperature=0.58,
+        max_tokens=8500,
+        timeout=FAST_AI_TIMEOUT,
+    )
+    if text:
+        try:
+            parsed = extract_json(text)
+            art = parsed.get("art_direction") or parsed
+            if isinstance(art, dict) and art.get("palette") and art.get("page_blueprint"):
+                return art, ART_DIRECTOR_MODEL
+        except Exception as e:
+            print(f"[ArtDirector] parse error: {e}", flush=True)
+    elif err:
+        print(f"[ArtDirector] {err}", flush=True)
+
+    return fallback, "fallback-art-direction"
 
 
 @router.post("/design-agent")
 def run_design_agent(data: DesignAgentInput):
-    prompt = build_art_director_prompt(data)
-
-    if XKIRO_API_KEY:
-        text, err = xkiro_generate_model(
-            ART_DIRECTOR_MODEL,
-            ART_DIRECTOR_SYSTEM,
-            prompt,
-            temperature=0.76,
-            max_tokens=6500,
-            timeout=FAST_AI_TIMEOUT,
-        )
-        if text:
-            try:
-                parsed = extract_json(text)
-                art = parsed.get("art_direction") or parsed
-                if isinstance(art, dict) and art.get("palette") and art.get("page_blueprint"):
-                    return {
-                        "status": "success",
-                        "art_direction": art,
-                        # compatibility with your previous frontend/API naming
-                        "design_guidelines": art,
-                        "source": ART_DIRECTOR_MODEL,
-                    }
-            except Exception as e:
-                print(f"[ArtDirector] parse error: {e}", flush=True)
-        elif err:
-            print(f"[ArtDirector] {err}", flush=True)
-
-    # Gemini is only a fallback for art direction.
-    if GEMINI_API_KEY:
-        text, err = gemini_generate(ART_DIRECTOR_SYSTEM, prompt, temperature=0.72, max_tokens=6500)
-        if text:
-            try:
-                parsed = extract_json(text)
-                art = parsed.get("art_direction") or parsed
-                if isinstance(art, dict) and art.get("palette") and art.get("page_blueprint"):
-                    return {
-                        "status": "success",
-                        "art_direction": art,
-                        "design_guidelines": art,
-                        "source": f"gemini:{GEMINI_MODEL}",
-                    }
-            except Exception as e:
-                print(f"[ArtDirector][Gemini] parse error: {e}", flush=True)
-
-    art = _fallback_art_direction(data)
+    business_brief = parse_business_prompt(data)
+    brand_strategy = create_brand_strategy(data, business_brief)
+    art, source = create_art_direction(data, business_brief, brand_strategy)
     return {
         "status": "success",
+        "business_brief": business_brief,
+        "brand_strategy": brand_strategy,
         "art_direction": art,
         "design_guidelines": art,
-        "source": "fallback-art-direction",
+        "source": source,
     }
 
 
@@ -707,10 +1070,12 @@ The result must feel designed, not generated.
 1. PRIORITY ORDER
 ===============================================================================
 1) User facts and explicit user requirements
-2) ART DIRECTION / PAGE BLUEPRINT
-3) Correct, production-quality implementation
-4) Restraint and polish
-5) Library convenience
+2) FACTUAL BUSINESS BRIEF
+3) BRAND STRATEGY
+4) ART DIRECTION / PAGE BLUEPRINT
+5) Correct, production-quality implementation
+6) Restraint and polish
+7) Library convenience
 
 Never override a concrete art-direction decision with a generic pattern.
 
@@ -904,39 +1269,41 @@ redesign it to match the art direction before answering.
 
 def _build_generation_prompt(
     data: BuilderInput,
+    business_brief: Dict[str, Any],
+    brand_strategy: Dict[str, Any],
     art_direction: Dict[str, Any],
     image_assets: List[Dict[str, str]],
 ) -> str:
-    sections = ", ".join(data.sections or []) or "not specified"
-
     return f"""ORIGINAL USER PROMPT — SOURCE OF TRUTH:
 {data.extraPrompt or data.description or ''}
 
-BUSINESS INPUT:
-- BUSINESS_NAME: {data.business_name}
-- NICHE: {data.niche}
-- DESCRIPTION: {data.description}
-- STYLE: {data.style or 'not specified'}
-- COLORS: {data.colors or 'not specified'}
-- ACCENT_COLOR: {data.accent_color or 'not specified'}
-- LAYOUT: {data.layout or 'not specified'}
-- FONTS: {data.fonts or 'not specified'}
-- PHOTO_STYLE: {data.photo_style or 'not specified'}
-- REQUESTED_SECTIONS: {sections}
+FACTUAL BUSINESS BRIEF — DO NOT CONTRADICT:
+{json.dumps(business_brief, ensure_ascii=False, indent=2)}
 
-ART DIRECTION — FOLLOW THIS AS A DESIGN SPEC:
+BRAND STRATEGY — WHY THE DESIGN SHOULD FEEL THIS WAY:
+{json.dumps(brand_strategy, ensure_ascii=False, indent=2)}
+
+ART DIRECTION / PAGE BLUEPRINT — IMPLEMENT THIS, DO NOT REDESIGN:
 {json.dumps(art_direction, ensure_ascii=False, indent=2)}
+
+EXPLICIT APP/WIZARD PREFERENCES:
+{json.dumps(_explicit_preferences(data), ensure_ascii=False, indent=2)}
 
 APPROVED IMAGE ASSETS:
 {json.dumps(image_assets, ensure_ascii=False, indent=2) if image_assets else '[]'}
 
-IMAGE RULES:
-- If user-uploaded assets are included above, prioritize them.
-- Otherwise use the approved Unsplash assets in contexts matching their query.
-- Do not repeat the same image in multiple major sections unless the art direction calls for it.
+IMPLEMENTATION RULES:
+- User facts beat everything.
+- Explicit user design preferences beat inferred design.
+- The Brand Strategy explains the semantic world; the Art Direction is the final design spec.
+- You are the IMPLEMENTER, not a second art director.
+- Do not introduce a different palette, font, shape language or generic trend.
+- Use real products, reviews, rating, address, phone and links from the brief when available.
+- If user-uploaded assets exist, prioritize them.
+- Otherwise use approved image assets in contexts matching their query.
+- Do not repeat one image across unrelated sections unless specified.
 - Do not invent random external image URLs.
-
-Build the complete React website now. Return JSON only.
+- Build the complete React website and return JSON only.
 """
 
 
@@ -1602,27 +1969,36 @@ def _detect_niche_from_text(text: str) -> str:
 
 
 QUESTIONS_SYSTEM_PROMPT = r"""
-You are SiteMorph Discovery Designer.
-Analyze the user's website prompt first. Ask only questions whose answers materially
-change the design or conversion strategy.
+You are SiteMorph Discovery Agent.
 
-Do not ask for information already present in the prompt.
-Do not ask trivial questions merely to reach a quota.
-Return 2-4 questions maximum. All user-facing text must be Polish.
+You receive:
+- the original user prompt
+- a factual business brief already extracted by SiteMorph
 
-Useful unknowns include:
-- light/dark/mixed mood when genuinely ambiguous
-- visual personality (editorial, raw, elegant, playful, technical, etc.)
-- most important conversion action
-- whether specific sections such as menu/pricing/gallery are desired
-- photography preference when it changes the concept
+Ask ONLY questions whose answers would materially improve conversion or design.
+Do not ask for facts already present.
+Do not force the user to choose a style if the brand brief already gives strong
+visual signals; in that case let SiteMorph infer design automatically.
 
-Return ONLY a JSON array:
+Return 0-4 questions maximum, all in Polish.
+If no question is needed, return [].
+
+For design-choice questions, include "Dobierz automatycznie" as the first option.
+Never make "Ciemny", "Nowoczesny", "Inter" or any other style the default.
+
+Useful unknowns:
+- the primary conversion action when unclear
+- a genuinely ambiguous light/dark preference
+- a specific requested section that cannot be inferred
+- whether user wants to preserve an existing brand color/style
+- photo preference when it materially changes the concept
+
+Return ONLY JSON array:
 [
   {
     "question": "5-14 words po polsku",
-    "placeholder": "krótki przykład",
-    "options": ["...", "...", "..."],
+    "placeholder": "",
+    "options": ["Dobierz automatycznie", "...", "..."],
     "stateKey": "theme|layout|sections|tone|photos|goal|extras",
     "multi": false
   }
@@ -1633,22 +2009,32 @@ Return ONLY a JSON array:
 @router.post("/generate-questions")
 def generate_questions(data: QuestionInput):
     prompt_text = data.full_prompt or data.description or data.business_name or ""
-    detected = _detect_niche_from_text(prompt_text)
+    business_brief = parse_business_prompt(data)
+    business = business_brief.get("business") or {}
+    detected = (
+        business.get("subcategory")
+        or business.get("category")
+        or _detect_niche_from_text(prompt_text)
+        or ""
+    )
 
     if XKIRO_API_KEY:
-        user_msg = f"""USER PROMPT:
+        user_msg = f"""ORIGINAL USER PROMPT:
 {prompt_text}
 
-Business name if known: {data.business_name}
-Detected niche hint: {detected or 'unknown'}
-Ask only questions that would materially improve the site design. JSON only.
+FACTUAL BUSINESS BRIEF:
+{json.dumps(business_brief, ensure_ascii=False, indent=2)}
+
+Ask only questions that would materially improve the final site.
+If the prompt is already rich enough, return [].
+JSON only.
 """
         text, err = xkiro_generate_model(
             QUESTIONS_MODEL,
             QUESTIONS_SYSTEM_PROMPT,
             user_msg,
-            temperature=0.55,
-            max_tokens=1800,
+            temperature=0.28,
+            max_tokens=2400,
             timeout=FAST_AI_TIMEOUT,
         )
         if text:
@@ -1658,39 +2044,40 @@ Ask only questions that would materially improve the site design. JSON only.
                     q for q in arr
                     if isinstance(q, dict) and q.get("question") and q.get("stateKey")
                 ][:4]
-                if len(valid) >= 1:
-                    resp = {"questions": valid, "source": QUESTIONS_MODEL}
-                    if detected:
-                        resp["detected_niche"] = detected
-                    return resp
+                resp = {
+                    "questions": valid,
+                    "source": QUESTIONS_MODEL,
+                    "business_brief": business_brief,
+                }
+                if detected:
+                    resp["detected_niche"] = detected
+                return resp
             except Exception as e:
                 print(f"[Questions] parse error: {e}", flush=True)
 
+    # Safe fallback: never imposes a visual style.
     fallback_questions = [
         {
-            "question": "Jaki ma być główny klimat strony?",
-            "placeholder": "np. elegancki i spokojny",
-            "options": ["Minimalistyczny", "Ciemny premium", "Editorial", "Odważny i energiczny"],
-            "stateKey": "tone",
-            "multi": False,
-        },
-        {
-            "question": "Co użytkownik ma zrobić przede wszystkim?",
-            "placeholder": "np. zadzwonić lub zarezerwować",
-            "options": ["Zadzwonić", "Napisać", "Zarezerwować", "Kupić / zamówić"],
+            "question": "Co ma być główną akcją na stronie?",
+            "placeholder": "",
+            "options": ["Dobierz automatycznie", "Zamów", "Zarezerwuj", "Zadzwoń", "Napisz", "Odwiedź lokal"],
             "stateKey": "goal",
             "multi": False,
         },
         {
-            "question": "Które sekcje są najważniejsze?",
+            "question": "Czy chcesz wskazać najważniejsze sekcje?",
             "placeholder": "",
-            "options": ["Oferta", "Cennik", "Galeria", "Opinie", "O nas", "Kontakt", "FAQ"],
+            "options": ["Oferta", "Menu", "Galeria", "Opinie", "O nas", "Kontakt", "FAQ"],
             "stateKey": "sections",
             "multi": True,
         },
     ]
 
-    resp = {"questions": fallback_questions, "source": "fallback"}
+    resp = {
+        "questions": fallback_questions,
+        "source": "fallback",
+        "business_brief": business_brief,
+    }
     if detected:
         resp["detected_niche"] = detected
     return resp
@@ -1748,7 +2135,7 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
         fonts=data.fonts,
         sections=data.sections,
         photo_style=data.photo_style,
-        answers={"original_extra_prompt": data.extraPrompt} if data.extraPrompt else None,
+        answers=data.answers or ({"original_extra_prompt": data.extraPrompt} if data.extraPrompt else None),
         full_prompt=data.extraPrompt or data.description or "",
     )
 
@@ -1759,29 +2146,78 @@ def generate_site(data: BuilderInput):
 
     try:
         mode = (data.mode or "normal").lower().strip()
-        selected_model = MODEL_MAP.get(mode, MODEL_MAP["normal"])
+        selected_model = DEEPSEEK_MODEL
         print(f"[SiteMorph] mode={mode} model={selected_model}", flush=True)
 
+        art_input = _make_art_input(data)
+
         # ---------------------------------------------------------------------
-        # 1) ART DIRECTOR
+        # 1) PROMPT PARSER — raw prompt -> factual business brief
         # ---------------------------------------------------------------------
-        art_result = run_design_agent(_make_art_input(data))
-        art_direction = art_result.get("art_direction") or art_result.get("design_guidelines") or {}
-        art_source = art_result.get("source", "unknown")
+        business_brief = parse_business_prompt(art_input)
+        business = business_brief.get("business") or {}
+
+        # Improve compatibility with legacy fallback/meta code without inventing data.
+        inferred_name = str(business.get("name") or "").strip()
+        inferred_niche = str(
+            business.get("subcategory")
+            or business.get("category")
+            or data.niche
+            or ""
+        ).strip()
+        if inferred_name and not (data.business_name or "").strip():
+            data.business_name = inferred_name
+        if inferred_niche and not (data.niche or "").strip():
+            data.niche = inferred_niche
+
+        print(
+            f"[SiteMorph] Parsed brand={data.business_name or '?'} niche={data.niche or '?'}",
+            flush=True,
+        )
+
+        # ---------------------------------------------------------------------
+        # 2) BRAND STRATEGIST — facts -> semantic brand world
+        # ---------------------------------------------------------------------
+        brand_strategy = create_brand_strategy(art_input, business_brief)
+
+        # ---------------------------------------------------------------------
+        # 3) ART DIRECTOR — strategy -> exact visual system + page blueprint
+        # ---------------------------------------------------------------------
+        art_direction, art_source = create_art_direction(
+            art_input,
+            business_brief,
+            brand_strategy,
+        )
         print(f"[SiteMorph] Art Director: {art_source}", flush=True)
 
         # ---------------------------------------------------------------------
-        # 2) IMAGE DIRECTION -> REAL ASSETS
+        # 4) IMAGE DIRECTION -> REAL ASSETS
         # ---------------------------------------------------------------------
         image_assets = _user_uploaded_assets(data)
+
+        # URLs contained in the original prompt are also trusted user-supplied assets.
+        if not image_assets:
+            prompt_images = business_brief.get("image_urls_from_prompt") or []
+            image_assets = [
+                {"query": "image from original user prompt", "url": str(url)}
+                for url in prompt_images[:8]
+                if isinstance(url, str) and url.startswith(("http://", "https://"))
+            ]
+
         if not image_assets:
             queries = _art_image_queries(art_direction)
             image_assets = collect_design_images(queries, max_total=8)
 
         # ---------------------------------------------------------------------
-        # 3) MAIN REACT GENERATION
+        # 5) DEEPSEEK V4 PRO — implement the art direction in real React
         # ---------------------------------------------------------------------
-        generation_prompt = _build_generation_prompt(data, art_direction, image_assets)
+        generation_prompt = _build_generation_prompt(
+            data,
+            business_brief,
+            brand_strategy,
+            art_direction,
+            image_assets,
+        )
 
         parsed_files: Optional[Dict[str, str]] = None
         parsed_meta: Dict[str, Any] = {}
@@ -1792,7 +2228,7 @@ def generate_site(data: BuilderInput):
                 selected_model,
                 SYSTEM_PROMPT,
                 generation_prompt,
-                temperature=0.66 if mode == "normal" else 0.62,
+                temperature=0.54,
                 max_tokens=MAX_OUTPUT_TOKENS,
                 timeout=AI_TIMEOUT,
             )
@@ -1805,88 +2241,26 @@ def generate_site(data: BuilderInput):
                     if valid:
                         parsed_files = candidate_files
                         parsed_meta = candidate_meta
-                        provider = f"{mode} ({selected_model})"
+                        provider = f"deepseek-v4-pro ({mode})"
                     else:
-                        warning_parts.append("Primary invalid: " + " | ".join(issues[:4]))
+                        warning_parts.append("DeepSeek project invalid: " + " | ".join(issues[:5]))
                 except Exception as e:
-                    warning_parts.append(f"Primary parse error: {str(e)[:180]}")
+                    warning_parts.append(f"DeepSeek parse error: {str(e)[:200]}")
             else:
-                warning_parts.append(f"Primary unavailable: {err}")
+                warning_parts.append(f"DeepSeek unavailable: {err}")
 
         # ---------------------------------------------------------------------
-        # 3b) RESILIENCE CHAIN — chosen model failed (403 premium / 429 / 5xx):
-        #     retry each working free model until one yields a valid project
-        # ---------------------------------------------------------------------
-        if parsed_files is None and XKIRO_API_KEY:
-            for alt_model in FREE_FALLBACK_MODELS:
-                if alt_model == selected_model:
-                    continue
-                text, err = xkiro_generate_model(
-                    alt_model,
-                    SYSTEM_PROMPT,
-                    generation_prompt,
-                    temperature=0.66,
-                    max_tokens=MAX_OUTPUT_TOKENS,
-                    timeout=AI_TIMEOUT,
-                )
-                if not text:
-                    warning_parts.append(f"Fallback {alt_model.split('/')[-1]}: {err}")
-                    continue
-                try:
-                    parsed = extract_json(text)
-                    candidate_files = normalize_files(parsed.get("files") or {})
-                    candidate_meta = parsed.get("meta") or {}
-                    valid, issues = validate_project(candidate_files)
-                    if valid:
-                        parsed_files = candidate_files
-                        parsed_meta = candidate_meta
-                        provider = f"{mode}-fallback ({alt_model})"
-                        break
-                    warning_parts.append(
-                        f"Fallback {alt_model.split('/')[-1]} invalid: " + " | ".join(issues[:3])
-                    )
-                except Exception as e:
-                    warning_parts.append(f"Fallback {alt_model.split('/')[-1]} parse error: {str(e)[:150]}")
-
-        # ---------------------------------------------------------------------
-        # 4) GEMINI BACKUP
-        # ---------------------------------------------------------------------
-        if parsed_files is None and GEMINI_API_KEY:
-            text, err = gemini_generate(
-                SYSTEM_PROMPT,
-                generation_prompt,
-                temperature=0.64,
-                max_tokens=MAX_OUTPUT_TOKENS,
-            )
-            if text:
-                try:
-                    parsed = extract_json(text)
-                    candidate_files = normalize_files(parsed.get("files") or {})
-                    candidate_meta = parsed.get("meta") or {}
-                    valid, issues = validate_project(candidate_files)
-                    if valid:
-                        parsed_files = candidate_files
-                        parsed_meta = candidate_meta
-                        provider = f"gemini-backup ({GEMINI_MODEL})"
-                    else:
-                        warning_parts.append("Gemini invalid: " + " | ".join(issues[:4]))
-                except Exception as e:
-                    warning_parts.append(f"Gemini parse error: {str(e)[:180]}")
-            elif err:
-                warning_parts.append(f"Gemini unavailable: {err}")
-
-        # ---------------------------------------------------------------------
-        # 5) LOCAL FALLBACK
+        # 6) LOCAL EMERGENCY FALLBACK
         # ---------------------------------------------------------------------
         fb = fallback_content(data)
         if parsed_files is None:
             parsed_files = normalize_files(fb.get("files") or {})
             parsed_meta = fb.get("meta") or {}
             provider = "fallback"
-            warning_parts.append("AI generation failed; local fallback used")
+            warning_parts.append("DeepSeek generation failed; local emergency fallback used")
 
         # ---------------------------------------------------------------------
-        # 6) STATIC VALIDATION + AI DESIGN CRITIC
+        # 7) STATIC VALIDATION + DEEPSEEK DESIGN CRITIC
         # ---------------------------------------------------------------------
         valid, validator_issues = validate_project(parsed_files)
         if not valid:
@@ -1902,7 +2276,7 @@ def generate_site(data: BuilderInput):
         print(f"[SiteMorph] Critic score: {review_score:.1f}/10", flush=True)
 
         # ---------------------------------------------------------------------
-        # 7) ONE AUTOMATIC REVISION PASS
+        # 8) ONE DEEPSEEK REVISION PASS WHEN QUALITY IS BELOW TARGET
         # ---------------------------------------------------------------------
         refined = False
         if provider != "fallback" and _should_refine(mode, review_score, validator_issues):
@@ -1919,7 +2293,6 @@ def generate_site(data: BuilderInput):
                 parsed_meta = new_meta or parsed_meta
                 refined = True
 
-                # lightweight second review; useful for diagnostics, not another loop
                 _, revised_validator_issues = validate_project(parsed_files)
                 review = run_design_critic(
                     data=data,
@@ -1933,45 +2306,46 @@ def generate_site(data: BuilderInput):
                 warning_parts.append(f"Revision skipped/failed: {revision_err}")
 
         # ---------------------------------------------------------------------
-        # 8) LIVE PREVIEW — build the REAL React project into preview.html.
-        #    Only on platforms without node/npm (e.g. Vercel) do we ask an AI
-        #    model to hand-craft a preview.html replica instead.
+        # 9) EXPORT HTML FOR THE EXISTING /api/publish ONLY.
+        #    The Builder UI renders the REAL React project with Sandpack.
+        #    This preview.html is no longer the design/live-preview source.
         # ---------------------------------------------------------------------
         if not GENERATE_STANDALONE_PREVIEW and _has_real_react_app(parsed_files):
             built_html, build_err = build_single_file_preview(parsed_files)
             if built_html:
                 parsed_files["main/frontend/preview.html"] = built_html
             elif build_err:
-                # Show the compile error in the preview so it is visible and fixable
                 parsed_files["main/frontend/preview.html"] = _build_error_page(
                     parsed_meta.get("title") or data.business_name, build_err
                 )
-                warning_parts.append("Real React build failed: " + build_err.replace("\n", " | ")[:240])
+                warning_parts.append("React export build failed: " + build_err.replace("\n", " | ")[:240])
             else:
                 ensure_preview_entry(
                     parsed_files,
                     parsed_meta.get("title") or data.business_name,
                 )
         else:
-            preview_html, preview_err = make_standalone_preview(
+            export_html, export_err = make_standalone_preview(
                 data,
                 art_direction,
                 parsed_files,
             )
-            if preview_html:
-                parsed_files["main/frontend/preview.html"] = preview_html
+            if export_html:
+                parsed_files["main/frontend/preview.html"] = export_html
             else:
                 ensure_preview_entry(
                     parsed_files,
                     parsed_meta.get("title") or data.business_name,
                 )
-                if preview_err not in {None, "disabled"}:
-                    warning_parts.append(f"Standalone preview fallback: {preview_err}")
+                if export_err not in {None, "disabled"}:
+                    warning_parts.append(f"HTML export fallback: {export_err}")
 
         meta = parsed_meta or fb.get("meta") or {}
+        if not meta.get("title"):
+            meta["title"] = data.business_name or "Strona"
         hero = {
             "title": meta.get("headline", data.business_name),
-            "subtitle": meta.get("subheadline", data.description),
+            "subtitle": meta.get("subheadline", business.get("description") or data.description),
             "cta_text": meta.get("ctaText", "Kontakt"),
         }
 
@@ -1980,19 +2354,21 @@ def generate_site(data: BuilderInput):
             "provider": provider,
             "model": selected_model if provider != "fallback" else None,
             "warning": " | ".join(warning_parts) if warning_parts else None,
-            "art_director": art_source,
             "quality_score": round(review_score, 1),
             "quality_review": review,
             "refined": refined,
-            "gemini_key_loaded": bool(GEMINI_API_KEY),
-            "gemini_model": GEMINI_MODEL if provider.startswith("gemini") else None,
-            "openrouter_model": selected_model if provider != "fallback" else None,
             "content": {"hero": hero, "services": [], "pricing": []},
             "files": parsed_files,
             "meta": meta,
-            # Helpful for debugging / showing a hidden developer panel in SiteMorph.
+            "business_brief": business_brief,
+            "brand_strategy": brand_strategy,
             "design_guidelines": art_direction,
+            "art_director": art_source,
             "image_assets": image_assets,
+            # Compatibility fields used by older UI/debug panels.
+            "gemini_key_loaded": False,
+            "gemini_model": None,
+            "openrouter_model": selected_model if provider != "fallback" else None,
         }
 
     except Exception as e:
@@ -2014,9 +2390,6 @@ def generate_site(data: BuilderInput):
                 "quality_score": None,
                 "quality_review": None,
                 "refined": False,
-                "gemini_key_loaded": bool(GEMINI_API_KEY),
-                "gemini_model": None,
-                "openrouter_model": None,
                 "content": {
                     "hero": {
                         "title": data.business_name,
@@ -2028,6 +2401,9 @@ def generate_site(data: BuilderInput):
                 },
                 "files": files,
                 "meta": meta,
+                "gemini_key_loaded": False,
+                "gemini_model": None,
+                "openrouter_model": None,
             }
         except Exception as e2:
             from fastapi.responses import JSONResponse
