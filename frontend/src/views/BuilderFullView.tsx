@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SandpackLayout, SandpackPreview, SandpackProvider } from '@codesandbox/sandpack-react';
 import {
   Sparkles,
   CheckCircle2,
@@ -252,62 +251,14 @@ const InlineWizard = ({
 
 
 // ============================================================================
-// LIVE REACT PREVIEW
+// PREVIEW HELPERS
 // ============================================================================
 
-type SandpackSetup = {
-  dependencies: Record<string, string>;
-  devDependencies: Record<string, string>;
-};
-
-function makeSandpackFiles(files: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
-
-  Object.entries(files || {}).forEach(([fullPath, code]) => {
-    if (!fullPath.startsWith('main/frontend/')) return;
-    if (fullPath === 'main/frontend/preview.html') return; // export-only, never the live preview
-
-    let relative = fullPath.slice('main/frontend'.length);
-    if (!relative.startsWith('/')) relative = `/${relative}`;
-    out[relative] = code;
-  });
-
-  return out;
-}
-
-/*
- * Build tools (vite, rollup, esbuild, plugin-react, typescript) must NOT be
- * sent to Sandpack — its vite-react-ts template already ships a stack that
- * runs inside nodebox. Our customSetup should only declare RUNTIME deps so
- * the preview never crashes with native-binary errors (esbuild-wasm,
- * rollup linux-x32, etc.).
- */
-const NODEBOX_BUILD_TOOLS = new Set([
-  'vite', '@vitejs/plugin-react', 'typescript', 'tslib',
-  'esbuild', 'esbuild-wasm', 'rollup', '@rollup/wasm-node',
-  '@types/react', '@types/react-dom', '@types/node',
-]);
-
-function makeSandpackSetup(files: Record<string, string>): SandpackSetup {
-  try {
-    const raw = files['main/frontend/package.json'];
-    const pkg = raw ? JSON.parse(raw) : {};
-    const allDeps: Record<string, string> = { ...(pkg.dependencies || {}) };
-    const filtered: Record<string, string> = Object.fromEntries(
-      Object.entries(allDeps).filter(([k]) => !NODEBOX_BUILD_TOOLS.has(k)),
-    );
-    return { dependencies: filtered, devDependencies: {} };
-  } catch {
-    return {
-      dependencies: {
-        react: '^18.2.0',
-        'react-dom': '^18.2.0',
-        'framer-motion': '^11.0.0',
-        'lucide-react': '^0.468.0',
-      },
-      devDependencies: {},
-    };
-  }
+function isStandalonePreviewHtml(html: string): boolean {
+  if (!html || !html.trim()) return false;
+  // A fallback entry that references /src/main.tsx cannot run inside srcDoc.
+  if (/src=\[?["']\/?src\/main\.tsx/i.test(html)) return false;
+  return /<html[\s>]/i.test(html) || /<!doctype html>/i.test(html);
 }
 
 function cleanAutoValue(value: unknown): string {
@@ -618,7 +569,7 @@ export const BuilderFullView = ({
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
               try {
-                // preview.html is export-only; live preview renders the real React files via Sandpack.
+                // preview.html is the standalone result produced from the generated React project and is also used for publish.
                 const html = generatedSite.files['main/frontend/preview.html'] || '';
                 const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({ html, title: generatedSite.title }) });
                 const data = await res.json();
@@ -837,68 +788,31 @@ export const BuilderFullView = ({
                     </div>
                   </div>
                   {(() => {
-                    const hasReactProject = Boolean(generatedSite.files['main/frontend/src/App.tsx']);
+                    const previewHtml = generatedSite.files['main/frontend/preview.html'] || '';
 
-                    if (!hasReactProject) {
-                      const emergencyHtml = generatedSite.files['main/frontend/preview.html'];
-                      if (emergencyHtml) {
-                        return (
-                          <iframe
-                            title="Awaryjny podgląd"
-                            className="flex-1 w-full border-0 bg-white"
-                            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                            srcDoc={emergencyHtml}
-                          />
-                        );
-                      }
-
+                    if (!isStandalonePreviewHtml(previewHtml)) {
                       return (
                         <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
                           <div className="max-w-md text-center">
                             <X size={28} className="mx-auto mb-3 text-red-400" />
-                            <h3 className="text-sm font-semibold text-white mb-2">Brak projektu React</h3>
+                            <h3 className="text-sm font-semibold text-white mb-2">Podgląd nie został zbudowany</h3>
                             <p className="text-xs leading-relaxed text-white/50">
-                              Backend nie zwrócił pliku App.tsx ani awaryjnego HTML. Wygeneruj stronę ponownie i sprawdź komunikat backendu.
+                              Backend zwrócił projekt React, ale nie zwrócił samodzielnego preview.html.
+                              Sprawdź ostrzeżenie backendu lub wygeneruj stronę ponownie.
                             </p>
                           </div>
                         </div>
                       );
                     }
 
-                    const liveFiles = makeSandpackFiles(generatedSite.files);
-                    const setup = makeSandpackSetup(generatedSite.files);
-
                     return (
-                      <SandpackProvider
+                      <iframe
                         key={generatedSite.domain}
-                        template="vite-react-ts"
-                        files={liveFiles}
-                        customSetup={setup}
-                        options={{
-                          autorun: true,
-                          recompileMode: 'immediate',
-                        }}
-                        style={{ height: '100%', width: '100%' }}
-                      >
-                        <SandpackLayout
-                          style={{
-                            height: '100%',
-                            width: '100%',
-                            border: 0,
-                            borderRadius: 0,
-                          }}
-                        >
-                          <SandpackPreview
-                            style={{ height: '100%', width: '100%' }}
-                            showNavigator={false}
-                            showOpenInCodeSandbox={false}
-                            showOpenNewtab={false}
-                            showRefreshButton
-                            showRestartButton
-                            showSandpackErrorOverlay
-                          />
-                        </SandpackLayout>
-                      </SandpackProvider>
+                        title={`Podgląd ${generatedSite.title}`}
+                        className="flex-1 w-full border-0 bg-white"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+                        srcDoc={previewHtml}
+                      />
                     );
                   })()}
                 </motion.div>
