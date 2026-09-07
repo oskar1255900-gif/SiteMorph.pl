@@ -39,7 +39,7 @@ FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "180"))
 # Main generation modes. Kept exactly in the spirit of your current builder.
 MODEL_MAP = {
     "normal": os.getenv("SITEMORPH_MODEL_NORMAL", "qwen/qwen3.8-max:free"),
-    "ultra": os.getenv("SITEMORPH_MODEL_ULTRA", "openai/gpt-5.3-codex-spark"),
+    "ultra": os.getenv("SITEMORPH_MODEL_ULTRA", "deepseek/deepseek-v4-pro"),
     "ultra+": os.getenv("SITEMORPH_MODEL_ULTRA_PLUS", "anthropic/claude-fable-5"),
 }
 
