@@ -1986,7 +1986,14 @@ def _patch_sandpack_package(files: Dict[str, str]) -> None:
     dev["@vitejs/plugin-react"] = "^4.3.4"
     dev["typescript"] = "^5.6.3"
     dev["esbuild-wasm"] = "0.21.5"
-    dev["rollup"] = "npm:@rollup/wasm-node@4.63.1"
+    # rollup: nodebox has no native build for its platform (linux-x32), and
+    # npm aliases ('npm:@rollup/wasm-node@...') are not supported by nodebox.
+    # The frontend's makeSandpackSetup therefore strips all build-tool deps
+    # before sending them to Sandpack, so nodebox uses the template's own
+    # compatible stack. The alias here only helps the LOCAL build if somehow
+    # a broken rollup bleeds through — it is ignored by nodebox.
+    # (If Sandpack still crashes, see makeSandpackSetup in BuilderFullView.tsx
+    # which is the authoritative filter.)
     dev.setdefault("@types/react", "^18.2.0")
     dev.setdefault("@types/react-dom", "^18.2.0")
     files[key] = json.dumps(pkg, ensure_ascii=False, indent=2)

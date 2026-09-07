@@ -275,14 +275,28 @@ function makeSandpackFiles(files: Record<string, string>): Record<string, string
   return out;
 }
 
+/*
+ * Build tools (vite, rollup, esbuild, plugin-react, typescript) must NOT be
+ * sent to Sandpack — its vite-react-ts template already ships a stack that
+ * runs inside nodebox. Our customSetup should only declare RUNTIME deps so
+ * the preview never crashes with native-binary errors (esbuild-wasm,
+ * rollup linux-x32, etc.).
+ */
+const NODEBOX_BUILD_TOOLS = new Set([
+  'vite', '@vitejs/plugin-react', 'typescript', 'tslib',
+  'esbuild', 'esbuild-wasm', 'rollup', '@rollup/wasm-node',
+  '@types/react', '@types/react-dom', '@types/node',
+]);
+
 function makeSandpackSetup(files: Record<string, string>): SandpackSetup {
   try {
     const raw = files['main/frontend/package.json'];
     const pkg = raw ? JSON.parse(raw) : {};
-    return {
-      dependencies: pkg.dependencies || {},
-      devDependencies: pkg.devDependencies || {},
-    };
+    const allDeps: Record<string, string> = { ...(pkg.dependencies || {}) };
+    const filtered: Record<string, string> = Object.fromEntries(
+      Object.entries(allDeps).filter(([k]) => !NODEBOX_BUILD_TOOLS.has(k)),
+    );
+    return { dependencies: filtered, devDependencies: {} };
   } catch {
     return {
       dependencies: {
@@ -291,11 +305,7 @@ function makeSandpackSetup(files: Record<string, string>): SandpackSetup {
         'framer-motion': '^11.0.0',
         'lucide-react': '^0.468.0',
       },
-      devDependencies: {
-        vite: '^5.0.0',
-        typescript: '^5.0.0',
-        '@vitejs/plugin-react': '^4.0.0',
-      },
+      devDependencies: {},
     };
   }
 }
