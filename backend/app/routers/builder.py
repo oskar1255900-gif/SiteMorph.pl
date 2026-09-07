@@ -1951,6 +1951,103 @@ def _inline_assets(dist: Path, html: str) -> str:
     return html
 
 
+def _patch_sandpack_package(files: Dict[str, str]) -> None:
+    """Make the generated package.json install & run inside Sandpack's nodebox.
+
+    Nodebox (CodeSandbox's in-browser Node runtime) cannot execute esbuild's
+    native binary, so vite falls back to requiring the 'esbuild-wasm' module.
+    When that module is missing the whole in-panel preview crashes with
+    "Cannot find module 'esbuild-wasm'". Pin build-tool versions to ones that
+    work inside nodebox and add esbuild-wasm so the preview always boots.
+    """
+    key = "main/frontend/package.json"
+    raw = files.get(key)
+    if not raw:
+        return
+    try:
+        pkg = json.loads(raw)
+    except Exception:
+        return
+    if not isinstance(pkg, dict):
+        return
+    deps = pkg.setdefault("dependencies", {})
+    dev = pkg.setdefault("devDependencies", {})
+    if "react" not in deps:
+        deps["react"] = "^18.2.0"
+    if "react-dom" not in deps:
+        deps["react-dom"] = "^18.2.0"
+    # Build tools pinned to versions compatible with Sandpack nodebox.
+    dev["vite"] = "5.4.9"
+    dev["@vitejs/plugin-react"] = "^4.3.4"
+    dev["typescript"] = "^5.6.3"
+    dev["esbuild-wasm"] = "0.21.5"
+    dev.setdefault("@types/react", "^18.2.0")
+    dev.setdefault("@types/react-dom", "^18.2.0")
+    files[key] = json.dumps(pkg, ensure_ascii=False, indent=2)
+
+
+HEAL_SYSTEM = r"""
+You are SiteMorph Build Healer — a senior React/TypeScript engineer.
+
+The vite build of a generated website FAILED. Your ONLY job is to fix the
+reported build errors so that `npm install && vite build` passes.
+
+- Fix ONLY what the build log reports: broken imports, missing files,
+  TypeScript errors, invalid JSX, missing dependencies, wrong versions.
+- PRESERVE the existing design, business facts, copy, colors and layout.
+  Do not redesign anything.
+- Keep every file complete — return the ENTIRE project, not diffs.
+- Keep package.json dependencies consistent with the imports.
+- Do not add markdown or commentary, JSON only.
+"""
+
+
+def _heal_build_errors(
+    model: str,
+    data: BuilderInput,
+    art_direction: Dict[str, Any],
+    files: Dict[str, str],
+    meta: Dict[str, Any],
+    build_err: str,
+) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, Any]], Optional[str]]:
+    """Ask the model to fix a failing vite build; returns a validated project."""
+    prompt = f"""ORIGINAL USER PROMPT:
+{data.extraPrompt or data.description or ''}
+
+ART DIRECTION (keep it intact):
+{json.dumps(art_direction, ensure_ascii=False, indent=2)}
+
+VITE BUILD ERROR — fix exactly this:
+{build_err[-4500:]}
+
+CURRENT PROJECT:
+{_project_for_review(files, max_chars=120000)}
+
+Return the full corrected project JSON only. `vite build` MUST pass.
+"""
+
+    text, err = xkiro_generate_model(
+        model,
+        HEAL_SYSTEM,
+        prompt,
+        temperature=0.30,
+        max_tokens=MAX_OUTPUT_TOKENS,
+        timeout=AI_TIMEOUT,
+    )
+    if not text:
+        return None, None, err
+    try:
+        parsed = extract_json(text)
+        new_files = normalize_files(parsed.get("files") or {})
+        new_meta = parsed.get("meta") or meta or {}
+        valid, issues = validate_project(new_files)
+        if not valid:
+            return None, None, "Heal invalid: " + " | ".join(issues[:5])
+        return new_files, new_meta, None
+    except Exception as e:
+        return None, None, f"Heal parse error: {str(e)[:240]}"
+
+
 def build_single_file_preview(files: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
     """Compile the real React project into ONE self-contained HTML string.
     Returns (html, None) on success, (None, build_error) on failure."""
@@ -2419,6 +2516,11 @@ def generate_site(data: BuilderInput):
             provider = "fallback"
             warning_parts.append("DeepSeek generation failed; local emergency fallback used")
 
+        # Sandpack/nodebox cannot run esbuild's native binary — vite falls back
+        # to requiring 'esbuild-wasm' and the panel preview crashes when it is
+        # missing. Normalize the package.json before anything else consumes it.
+        _patch_sandpack_package(parsed_files)
+
         # ---------------------------------------------------------------------
         # 7) STATIC VALIDATION + DEEPSEEK DESIGN CRITIC
         # ---------------------------------------------------------------------
@@ -2483,14 +2585,49 @@ def generate_site(data: BuilderInput):
         #    This preview.html is no longer the design/live-preview source.
         # ---------------------------------------------------------------------
         if not GENERATE_STANDALONE_PREVIEW and _has_real_react_app(parsed_files):
+            # SELF-HEALING BUILD: the project must actually compile locally
+            # before it is shown. If `vite build` fails, the build error is fed
+            # back to the model and the project is rebuilt — up to two heal
+            # rounds. Only a project that compiles is presented to the user.
             built_html, build_err = build_single_file_preview(parsed_files)
+            heal_rounds = 0
+            while not built_html and build_err and provider != "fallback" and heal_rounds < 2:
+                heal_rounds += 1
+                print(
+                    f"[SiteMorph] heal round {heal_rounds}: {build_err[:240]}",
+                    flush=True,
+                )
+                healed_files, healed_meta, heal_err = _heal_build_errors(
+                    selected_model,
+                    data,
+                    art_direction,
+                    parsed_files,
+                    parsed_meta,
+                    build_err,
+                )
+                if not healed_files:
+                    warning_parts.append(
+                        f"Naprawa builda nieudana (próba {heal_rounds}): {heal_err}"
+                    )
+                    break
+                parsed_files = healed_files
+                if healed_meta:
+                    parsed_meta = healed_meta
+                _patch_sandpack_package(parsed_files)
+                built_html, build_err = build_single_file_preview(parsed_files)
             if built_html:
+                if heal_rounds:
+                    warning_parts.append(
+                        f"Naprawiono błędy kompilacji po {heal_rounds} poprawce(ach)"
+                    )
                 parsed_files["main/frontend/preview.html"] = built_html
             elif build_err:
                 parsed_files["main/frontend/preview.html"] = _build_error_page(
                     parsed_meta.get("title") or data.business_name, build_err
                 )
-                warning_parts.append("React export build failed: " + build_err.replace("\n", " | ")[:240])
+                warning_parts.append(
+                    "React export build failed: " + build_err.replace("\n", " | ")[:240]
+                )
             else:
                 ensure_preview_entry(
                     parsed_files,
