@@ -1715,8 +1715,23 @@ def ensure_preview_entry(files: Dict[str, str], title: str) -> None:
 # =============================================================================
 
 
-BUILD_ROOT = Path(__file__).resolve().parents[2] / ".sitemorph_builds"
-BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+# Vercel: filesystem jest read-only poza /tmp — mkdir na poziomie modulu na
+# sciezce projektu rzucalby OSError przy imporcie i wallal CALY backend
+# (FUNCTION_INVOCATION_FAILED na kazdym /api). Dlatego: /tmp na Vercelu,
+# katalog projektu lokalnie, i nigdy nie rzucamy przy starcie.
+_default_build_dir = os.getenv(
+    "SITEMORPH_BUILD_DIR",
+    "/tmp/sitemorph_builds" if os.getenv("VERCEL") else str(Path(__file__).resolve().parents[2] / ".sitemorph_builds"),
+)
+BUILD_ROOT = Path(_default_build_dir)
+try:
+    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+except OSError:
+    try:
+        BUILD_ROOT = Path("/tmp/sitemorph_builds")
+        BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        BUILD_ROOT = None  # realny build React po prostu niedostepny
 MAX_BUILD_DIRS = 8
 
 
@@ -1893,9 +1908,13 @@ def build_single_file_preview(files: Dict[str, str]) -> Tuple[Optional[str], Opt
     except Exception as e:
         return None, f"Build exception: {str(e)[:400]}"
     finally:
-        dirs = sorted(BUILD_ROOT.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-        for d in dirs[MAX_BUILD_DIRS:]:
-            shutil.rmtree(d, ignore_errors=True)
+        if BUILD_ROOT is not None:
+            try:
+                dirs = sorted(BUILD_ROOT.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+                for d in dirs[MAX_BUILD_DIRS:]:
+                    shutil.rmtree(d, ignore_errors=True)
+            except OSError:
+                pass
 
 
 def _has_real_react_app(files: Dict[str, str]) -> bool:
