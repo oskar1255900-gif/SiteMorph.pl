@@ -392,6 +392,13 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
             errors: [{ text: `Nie znaleziono lokalnego importu "${spec}" z ${args.importer || 'entry'}` }],
           };
         }
+
+        // CSS: mark as external — we inject it directly into <style> to avoid
+        // esbuild-wasm's 'cannot import CSS without output path' error.
+        if (resolved.endsWith('.css')) {
+          return { path: resolved, external: true };
+        }
+
         return { path: resolved, namespace: 'sitemorph' };
       });
 
@@ -409,6 +416,13 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
     },
   };
 
+  // Collect all CSS from the project and inject as <style>.
+  // This bypasses esbuild-wasm's CSS bundling which needs an output path.
+  const allProjectCss = Object.entries(virtualFiles)
+    .filter(([k]) => k.endsWith('.css'))
+    .map(([, v]) => v)
+    .join('\n');
+
   const result = await esbuild.build({
     entryPoints: [entry],
     bundle: true,
@@ -421,11 +435,13 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
     logLevel: 'silent',
     sourcemap: false,
     minify: false,
+    // CSS is handled as external by the plugin — injected as <style> below.
   });
 
   const js = result.outputFiles?.find((f) => f.path.endsWith('.js'))?.text || '';
-  const css = result.outputFiles?.filter((f) => f.path.endsWith('.css')).map((f) => f.text).join('\n') || '';
   if (!js.trim()) throw new Error('esbuild nie zwrócił bundla JavaScript');
+
+  const css = allProjectCss;
 
   const importMap = JSON.stringify(IMPORT_MAP).replace(/</g, '\\u003c');
   return `<!doctype html>

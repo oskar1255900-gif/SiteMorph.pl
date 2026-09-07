@@ -1206,6 +1206,9 @@ Silently choose:
 Do not mix unrelated visual trends.
 One strong idea is better than ten trendy effects.
 
+CRITICAL: Do not put all sections into App.tsx. Split into meaningful components.
+Putting the entire website in a single App.tsx file is considered a failure.
+
 4) ARCHITECT THE PAGE
 Choose the sections that THIS business needs. Do not force a generic template.
 A restaurant may need menu/gallery/reviews/location. An architect may need project-led
@@ -1305,19 +1308,20 @@ Do NOT import gsap, lenis, radix, embla, three, swiper, styled-components,
 Tailwind plugins or any other package. The SiteMorph browser preview intentionally
 supports a small reliable dependency set.
 
-Prefer 5-10 meaningful components when appropriate, for example:
-- Navbar
-- Hero
-- Product/Menu/Services section
-- Story/About
-- Gallery
-- Reviews
-- Location/Contact
-- Footer
-but adapt structure to the exact business rather than copying this list.
+MUST split into components. Do NOT put the entire page in App.tsx.
+App.tsx should ONLY compose section components — like an orchestrator.
+Each major section (hero, menu, gallery, reviews, contact, footer) MUST be
+a separate file in src/components/ (or src/lib/ for shared data/types).
 
-App.tsx may be short if it composes meaningful components. Every imported local file
-must be returned. Keep arrays/data close to the component that owns them.
+Required minimum component split for a multi-section site:
+- src/components/Hero.tsx (or equivalent primary section)
+- src/components/Section2.tsx, Section3.tsx, etc. for each distinct section
+- src/components/Footer.tsx
+- src/App.tsx — ONLY imports and composes the above
+
+App.tsx should be under 80 lines. If it is longer, you are doing it wrong.
+Every imported local file MUST be returned in the files object.
+Keep arrays/data close to the component that owns them (e.g. src/data/menu.ts).
 
 Interactions should work:
 - anchor navigation scrolls to valid ids
@@ -1378,6 +1382,12 @@ Minimum required files:
 - main/frontend/src/main.tsx
 - main/frontend/src/index.css
 - main/frontend/src/App.tsx
+- At least 3 additional component files in main/frontend/src/components/
+  (e.g. Hero.tsx, Footer.tsx, Menu.tsx — adapt to the business)
+
+CRITICAL: App.tsx must be SHORT (under 80 lines) and only compose components.
+The FULL page code MUST live in separate component files, not in App.tsx.
+If App.tsx contains section JSX markup, the project has FAILED the requirement.
 
 package.json should contain only the dependencies actually needed by this project.
 Use React 18. Vite is allowed as a devDependency for export/build compatibility.
@@ -1508,10 +1518,33 @@ def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
         issues.append("Possible AI-slop: excessive glass/backdrop blur")
 
     tsx_files = [k for k in files if k.endswith((".tsx", ".jsx"))]
-    has_component_structure = len(tsx_files) >= 2 or len(app) >= 900
+    component_files = [
+        k for k in tsx_files
+        if k.startswith("main/frontend/src/components/")
+    ]
+    
+    # A well-structured project has separate component files, not everything in App.tsx.
+    # App.tsx should be SHORT (< 80 lines for a multi-section site) — it should only
+    # compose components, not contain all section markup.
+    app_lines = len(app.strip().splitlines()) if app.strip() else 0
+    
+    if len(component_files) < 2:
+        issues.append(
+            f"Project has only {len(component_files)} component file(s) — "
+            f"minimum 3 expected (e.g. Hero.tsx, Footer.tsx, Menu.tsx). "
+            f"Do NOT put all sections in App.tsx."
+        )
+    
+    if len(app.strip()) >= 900 and len(component_files) < 2:
+        issues.append(
+            f"App.tsx is {app_lines} lines long but has {len(component_files)} "
+            f"component file(s). App.tsx should be SHORT and compose components."
+        )
+    
+    has_component_structure = len(component_files) >= 2 or (len(tsx_files) >= 2 and app_lines < 80)
     if not has_component_structure:
         issues.append("React project has too little component structure")
-
+    
     hard_fail = (
         bool(missing)
         or len(app.strip()) < 120
