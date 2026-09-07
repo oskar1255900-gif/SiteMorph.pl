@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as esbuild from 'esbuild-wasm';
+import esbuildWasmUrl from 'esbuild-wasm/esbuild.wasm?url';
 import {
   Sparkles,
   CheckCircle2,
@@ -251,14 +253,194 @@ const InlineWizard = ({
 
 
 // ============================================================================
-// PREVIEW HELPERS
+// LIVE REACT PREVIEW — REAL GENERATED REACT, COMPILED IN THE BROWSER
+// No Sandpack, no CodeSandbox Nodebox, no AI-generated preview.html.
 // ============================================================================
 
-function isStandalonePreviewHtml(html: string): boolean {
-  if (!html || !html.trim()) return false;
-  // A fallback entry that references /src/main.tsx cannot run inside srcDoc.
-  if (/src=\[?["']\/?src\/main\.tsx/i.test(html)) return false;
-  return /<html[\s>]/i.test(html) || /<!doctype html>/i.test(html);
+let esbuildInitPromise: Promise<void> | null = null;
+
+function ensureEsbuildReady(): Promise<void> {
+  if (!esbuildInitPromise) {
+    esbuildInitPromise = esbuild.initialize({
+      wasmURL: esbuildWasmUrl,
+      worker: true,
+    }).catch((err) => {
+      esbuildInitPromise = null;
+      throw err;
+    });
+  }
+  return esbuildInitPromise;
+}
+
+function normalizeVirtualPath(input: string): string {
+  const raw = input.replace(/\\/g, '/');
+  const parts: string[] = [];
+  for (const part of raw.split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..') parts.pop();
+    else parts.push(part);
+  }
+  return '/' + parts.join('/');
+}
+
+function dirnameVirtual(path: string): string {
+  const normalized = normalizeVirtualPath(path);
+  const i = normalized.lastIndexOf('/');
+  return i <= 0 ? '/' : normalized.slice(0, i);
+}
+
+function projectToVirtualFiles(files: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [fullPath, content] of Object.entries(files || {})) {
+    if (!fullPath.startsWith('main/frontend/')) continue;
+    const rel = fullPath.slice('main/frontend/'.length);
+    if (!rel || rel.toLowerCase().endsWith('preview.html')) continue;
+    out[normalizeVirtualPath('/' + rel)] = content;
+  }
+  return out;
+}
+
+const LOCAL_EXTENSIONS = ['', '.tsx', '.ts', '.jsx', '.js', '.css', '.json'];
+const LOCAL_INDEXES = ['/index.tsx', '/index.ts', '/index.jsx', '/index.js'];
+
+function resolveVirtualImport(
+  specifier: string,
+  importer: string,
+  files: Record<string, string>,
+): string | null {
+  let base: string;
+  if (specifier.startsWith('@/')) {
+    base = '/src/' + specifier.slice(2);
+  } else if (specifier.startsWith('/')) {
+    base = specifier;
+  } else {
+    base = dirnameVirtual(importer || '/') + '/' + specifier;
+  }
+
+  base = normalizeVirtualPath(base);
+  for (const ext of LOCAL_EXTENSIONS) {
+    const candidate = normalizeVirtualPath(base + ext);
+    if (Object.prototype.hasOwnProperty.call(files, candidate)) return candidate;
+  }
+  for (const suffix of LOCAL_INDEXES) {
+    const candidate = normalizeVirtualPath(base + suffix);
+    if (Object.prototype.hasOwnProperty.call(files, candidate)) return candidate;
+  }
+  return null;
+}
+
+function loaderFor(path: string): esbuild.Loader {
+  if (path.endsWith('.tsx')) return 'tsx';
+  if (path.endsWith('.ts')) return 'ts';
+  if (path.endsWith('.jsx')) return 'jsx';
+  if (path.endsWith('.js')) return 'js';
+  if (path.endsWith('.css')) return 'css';
+  if (path.endsWith('.json')) return 'json';
+  return 'tsx';
+}
+
+const IMPORT_MAP = {
+  imports: {
+    react: 'https://esm.sh/react@18.2.0',
+    'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
+    'react/jsx-dev-runtime': 'https://esm.sh/react@18.2.0/jsx-dev-runtime',
+    'react-dom': 'https://esm.sh/react-dom@18.2.0?external=react',
+    'react-dom/client': 'https://esm.sh/react-dom@18.2.0/client?external=react',
+    'framer-motion': 'https://esm.sh/framer-motion@13.1.1?external=react,react-dom',
+    'lucide-react': 'https://esm.sh/lucide-react@0.344.0?external=react',
+    clsx: 'https://esm.sh/clsx@2.1.1',
+  },
+};
+
+function safeInlineScript(code: string): string {
+  return code.replace(/<\/script/gi, '<\\/script');
+}
+
+function safeInlineStyle(code: string): string {
+  return code.replace(/<\/style/gi, '<\\/style');
+}
+
+async function compileReactProjectToHtml(files: Record<string, string>): Promise<string> {
+  await ensureEsbuildReady();
+  const virtualFiles = projectToVirtualFiles(files);
+  const entry = '/src/main.tsx';
+  if (!virtualFiles[entry]) throw new Error('Brak main/frontend/src/main.tsx');
+  if (!virtualFiles['/src/App.tsx']) throw new Error('Brak main/frontend/src/App.tsx');
+
+  const plugin: esbuild.Plugin = {
+    name: 'sitemorph-virtual-project',
+    setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        const spec = args.path;
+
+        if (/^https?:\/\//i.test(spec)) return { path: spec, external: true };
+
+        const isLocal =
+          args.kind === 'entry-point' ||
+          spec.startsWith('.') ||
+          spec.startsWith('/') ||
+          spec.startsWith('@/');
+
+        if (!isLocal) return { path: spec, external: true };
+
+        const resolved = args.kind === 'entry-point'
+          ? resolveVirtualImport(spec, '/', virtualFiles)
+          : resolveVirtualImport(spec, args.importer || '/', virtualFiles);
+
+        if (!resolved) {
+          return {
+            errors: [{ text: `Nie znaleziono lokalnego importu "${spec}" z ${args.importer || 'entry'}` }],
+          };
+        }
+        return { path: resolved, namespace: 'sitemorph' };
+      });
+
+      build.onLoad({ filter: /.*/, namespace: 'sitemorph' }, (args) => {
+        const contents = virtualFiles[args.path];
+        if (contents == null) {
+          return { errors: [{ text: `Brak pliku ${args.path}` }] };
+        }
+        return {
+          contents,
+          loader: loaderFor(args.path),
+          resolveDir: dirnameVirtual(args.path),
+        };
+      });
+    },
+  };
+
+  const result = await esbuild.build({
+    entryPoints: [entry],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    target: ['es2020'],
+    jsx: 'automatic',
+    platform: 'browser',
+    plugins: [plugin],
+    logLevel: 'silent',
+    sourcemap: false,
+    minify: false,
+  });
+
+  const js = result.outputFiles?.find((f) => f.path.endsWith('.js'))?.text || '';
+  const css = result.outputFiles?.filter((f) => f.path.endsWith('.css')).map((f) => f.text).join('\n') || '';
+  if (!js.trim()) throw new Error('esbuild nie zwrócił bundla JavaScript');
+
+  const importMap = JSON.stringify(IMPORT_MAP).replace(/</g, '\\u003c');
+  return `<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script type="importmap">${importMap}<\/script>
+  <style>html,body,#root{margin:0;min-height:100%;width:100%;}${safeInlineStyle(css)}</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">${safeInlineScript(js)}<\/script>
+</body>
+</html>`;
 }
 
 function cleanAutoValue(value: unknown): string {
@@ -308,6 +490,9 @@ export const BuilderFullView = ({
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [publishErr, setPublishErr] = useState('');
+  const [compiledPreviewHtml, setCompiledPreviewHtml] = useState('');
+  const [previewBuildErr, setPreviewBuildErr] = useState('');
+  const [previewBuilding, setPreviewBuilding] = useState(false);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [leftW, setLeftW] = useState(400);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
@@ -379,6 +564,9 @@ export const BuilderFullView = ({
 
     setGenerationErr('');
     setGeneratedSite(null);
+    setCompiledPreviewHtml('');
+    setPreviewBuildErr('');
+    setPreviewBuilding(false);
     setIsGenerating(true);
     const start = Date.now();
     const MIN_MS = 3000;
@@ -437,15 +625,27 @@ export const BuilderFullView = ({
         const files: Record<string, string> = data.files || {};
         const meta = data.meta || {};
         const parsedBusiness = data.business_brief?.business || {};
-        const parsedNiche = parsedBusiness.subcategory || parsedBusiness.category || niche || 'Firma';
-        const hasReact = Boolean(files['main/frontend/src/App.tsx']);
-        const hasHtmlFallback = Boolean(files['main/frontend/preview.html']);
+        const parsedNiche = parsedBusiness.subcategory || parsedBusiness.category || meta.category || niche || 'Firma';
+        const hasReact = Boolean(files['main/frontend/src/App.tsx'] && files['main/frontend/src/main.tsx']);
 
-        if (!hasReact && !hasHtmlFallback) {
-          setGenerationErr(data.warning || 'Generator nie zwrócił działającego projektu React. Spróbuj wygenerować ponownie.');
+        if (!hasReact) {
+          setGenerationErr(data.warning || 'DeepSeek nie zwrócił kompletnego projektu React (App.tsx + main.tsx).');
           setGeneratedSite(null);
           setIsGenerating(false);
           return;
+        }
+
+        // Compile the REAL generated React project in-browser. No preview.html is generated or stored.
+        setPreviewBuilding(true);
+        setPreviewBuildErr('');
+        try {
+          const html = await compileReactProjectToHtml(files);
+          setCompiledPreviewHtml(html);
+        } catch (previewError: any) {
+          setCompiledPreviewHtml('');
+          setPreviewBuildErr(previewError?.message || 'Nie udało się skompilować projektu React.');
+        } finally {
+          setPreviewBuilding(false);
         }
 
         setGeneratedSite({
@@ -463,9 +663,6 @@ export const BuilderFullView = ({
           files,
         });
 
-        if (data.provider === 'fallback' && data.warning) {
-          setGenerationErr(`Tryb awaryjny: ${data.warning}`);
-        }
 
         const first =
           Object.keys(files).find((f) => f.endsWith('/src/App.tsx')) ||
@@ -565,12 +762,13 @@ export const BuilderFullView = ({
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>{credits} kr.</span>
-            <Button variant="primary" size="sm" disabled={isGenerating || !generatedSite} onClick={async () => {
+            <Button variant="primary" size="sm" disabled={isGenerating || !generatedSite || !compiledPreviewHtml} onClick={async () => {
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
               try {
-                // preview.html is the standalone result produced from the generated React project and is also used for publish.
-                const html = generatedSite.files['main/frontend/preview.html'] || '';
+                // Publish exactly the same browser-compiled React build shown in the preview.
+                const html = compiledPreviewHtml;
+                if (!html) throw new Error('Podgląd React nie został jeszcze skompilowany.');
                 const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({ html, title: generatedSite.title }) });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
@@ -682,7 +880,7 @@ export const BuilderFullView = ({
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            setWizardStep(0); setShowWizard(true);
+                            generateWithAnswers(answers, builderPrompt);
                           }
                         }}
                         placeholder="Opisz stronę, którą chcesz zbudować..."
@@ -708,30 +906,9 @@ export const BuilderFullView = ({
                           </div>
                           <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/20' : 'text-gray-400'}`}>{cost} kr.</span>
                           <button
-                            onClick={async () => {
+                            onClick={() => {
                               if (!builderPrompt.trim()) return;
-
-                              setWizardStep(0);
-                              setWizardLoading(true);
-                              setWizardQuestions([]);
-                              setShowWizard(true);
-
-                              const result = await fetchWizardQuestions('', builderPrompt, builderPrompt);
-                              const nextAnswers = result.detectedNiche
-                                ? { ...answers, niche: result.detectedNiche }
-                                : { ...answers };
-
-                              setAnswers(nextAnswers);
-                              setWizardLoading(false);
-
-                              if (result.questions.length > 0) {
-                                setWizardQuestions(result.questions);
-                                setShowWizard(true);
-                              } else {
-                                // Rich prompt: no forced design questions. Go straight to the AI pipeline.
-                                setShowWizard(false);
-                                generateWithAnswers(nextAnswers, builderPrompt);
-                              }
+                              generateWithAnswers(answers, builderPrompt);
                             }}
                             disabled={!builderPrompt.trim()}
                             className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
@@ -787,34 +964,33 @@ export const BuilderFullView = ({
                       <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[9px] font-semibold">LIVE</span>
                     </div>
                   </div>
-                  {(() => {
-                    const previewHtml = generatedSite.files['main/frontend/preview.html'] || '';
-
-                    if (!isStandalonePreviewHtml(previewHtml)) {
-                      return (
-                        <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
-                          <div className="max-w-md text-center">
-                            <X size={28} className="mx-auto mb-3 text-red-400" />
-                            <h3 className="text-sm font-semibold text-white mb-2">Podgląd nie został zbudowany</h3>
-                            <p className="text-xs leading-relaxed text-white/50">
-                              Backend zwrócił projekt React, ale nie zwrócił samodzielnego preview.html.
-                              Sprawdź ostrzeżenie backendu lub wygeneruj stronę ponownie.
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <iframe
-                        key={generatedSite.domain}
-                        title={`Podgląd ${generatedSite.title}`}
-                        className="flex-1 w-full border-0 bg-white"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
-                        srcDoc={previewHtml}
-                      />
-                    );
-                  })()}
+                  {previewBuilding ? (
+                    <div className="flex-1 flex flex-col items-center justify-center bg-white text-gray-700 gap-3">
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} className="w-7 h-7 rounded-full border-2 border-gray-200 border-t-gray-700" />
+                      <span className="text-xs font-medium">Kompiluję prawdziwy projekt React…</span>
+                    </div>
+                  ) : previewBuildErr ? (
+                    <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
+                      <div className="max-w-lg text-center">
+                        <X size={28} className="mx-auto mb-3 text-red-400" />
+                        <h3 className="text-sm font-semibold text-white mb-2">Błąd kompilacji React</h3>
+                        <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewBuildErr}</p>
+                        <p className="text-[10px] text-white/30 mt-3">Kod DeepSeeka nadal jest dostępny w zakładce „Kod”.</p>
+                      </div>
+                    </div>
+                  ) : compiledPreviewHtml ? (
+                    <iframe
+                      key={generatedSite.domain}
+                      title={`Podgląd ${generatedSite.title}`}
+                      className="flex-1 w-full border-0 bg-white"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+                      srcDoc={compiledPreviewHtml}
+                    />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center bg-[#111111] text-white/40 text-xs">
+                      Brak skompilowanego podglądu.
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div key="code" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex-1 flex rounded-xl overflow-hidden border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>

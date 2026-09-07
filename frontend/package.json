@@ -13,7 +13,8 @@
     "framer-motion": "^13.1.1",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "esbuild-wasm": "^0.25.11"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
