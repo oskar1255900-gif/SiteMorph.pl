@@ -41,15 +41,17 @@ XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip(
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
 # Vercel Hobby hard-caps functions at 300s (there is no 400s tier on Hobby).
-# Measured: the full pipeline (parser + strategist + art director + 12k main +
-# critic + 4k preview) took ~224s on deepseek-v4-flash (~115 tok/s). The main
-# generation budget is therefore set as high as safely fits in the remaining
-# ~70s of headroom: 16k main gen costs ~+35s over 12k -> ~260s total.
+# Model output speed varies a lot between runs, so a FIXED token budget alone
+# cannot guarantee the cap. Two mechanisms keep the request inside the limit:
+#  1) smaller default budgets on Vercel (16k main, 2k preview) and shorter
+#     per-call timeouts (60s fast calls),
+#  2) a wall-clock guard that shrinks the main budget and skips the AI critic
+#     / AI preview when time is running out (see _wall_remaining below).
 # To go higher (50k tokens, refinement) the project must move to Pro (800s).
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "16000" if _IS_VERCEL else "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
-FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "120" if _IS_VERCEL else "180"))
-PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "4000" if _IS_VERCEL else "16000"))
+FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
+PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "2000" if _IS_VERCEL else "16000"))
 # Retry only once locally; on Vercel a second full regeneration would blow the
 # 300s function budget.
 GENERATION_ATTEMPTS = int(os.getenv("SITEMORPH_GENERATION_ATTEMPTS", "1" if _IS_VERCEL else "2"))
@@ -101,6 +103,21 @@ GENERATE_STANDALONE_PREVIEW = os.getenv(
 ) == "1"
 
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "").strip()
+
+
+# =============================================================================
+# WALL-CLOCK GUARD — Vercel Hobby terminates functions at 300s (hard cap).
+# The pipeline measures elapsed time and shrinks/skips later AI stages so the
+# request ALWAYS finishes inside the limit instead of dying with HTTP 504 when
+# the model runs slower than usual.
+# =============================================================================
+
+_WALL_START = time.time()
+
+
+def _wall_remaining(limit: float = 290.0) -> float:
+    """Seconds left before the platform function limit is hit."""
+    return limit - (time.time() - _WALL_START)
 
 
 # =============================================================================
@@ -2216,10 +2233,12 @@ def _art_image_queries(art: Dict[str, Any]) -> List[str]:
 def _generate_project_with_retry(
     model: str,
     generation_prompt: str,
+    max_tokens: Optional[int] = None,
 ) -> Tuple[Optional[Dict[str, str]], Dict[str, Any], Optional[str]]:
     """Generate the React project, retrying once when JSON/project validation fails."""
     last_error = None
     retry_note = ""
+    budget = max_tokens or MAX_OUTPUT_TOKENS
 
     for attempt in range(GENERATION_ATTEMPTS):
         user_prompt = generation_prompt
@@ -2242,7 +2261,7 @@ component must be included in files. Do not output markdown or commentary.
             SYSTEM_PROMPT,
             user_prompt,
             temperature=temperature,
-            max_tokens=MAX_OUTPUT_TOKENS,
+            max_tokens=budget,
             timeout=AI_TIMEOUT,
         )
         if not text:
@@ -2364,9 +2383,24 @@ def generate_site(data: BuilderInput):
         provider = "fallback"
 
         if XKIRO_API_KEY:
+            main_budget = MAX_OUTPUT_TOKENS
+            if _IS_VERCEL:
+                # Adaptive budget: never let the main generation push the
+                # request past the 300s cap. Shrink it when earlier stages ran
+                # slow (model variance) instead of letting the request 504.
+                remaining = _wall_remaining()
+                main_budget = max(
+                    4000,
+                    min(MAX_OUTPUT_TOKENS, int((remaining - 30) * 110)),
+                )
+                print(
+                    f"[SiteMorph] adaptive main budget: {main_budget} tokens (remaining {remaining:.0f}s)",
+                    flush=True,
+                )
             generated_files, generated_meta, generation_err = _generate_project_with_retry(
                 selected_model,
                 generation_prompt,
+                max_tokens=main_budget,
             )
             if generated_files:
                 parsed_files = generated_files
@@ -2392,12 +2426,24 @@ def generate_site(data: BuilderInput):
         if not valid:
             warning_parts.append("Validator: " + " | ".join(validator_issues[:5]))
 
-        review = run_design_critic(
-            data=data,
-            art_direction=art_direction,
-            files=parsed_files,
-            heuristic_issues=validator_issues,
-        )
+        if _IS_VERCEL and _wall_remaining() < 45:
+            # Time guard: skip the AI critic rather than risk the 300s cap.
+            review = {
+                "score": 7.2 if validator_issues else 8.0,
+                "verdict": "Pominięto krytyka AI (ochrona limitu czasu) — ocena heurystyczna.",
+                "strengths": [],
+                "issues": validator_issues,
+                "revision_instructions": validator_issues,
+                "source": "heuristic-timeout",
+            }
+            print("[SiteMorph] critic skipped (time guard)", flush=True)
+        else:
+            review = run_design_critic(
+                data=data,
+                art_direction=art_direction,
+                files=parsed_files,
+                heuristic_issues=validator_issues,
+            )
         review_score = float(review.get("score", 0) or 0)
         print(f"[SiteMorph] Critic score: {review_score:.1f}/10", flush=True)
 
@@ -2451,20 +2497,32 @@ def generate_site(data: BuilderInput):
                     parsed_meta.get("title") or data.business_name,
                 )
         else:
-            export_html, export_err = make_standalone_preview(
-                data,
-                art_direction,
-                parsed_files,
-            )
-            if export_html:
-                parsed_files["main/frontend/preview.html"] = export_html
-            else:
+            if _IS_VERCEL and _wall_remaining() < 55:
+                # Time guard: skip the AI preview rather than risk the 300s cap.
+                # Sandpack still renders the real React project in the panel;
+                # publish gets the minimal static page instead of an AI replica.
                 ensure_preview_entry(
                     parsed_files,
                     parsed_meta.get("title") or data.business_name,
                 )
-                if export_err not in {None, "disabled"}:
-                    warning_parts.append(f"HTML export fallback: {export_err}")
+                warning_parts.append(
+                    "Pominięto preview AI (ochrona limitu czasu) — minimalna strona"
+                )
+            else:
+                export_html, export_err = make_standalone_preview(
+                    data,
+                    art_direction,
+                    parsed_files,
+                )
+                if export_html:
+                    parsed_files["main/frontend/preview.html"] = export_html
+                else:
+                    ensure_preview_entry(
+                        parsed_files,
+                        parsed_meta.get("title") or data.business_name,
+                    )
+                    if export_err not in {None, "disabled"}:
+                        warning_parts.append(f"HTML export fallback: {export_err}")
 
         meta = parsed_meta or fb.get("meta") or {}
         if not meta.get("title"):
