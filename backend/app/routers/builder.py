@@ -40,7 +40,13 @@ XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip(
 # value can still be overridden via env vars.
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
-MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "12000" if _IS_VERCEL else "32000"))
+# Vercel Hobby hard-caps functions at 300s (there is no 400s tier on Hobby).
+# Measured: the full pipeline (parser + strategist + art director + 12k main +
+# critic + 4k preview) took ~224s on deepseek-v4-flash (~115 tok/s). The main
+# generation budget is therefore set as high as safely fits in the remaining
+# ~70s of headroom: 16k main gen costs ~+35s over 12k -> ~260s total.
+# To go higher (50k tokens, refinement) the project must move to Pro (800s).
+MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "16000" if _IS_VERCEL else "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "120" if _IS_VERCEL else "180"))
 PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "4000" if _IS_VERCEL else "16000"))
