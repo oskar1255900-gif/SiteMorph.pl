@@ -40,10 +40,10 @@ XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip(
 # value can still be overridden via env vars.
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
-MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "8000" if _IS_VERCEL else "32000"))
+MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "12000" if _IS_VERCEL else "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "120" if _IS_VERCEL else "180"))
-PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "3000" if _IS_VERCEL else "16000"))
+PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "4000" if _IS_VERCEL else "16000"))
 # Retry only once locally; on Vercel a second full regeneration would blow the
 # 300s function budget.
 GENERATION_ATTEMPTS = int(os.getenv("SITEMORPH_GENERATION_ATTEMPTS", "1" if _IS_VERCEL else "2"))
@@ -1311,6 +1311,12 @@ Instead use a transparent local success state such as "Dziękujemy — formularz
 Before returning JSON, mentally inspect the result as if you had to sell it to the
 business owner tomorrow. If it resembles a generic AI landing-page template,
 redesign it to match the art direction before answering.
+
+CRITICAL: a truncated or unterminated JSON response is a TOTAL failure and the
+site is thrown away. The response is cut off at a hard token limit, so budget
+your output: prefer 4-6 complete, polished files over 12 partial ones, and never
+start a string or object you cannot finish. One complete App.tsx + 3-5 real
+components beats an unterminated dump.
 """
 
 
