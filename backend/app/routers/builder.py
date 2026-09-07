@@ -1977,10 +1977,16 @@ def _patch_sandpack_package(files: Dict[str, str]) -> None:
     if "react-dom" not in deps:
         deps["react-dom"] = "^18.2.0"
     # Build tools pinned to versions compatible with Sandpack nodebox.
+    # - esbuild: nodebox cannot run esbuild's native binary, vite falls back
+    #   to 'esbuild-wasm' — without it the preview crashes at startup.
+    # - rollup: nodebox's platform (linux-x32) has no native rollup build, so
+    #   rollup is aliased to the official WASM build '@rollup/wasm-node', as
+    #   rollup itself instructs for unsupported platforms.
     dev["vite"] = "5.4.9"
     dev["@vitejs/plugin-react"] = "^4.3.4"
     dev["typescript"] = "^5.6.3"
     dev["esbuild-wasm"] = "0.21.5"
+    dev["rollup"] = "npm:@rollup/wasm-node@4.63.1"
     dev.setdefault("@types/react", "^18.2.0")
     dev.setdefault("@types/react-dom", "^18.2.0")
     files[key] = json.dumps(pkg, ensure_ascii=False, indent=2)
