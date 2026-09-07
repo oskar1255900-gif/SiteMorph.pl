@@ -26,7 +26,7 @@ XKIRO_BASE_URL = "https://api.xkiro.com/v1"
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "32000"))
+GEMINI_MAX_TOKENS = int(os.getenv("GEMINI_MAX_TOKENS", "90000"))
 
 
 def extract_json(text: str) -> dict:
@@ -53,7 +53,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
     Jeden szybki call na Gemini 3.7 Flash, timeout dopasowany do limitu platformy hostingowej."""
     if not GEMINI_API_KEY:
         return None, "Brak GEMINI_API_KEY"
-    per_try_timeout = 15 if os.getenv("VERCEL") else 450
+    per_try_timeout = 450
     try:
         r = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
@@ -63,7 +63,7 @@ def gemini_generate(system_prompt: str, user_prompt: str, temperature: float = 0
                 "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
                 "generationConfig": {
                     "temperature": temperature,
-                    "maxOutputTokens": min(max_tokens, 32000),
+                    "maxOutputTokens": min(max_tokens, 65536),
                     "responseMimeType": "application/json",
                 },
             },
@@ -88,7 +88,7 @@ def openrouter_generate(system_prompt: str, user_prompt: str, temperature: float
     """XKIRO API (OpenAI-compatible via requests). Zwraca (tekst, None) albo (None, blad)."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
-    per_try_timeout = 15 if os.getenv("VERCEL") else 450
+    per_try_timeout = 450
     try:
         r = requests.post(
             f"{XKIRO_BASE_URL}/chat/completions",
@@ -99,7 +99,7 @@ def openrouter_generate(system_prompt: str, user_prompt: str, temperature: float
             json={
                 "model": "qwen/qwen3.8-max:free",
                 "temperature": temperature,
-                "max_tokens": min(max_tokens, 32000),
+                "max_tokens": min(max_tokens, 90000),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -166,7 +166,7 @@ OUTPUT FORMAT — ONLY valid JSON:
   "files": {
     "main/frontend/preview.html": "***REQUIRED*** A complete, standalone, SELF-CONTAINED HTML file (inline CSS + JS, Tailwind CDN, Google Fonts, all animations working) that faithfully renders the ENTIRE site exactly as designed. This is what the client previews live. No React needed here — pure HTML/CSS/JS, 500+ lines, ALL sections, ALL animations, ALL real content.",
     "main/frontend/index.html": "...full HTML with Tailwind CDN, Google Fonts, Lucide, React 18...",
-    "main/frontend/package.json": "...dependencies matching what you actually use...",
+    "main/frontend/package.json": "...ALL of the INSTALLED LIBRARIES listed below as dependencies (every single one, versions ^latest), plus react/react-dom v18 and vite/tailwind devDeps...",
     "main/frontend/src/main.tsx": "...",
     "main/frontend/src/index.css": "...ALL custom CSS, keyframes, reveal classes...",
     "main/frontend/src/App.tsx": "...imports your components, holds IntersectionObserver + Lenis + shared state...",
@@ -264,8 +264,21 @@ MANDATORY VISUAL QUALITY (non-negotiable)
    - Polish typography: proper quotes, correct chars, balanced headings
    - Responsive: mobile-first, tablet 2-col, desktop full layout
 
+=====================================================================
+MINIMUM BAR — if you don't meet these, the site is a FAIL
+=====================================================================
+- preview.html: 700+ lines, fully self-contained, EVERY section animated and interactive (hover, scroll reveals, working nav), zero placeholders.
+- Each React component: 50+ lines, typed props, real Polish content, at least one animation, at least one hover interaction.
+- At least 6 sections. At least 3 DIFFERENT layout patterns (no repeated card grids everywhere).
+- At least 5 distinct animation types across the page (fade-up, stagger, marquee, parallax, counter-up, tilt, scroll zoom).
+- Every Unsplash image MUST use a real existing photo ID (images.unsplash.com/photo-<id>?w=1600&q=80). NEVER invent IDs.
+- No section may consist of a single centered paragraph. No page may be 90% empty white space.
+- Background must have depth: subtle gradient, grain, pattern, or image — never flat color without reason.
+- Custom scrollbar, selection color, focus-visible states, meta description, favicon (inline SVG data URI).
+- You have a 90000-token budget — USE IT. Long, detailed, finished code. The richer the output, the better the site.
+
 JSON RULES:
-- Each file = complete, working code (40+ lines per component)
+- Each file = complete, working code (50+ lines per component)
 - Newlines = \n in JSON string, NO backticks inside JSON values
 - Each file = ONE string value, Polish UTF-8 works normally
 - index.css contains ALL keyframes and utility classes used by components
@@ -274,12 +287,12 @@ JSON RULES:
 THE DESIGN GUIDELINES ARE LAW — colors, fonts, sections, tone come from them. The ORIGINAL USER PROMPT is your content source. Combine both and create something beautiful.
 """
 
-def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 24000):
+def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, temperature: float = 0.85, max_tokens: int = 90000):
     """Generate using XKIRO (OpenAI-compatible) with any model."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
     # Ultra+ (Fable) needs more time for complex backend generation
-    per_try_timeout = 15 if os.getenv("VERCEL") else (600 if "fable" in model.lower() else 450)
+    per_try_timeout = 600 if "fable" in model.lower() else 450
     try:
         r = requests.post(
             f"{XKIRO_BASE_URL}/chat/completions",
@@ -290,7 +303,7 @@ def openrouter_generate_model(model: str, system_prompt: str, user_prompt: str, 
             json={
                 "model": model,
                 "temperature": temperature,
-                "max_tokens": min(max_tokens, 32000),
+                "max_tokens": min(max_tokens, 90000),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -739,7 +752,7 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
                     app_tsx = pfiles.get("main/frontend/src/App.tsx", "")
                     total_len = len(json.dumps(pfiles))
                     # AI invents its own component names — accept any valid multi-file project
-                    if app_tsx and total_len >= 1500:
+                    if app_tsx and total_len >= 8000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = f"{data.mode} ({selected_model.split('/')[-1]})"
@@ -758,7 +771,7 @@ Zwroc JSON z plikami React TSX. Bez pytan."""
                     parsed = extract_json(text)
                     pfiles = parsed.get("files") or {}
                     app_tsx = pfiles.get("main/frontend/src/App.tsx", "")
-                    if app_tsx and len(json.dumps(pfiles)) >= 1500:
+                    if app_tsx and len(json.dumps(pfiles)) >= 8000:
                         parsed_files = pfiles
                         parsed_meta = parsed.get("meta", {})
                         provider = "gemini (backup)"
