@@ -1,8 +1,10 @@
 import os
 import smtplib
+import threading
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from types import SimpleNamespace
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -10,7 +12,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..models import Invoice, UserSettings
 from ..auth import get_current_user
 
@@ -158,12 +160,13 @@ def _send_invoice_email(inv: Invoice, to_email: str, user_email: str) -> bool:
     att.add_header("Content-Disposition", "attachment", filename=f"{inv.number}.html")
     msg.attach(att)
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as s:
             s.starttls()
             s.login(SMTP_USER, SMTP_PASS)
             s.sendmail(SMTP_USER, [to_email], msg.as_string())
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[Invoice] SMTP error ({SMTP_HOST}:{SMTP_PORT}): {e}", flush=True)
         return False
 
 
@@ -213,27 +216,52 @@ def create_invoice(body: InvoiceCreate, db: Session = Depends(get_db),
     db.commit()
     db.refresh(inv)
 
-    sent = False
+    # Faktura powstaje NATYCHMIAST — odpowiedź nie czeka na SMTP.
+    # E-mail wysyłany jest w tle (daemon thread); status 'Wysłana' w rejestrze
+    # aktualizuje się po udanej wysyłce przy kolejnym odświeżeniu listy.
     to_email = (body.send_to or body.buyer.email or "").strip()
+    email_note = None
     if body.send and to_email:
-        sent = _send_invoice_email(inv, to_email, user_email)
-        if sent:
-            inv.sent_to = to_email
-            inv.sent_at = time.time()
-            db.commit()
+        if not SMTP_PASS:
+            email_note = "Wysyłka e-mail nie jest skonfigurowana (brak SMTP_PASS na serwerze)"
+        else:
+            snap = SimpleNamespace(
+                number=inv.number,
+                seller=inv.seller or {},
+                buyer=inv.buyer or {},
+                items=inv.items or [],
+                payment_method=inv.payment_method or "przelew",
+                payment_details=inv.payment_details or {},
+                notes=inv.notes,
+                created_at=inv.created_at,
+                total=inv.total,
+            )
+
+            def _send_bg():
+                try:
+                    if _send_invoice_email(snap, to_email, user_email):
+                        s2 = SessionLocal()
+                        try:
+                            row = s2.query(Invoice).filter(Invoice.id == inv.id).first()
+                            if row:
+                                row.sent_to = to_email
+                                row.sent_at = time.time()
+                                s2.commit()
+                        finally:
+                            s2.close()
+                except Exception as e:
+                    print(f"[Invoice] background email failed: {e}", flush=True)
+
+            threading.Thread(target=_send_bg, daemon=True).start()
+            email_note = f"E-mail wysyłany w tle z {SMTP_USER} — odpowiedzi trafią do wystawcy ({user_email})"
     return {
         "status": "created",
         "invoice": {
             "id": inv.id, "number": inv.number, "total": gross,
             "payment_method": method, "sent_to": inv.sent_to,
         },
-        "email_sent": sent,
-        "email_note": (
-            None if not body.send else (
-                "Wysłano z " + SMTP_USER + " — odpowiedzi trafią do wystawcy (" + user_email + ")"
-                if sent else "Wysyłka e-mail nie jest skonfigurowana (brak SMTP_PASS na serwerze)"
-            )
-        ),
+        "email_sent": False,
+        "email_note": email_note,
     }
 
 
