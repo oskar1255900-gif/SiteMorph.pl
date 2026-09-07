@@ -43,7 +43,7 @@ _IS_VERCEL = os.getenv("VERCEL") == "1"
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "8000" if _IS_VERCEL else "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "120" if _IS_VERCEL else "180"))
-PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "4000" if _IS_VERCEL else "16000"))
+PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "3000" if _IS_VERCEL else "16000"))
 # Retry only once locally; on Vercel a second full regeneration would blow the
 # 300s function budget.
 GENERATION_ATTEMPTS = int(os.getenv("SITEMORPH_GENERATION_ATTEMPTS", "1" if _IS_VERCEL else "2"))
@@ -51,7 +51,16 @@ GENERATION_ATTEMPTS = int(os.getenv("SITEMORPH_GENERATION_ATTEMPTS", "1" if _IS_
 # One DeepSeek model powers every AI stage in SiteMorph.
 # Keep the mode names for frontend/pricing compatibility, but they all resolve
 # to the same model. Quality differences can still come from refinement policy.
-DEEPSEEK_MODEL = os.getenv("SITEMORPH_DEEPSEEK_MODEL", "deepseek/deepseek-v4-pro")
+# On Vercel we default to the faster flash variant: the full pipeline (parser +
+# strategist + art director + main generation + critic + preview) must finish
+# inside Vercel Hobby's 300s function limit. v4-pro measured ~56 tok/s, which
+# pushes the pipeline past 300s and produces HTTP 504; v4-flash is ~2x faster
+# and keeps the whole flow under the cap. Locally the slower, stronger model is
+# the default because there is no platform time limit.
+DEEPSEEK_MODEL = os.getenv(
+    "SITEMORPH_DEEPSEEK_MODEL",
+    "deepseek/deepseek-v4-flash" if _IS_VERCEL else "deepseek/deepseek-v4-pro",
+)
 
 MODEL_MAP = {
     "normal": DEEPSEEK_MODEL,
