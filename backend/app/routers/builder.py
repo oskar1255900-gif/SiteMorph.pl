@@ -33,9 +33,20 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 
-MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
-AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "450"))
-FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "180"))
+# Vercel Hobby terminates functions after 300s (fluid compute), so the whole
+# pipeline (prompt parser + brand strategist + art director + main generation +
+# critic + preview) must fit inside that budget. We default to tighter, faster
+# budgets on Vercel and generous ones on a local/self-hosted backend. Every
+# value can still be overridden via env vars.
+_IS_VERCEL = os.getenv("VERCEL") == "1"
+
+MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "8000" if _IS_VERCEL else "32000"))
+AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
+FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "120" if _IS_VERCEL else "180"))
+PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "4000" if _IS_VERCEL else "16000"))
+# Retry only once locally; on Vercel a second full regeneration would blow the
+# 300s function budget.
+GENERATION_ATTEMPTS = int(os.getenv("SITEMORPH_GENERATION_ATTEMPTS", "1" if _IS_VERCEL else "2"))
 
 # One DeepSeek model powers every AI stage in SiteMorph.
 # Keep the mode names for frontend/pricing compatibility, but they all resolve
@@ -57,7 +68,9 @@ PREVIEW_MODEL = DEEPSEEK_MODEL
 
 # One automatic critique/revision pass gives a large quality improvement, but costs
 # another generation request. Disable with SITEMORPH_ENABLE_REFINEMENT=0 if needed.
-ENABLE_REFINEMENT = os.getenv("SITEMORPH_ENABLE_REFINEMENT", "1") == "1"
+# Refinement costs one more full generation. Keep it locally (quality), skip it
+# on Vercel (the 300s function budget cannot fit a second full regeneration).
+ENABLE_REFINEMENT = os.getenv("SITEMORPH_ENABLE_REFINEMENT", "0" if _IS_VERCEL else "1") == "1"
 REFINE_NORMAL = os.getenv("SITEMORPH_REFINE_NORMAL", "1") == "1"
 REFINE_PREMIUM = os.getenv("SITEMORPH_REFINE_PREMIUM", "1") == "1"
 QUALITY_TARGET = float(os.getenv("SITEMORPH_QUALITY_TARGET", "8.6"))
@@ -1704,8 +1717,8 @@ Create preview.html now. Return JSON only.
         PREVIEW_SYSTEM,
         prompt,
         temperature=0.30,
-        max_tokens=MAX_OUTPUT_TOKENS,
-        timeout=AI_TIMEOUT,
+        max_tokens=PREVIEW_MAX_TOKENS,
+        timeout=FAST_AI_TIMEOUT,
     )
 
     if not text:
@@ -2187,7 +2200,7 @@ def _generate_project_with_retry(
     last_error = None
     retry_note = ""
 
-    for attempt in range(2):
+    for attempt in range(GENERATION_ATTEMPTS):
         user_prompt = generation_prompt
         temperature = 0.54 if attempt == 0 else 0.30
         if attempt == 1:
