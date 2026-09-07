@@ -333,7 +333,7 @@ export const BuilderFullView = ({
     }
     setIsGenerating(true);
     const start = Date.now();
-    const MIN_MS = 120000;
+    const MIN_MS = 7500;
     let fetchResult: any = null;
     let fetchError: any = null;
     try {
@@ -617,10 +617,10 @@ export const BuilderFullView = ({
                         </div>
                         <div className="flex items-center gap-2">
                           <div className={`flex gap-0.5 p-0.5 rounded-lg border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
-                            {(['normal', 'ultra', 'ultra+'] as const).map(m => (
+                            {(['normal', 'ultra'] as const).map(m => (
                               <button key={m} onClick={() => setBuilderMode(m)}
-                                className={`px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra+' ? 'bg-amber-500/20 text-amber-300' : m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-[#2563eb] text-white')) : (theme === 'dark' ? 'text-white/30 hover:text-white/50 bg-transparent' : 'text-gray-400 hover:text-gray-600 bg-transparent')}`}>
-                                {m === 'normal' ? 'S1' : m === 'ultra' ? 'Ultra' : 'Ultra+'}
+                                className={`px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-[#2563eb] text-white')) : (theme === 'dark' ? 'text-white/30 hover:text-white/50 bg-transparent' : 'text-gray-400 hover:text-gray-600 bg-transparent')}`}>
+                                {m === 'normal' ? 'S1' : 'Ultra'}
                               </button>
                             ))}
                           </div>

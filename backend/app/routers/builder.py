@@ -39,9 +39,19 @@ FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "180"))
 # Main generation modes. Kept exactly in the spirit of your current builder.
 MODEL_MAP = {
     "normal": os.getenv("SITEMORPH_MODEL_NORMAL", "qwen/qwen3.8-max:free"),
-    "ultra": os.getenv("SITEMORPH_MODEL_ULTRA", "openai/gpt-5.6-luna"),
+    "ultra": os.getenv("SITEMORPH_MODEL_ULTRA", "openai/gpt-5.3-codex-spark"),
     "ultra+": os.getenv("SITEMORPH_MODEL_ULTRA_PLUS", "anthropic/claude-fable-5"),
 }
+
+# Live-verified free models on this XKIRO key (bonus credits do not unlock
+# premium tiers). Resilience chain used whenever the chosen model fails with
+# 403 premium / 429 / 5xx — tried in order until one produces a valid project.
+FREE_FALLBACK_MODELS = [
+    os.getenv("SITEMORPH_FALLBACK_MODEL_1", "qwen/qwen3.8-max:free"),
+    os.getenv("SITEMORPH_FALLBACK_MODEL_2", "deepseek/deepseek-v4-pro"),
+    os.getenv("SITEMORPH_FALLBACK_MODEL_3", "deepseek/deepseek-v4-flash"),
+    os.getenv("SITEMORPH_FALLBACK_MODEL_4", "minimax/minimax-m3:free"),
+]
 
 # Specialist agents. These do not replace the main website model.
 ART_DIRECTOR_MODEL = os.getenv("SITEMORPH_ART_DIRECTOR_MODEL", "deepseek/deepseek-v4-pro")
@@ -1584,19 +1594,24 @@ def generate_site(data: BuilderInput):
                 warning_parts.append(f"Primary unavailable: {err}")
 
         # ---------------------------------------------------------------------
-        # 3b) FREE FALLBACK — premium model failed (403 balance / 429 / 5xx),
-        #     retry once with the free Qwen model instead of dropping to template
+        # 3b) RESILIENCE CHAIN — chosen model failed (403 premium / 429 / 5xx):
+        #     retry each working free model until one yields a valid project
         # ---------------------------------------------------------------------
-        if parsed_files is None and XKIRO_API_KEY and selected_model != MODEL_MAP["normal"]:
-            text, err = xkiro_generate_model(
-                MODEL_MAP["normal"],
-                SYSTEM_PROMPT,
-                generation_prompt,
-                temperature=0.66,
-                max_tokens=MAX_OUTPUT_TOKENS,
-                timeout=AI_TIMEOUT,
-            )
-            if text:
+        if parsed_files is None and XKIRO_API_KEY:
+            for alt_model in FREE_FALLBACK_MODELS:
+                if alt_model == selected_model:
+                    continue
+                text, err = xkiro_generate_model(
+                    alt_model,
+                    SYSTEM_PROMPT,
+                    generation_prompt,
+                    temperature=0.66,
+                    max_tokens=MAX_OUTPUT_TOKENS,
+                    timeout=AI_TIMEOUT,
+                )
+                if not text:
+                    warning_parts.append(f"Fallback {alt_model.split('/')[-1]}: {err}")
+                    continue
                 try:
                     parsed = extract_json(text)
                     candidate_files = normalize_files(parsed.get("files") or {})
@@ -1605,13 +1620,13 @@ def generate_site(data: BuilderInput):
                     if valid:
                         parsed_files = candidate_files
                         parsed_meta = candidate_meta
-                        provider = f"{mode}-free-fallback ({MODEL_MAP['normal']})"
-                    else:
-                        warning_parts.append("Free fallback invalid: " + " | ".join(issues[:4]))
+                        provider = f"{mode}-fallback ({alt_model})"
+                        break
+                    warning_parts.append(
+                        f"Fallback {alt_model.split('/')[-1]} invalid: " + " | ".join(issues[:3])
+                    )
                 except Exception as e:
-                    warning_parts.append(f"Free fallback parse error: {str(e)[:180]}")
-            else:
-                warning_parts.append(f"Free fallback unavailable: {err}")
+                    warning_parts.append(f"Fallback {alt_model.split('/')[-1]} parse error: {str(e)[:150]}")
 
         # ---------------------------------------------------------------------
         # 4) GEMINI BACKUP
