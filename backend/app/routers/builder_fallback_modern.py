@@ -6,7 +6,7 @@ import time
 import random
 
 
-def fallback_content(data):
+def _legacy_fallback_content(data):
     src = (data.extraPrompt or "") + " " + (data.description or "")
 
     def _extract(pattern, default=None):
@@ -45,8 +45,27 @@ def fallback_content(data):
         "Zloty #d97706": "#d97706", "Zielony #059669": "#059669",
         "Fioletowy #7c3aed": "#7c3aed", "Czerwony #dc2626": "#dc2626",
     }
-    accent = ACCENT_MAP.get(getattr(data, "accent_color", None) or "", "") or random.choice(
-        ["#2563eb", "#111827", "#d97706", "#059669", "#7c3aed", "#dc2626", "#0891b2", "#ea580c"])
+    # Deterministic semantic emergency styling. A fallback must never randomly
+    # turn a soft dessert brand into a black/yellow or cyber-looking website.
+    src_l = src.lower()
+    japanese_sweets = any(k in src_l for k in ["mochi", "matcha", "sakura", "japoń", "japon", "donut"])
+    beauty_like = any(k in src_l for k in ["beauty", "kosmet", "manicure", "paznok", "spa"])
+    barber_like = any(k in src_l for k in ["barber", "fryzjer", "broda", "strzyż", "strzyz"])
+    food_like = any(k in src_l for k in ["restaur", "kebab", "pizza", "burger", "kawiar", "cafe", "jedzenie", "food"])
+
+    explicit_accent = ACCENT_MAP.get(getattr(data, "accent_color", None) or "", "")
+    if explicit_accent:
+        accent = explicit_accent
+    elif japanese_sweets:
+        accent = "#D96C8A"  # sakura / raspberry
+    elif beauty_like:
+        accent = "#C86B85"
+    elif barber_like:
+        accent = "#B88A44"
+    elif food_like:
+        accent = "#B85C38"
+    else:
+        accent = "#315C4C"
 
     LAYOUT_MAP = {
         "Split hero (zdjecie po prawej)": "split",
@@ -54,7 +73,15 @@ def fallback_content(data):
         "Centered (wszystko wyrodkowane)": "centered",
         "Dark mode (ciemne tlo)": "dark",
     }
-    layout = LAYOUT_MAP.get(getattr(data, "layout", None) or "", "") or random.choice(["split", "full", "centered", "dark"])
+    explicit_layout = LAYOUT_MAP.get(getattr(data, "layout", None) or "", "")
+    if explicit_layout:
+        layout = explicit_layout
+    elif japanese_sweets or beauty_like:
+        layout = "full"
+    elif barber_like:
+        layout = "dark"
+    else:
+        layout = "split"
 
     FONT_MAP = {
         "Inter + Playfair Display": "serif",
@@ -64,9 +91,15 @@ def fallback_content(data):
         "Space Grotesk + Lora": "mono",
         "Manrope + Cormorant": "serif",
     }
-    vstyle = FONT_MAP.get(getattr(data, "fonts", None) or "", "") or random.choice(["serif", "clean", "mono", "brutalist"])
-    if layout == "dark":
+    explicit_font = FONT_MAP.get(getattr(data, "fonts", None) or "", "")
+    if explicit_font:
+        vstyle = explicit_font
+    elif japanese_sweets or beauty_like:
+        vstyle = "serif"
+    elif barber_like or layout == "dark":
         vstyle = "mono"
+    else:
+        vstyle = "clean"
 
     show = getattr(data, "sections", None) or ["Hero", "Oferta", "Cennik", "Opinie", "Kontakt"]
     if isinstance(show, str):
@@ -405,3 +438,79 @@ def _template_minimal(bn, safe, niche, addr, phone, rating, reviews_n, title, ye
     h.append('</body></html>')
 
     return {"files": {"main/frontend/preview.html": "".join(h)}, "meta": {"title": title, "headline": headline, "subheadline": sub[:120], "ctaText": cta}}
+
+
+# ============================================================
+# PUBLIC FALLBACK — always return a renderable React/Vite project
+# ============================================================
+def fallback_content(data):
+    """Emergency fallback compatible with the live React preview.
+
+    The legacy templates still create the emergency HTML, but SiteMorph now wraps
+    that exact HTML in a tiny React/Vite project. This prevents BuilderFullView
+    from dropping to the old "white prompt text" emergency screen when the AI
+    provider is temporarily unavailable.
+    """
+    result = _legacy_fallback_content(data)
+    files = dict(result.get("files") or {})
+    meta = dict(result.get("meta") or {})
+    preview_html = files.get("main/frontend/preview.html") or ""
+
+    # JSON encoding gives us a safe TypeScript string literal, including newlines,
+    # quotes and any HTML attributes from the legacy fallback.
+    import json as _json
+    html_literal = _json.dumps(preview_html, ensure_ascii=False)
+
+    files.setdefault(
+        "main/frontend/package.json",
+        _json.dumps({
+            "name": "sitemorph-emergency-fallback",
+            "private": True,
+            "type": "module",
+            "scripts": {"dev": "vite", "build": "vite build", "preview": "vite preview"},
+            "dependencies": {"react": "^18.2.0", "react-dom": "^18.2.0"},
+            "devDependencies": {
+                "@vitejs/plugin-react": "^4.3.0",
+                "typescript": "^5.3.0",
+                "vite": "^5.4.0"
+            }
+        }, ensure_ascii=False, indent=2)
+    )
+    files.setdefault(
+        "main/frontend/index.html",
+        '<!doctype html><html lang="pl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>'
+        + str(meta.get("title") or "SiteMorph")
+        + '</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>'
+    )
+    files.setdefault(
+        "main/frontend/src/main.tsx",
+        "import React from 'react';\n"
+        "import ReactDOM from 'react-dom/client';\n"
+        "import App from './App';\n"
+        "import './index.css';\n"
+        "ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);\n"
+    )
+    files.setdefault(
+        "main/frontend/src/index.css",
+        "html,body,#root{margin:0;width:100%;min-height:100%;height:100%;}\n"
+        "*{box-sizing:border-box;}\n"
+        "body{overflow:hidden;background:#fff;}\n"
+        ".fallback-frame{display:block;width:100%;height:100vh;border:0;background:#fff;}\n"
+    )
+    files.setdefault(
+        "main/frontend/src/App.tsx",
+        "import React from 'react';\n\n"
+        f"const emergencyHtml: string = {html_literal};\n\n"
+        "export default function App() {\n"
+        "  return (\n"
+        "    <iframe\n"
+        "      className=\"fallback-frame\"\n"
+        "      title=\"SiteMorph emergency preview\"\n"
+        "      srcDoc={emergencyHtml}\n"
+        "      sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"\n"
+        "    />\n"
+        "  );\n"
+        "}\n"
+    )
+
+    return {"files": files, "meta": meta}

@@ -33,7 +33,7 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 
-MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "90000"))
+MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "180"))
 
@@ -177,55 +177,80 @@ def xkiro_generate_model(
     max_tokens: int = MAX_OUTPUT_TOKENS,
     timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Call any OpenAI-compatible model exposed by XKIRO."""
+    """Call an OpenAI-compatible XKIRO model with safe output-token retries.
+
+    XKIRO/model gateways may reject an otherwise valid request when max_tokens is
+    above the model's real output ceiling. SiteMorph therefore starts at a safe
+    ceiling and automatically retries smaller values on request-size/token errors.
+    """
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
 
-    try:
-        output_cap = MAX_OUTPUT_TOKENS
-        r = requests.post(
-            f"{XKIRO_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {XKIRO_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": min(max_tokens, output_cap),
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            },
-            timeout=timeout or AI_TIMEOUT,
-        )
+    requested = max(512, min(int(max_tokens or MAX_OUTPUT_TOKENS), MAX_OUTPUT_TOKENS, 32000))
+    token_attempts = []
+    for candidate in (requested, 24000, 16000, 12000):
+        candidate = min(candidate, requested)
+        if candidate >= 512 and candidate not in token_attempts:
+            token_attempts.append(candidate)
 
-        print(f"[SiteMorph][XKIRO] {model} -> HTTP {r.status_code}", flush=True)
-
-        if r.status_code != 200:
-            return None, f"{model}: HTTP {r.status_code} - {r.text[:400]}"
-
-        data = r.json()
-        choices = data.get("choices") or []
-        if not choices:
-            return None, f"{model}: brak choices"
-
-        content = choices[0].get("message", {}).get("content", "")
-        if isinstance(content, list):
-            # Some OpenAI-compatible gateways can return a list of content parts.
-            content = "".join(
-                part.get("text", "") if isinstance(part, dict) else str(part)
-                for part in content
+    last_error = None
+    for output_tokens in token_attempts:
+        try:
+            r = requests.post(
+                f"{XKIRO_BASE_URL}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {XKIRO_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "temperature": temperature,
+                    "max_tokens": output_tokens,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                },
+                timeout=timeout or AI_TIMEOUT,
             )
 
-        if not str(content).strip():
-            return None, f"{model}: pusta odpowiedz"
+            print(
+                f"[SiteMorph][XKIRO] {model} max_tokens={output_tokens} -> HTTP {r.status_code}",
+                flush=True,
+            )
 
-        return str(content), None
+            if r.status_code != 200:
+                last_error = f"{model}: HTTP {r.status_code} - {r.text[:400]}"
+                # Retry smaller output limits for the common gateway/model limit failures.
+                if r.status_code in {400, 413, 422}:
+                    continue
+                return None, last_error
 
-    except Exception as e:
-        return None, f"{model}: {str(e)[:240]}"
+            data = r.json()
+            choices = data.get("choices") or []
+            if not choices:
+                last_error = f"{model}: brak choices"
+                continue
+
+            content = choices[0].get("message", {}).get("content", "")
+            if isinstance(content, list):
+                content = "".join(
+                    part.get("text", "") if isinstance(part, dict) else str(part)
+                    for part in content
+                )
+
+            if not str(content).strip():
+                last_error = f"{model}: pusta odpowiedz"
+                continue
+
+            return str(content), None
+
+        except Exception as e:
+            last_error = f"{model}: {str(e)[:240]}"
+            # Network/timeout exceptions are not fixed by changing max_tokens.
+            break
+
+    return None, last_error or f"{model}: nieznany blad"
 
 
 
@@ -1353,8 +1378,10 @@ def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
     css = files.get("main/frontend/src/index.css", "")
     package = files.get("main/frontend/package.json", "")
 
-    if len(app) < 500:
-        issues.append("App.tsx is suspiciously short")
+    # A well-architected App.tsx can be intentionally tiny when the real design
+    # lives in meaningful components. Reject only genuinely empty/broken entry files.
+    if len(app.strip()) < 120:
+        issues.append("App.tsx is missing or suspiciously empty")
 
     if len(css) < 400:
         issues.append("index.css is suspiciously short")
@@ -1389,7 +1416,17 @@ def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
     if backdrop >= 8:
         issues.append("Possible AI-slop: excessive glass/backdrop blur")
 
-    hard_fail = bool(missing) or len(app) < 500 or total_chars < 6500
+    tsx_files = [k for k in files if k.endswith((".tsx", ".jsx"))]
+    has_component_structure = len(tsx_files) >= 2 or len(app) >= 900
+    if not has_component_structure:
+        issues.append("React project has too little component structure")
+
+    hard_fail = (
+        bool(missing)
+        or len(app.strip()) < 120
+        or total_chars < 6500
+        or not has_component_structure
+    )
     return (not hard_fail), issues
 
 
@@ -2142,6 +2179,56 @@ def _art_image_queries(art: Dict[str, Any]) -> List[str]:
     return queries[:5]
 
 
+def _generate_project_with_retry(
+    model: str,
+    generation_prompt: str,
+) -> Tuple[Optional[Dict[str, str]], Dict[str, Any], Optional[str]]:
+    """Generate the React project, retrying once when JSON/project validation fails."""
+    last_error = None
+    retry_note = ""
+
+    for attempt in range(2):
+        user_prompt = generation_prompt
+        temperature = 0.54 if attempt == 0 else 0.30
+        if attempt == 1:
+            user_prompt += f"""
+
+RETRY AFTER A FAILED GENERATION.
+The previous response could not be accepted by SiteMorph.
+Reason: {last_error or 'invalid or incomplete project'}
+
+Return ONLY one valid JSON object with a COMPLETE React/Vite project.
+Do not omit App.tsx, main.tsx, index.css, index.html or package.json.
+If App.tsx is small because it composes components, that is fine, but every imported
+component must be included in files. Do not output markdown or commentary.
+"""
+
+        text, err = xkiro_generate_model(
+            model,
+            SYSTEM_PROMPT,
+            user_prompt,
+            temperature=temperature,
+            max_tokens=MAX_OUTPUT_TOKENS,
+            timeout=AI_TIMEOUT,
+        )
+        if not text:
+            last_error = err or "empty model response"
+            continue
+
+        try:
+            parsed = extract_json(text)
+            candidate_files = normalize_files(parsed.get("files") or {})
+            candidate_meta = parsed.get("meta") or {}
+            valid, issues = validate_project(candidate_files)
+            if valid:
+                return candidate_files, candidate_meta, None
+            last_error = " | ".join(issues[:6])
+        except Exception as e:
+            last_error = f"parse error: {str(e)[:220]}"
+
+    return None, {}, last_error or "generation failed"
+
+
 def _make_art_input(data: BuilderInput) -> DesignAgentInput:
     return DesignAgentInput(
         business_name=data.business_name,
@@ -2243,30 +2330,16 @@ def generate_site(data: BuilderInput):
         provider = "fallback"
 
         if XKIRO_API_KEY:
-            text, err = xkiro_generate_model(
+            generated_files, generated_meta, generation_err = _generate_project_with_retry(
                 selected_model,
-                SYSTEM_PROMPT,
                 generation_prompt,
-                temperature=0.54,
-                max_tokens=MAX_OUTPUT_TOKENS,
-                timeout=AI_TIMEOUT,
             )
-            if text:
-                try:
-                    parsed = extract_json(text)
-                    candidate_files = normalize_files(parsed.get("files") or {})
-                    candidate_meta = parsed.get("meta") or {}
-                    valid, issues = validate_project(candidate_files)
-                    if valid:
-                        parsed_files = candidate_files
-                        parsed_meta = candidate_meta
-                        provider = f"deepseek-v4-pro ({mode})"
-                    else:
-                        warning_parts.append("DeepSeek project invalid: " + " | ".join(issues[:5]))
-                except Exception as e:
-                    warning_parts.append(f"DeepSeek parse error: {str(e)[:200]}")
+            if generated_files:
+                parsed_files = generated_files
+                parsed_meta = generated_meta
+                provider = f"deepseek-v4-pro ({mode})"
             else:
-                warning_parts.append(f"DeepSeek unavailable: {err}")
+                warning_parts.append(f"DeepSeek generation failed: {generation_err}")
 
         # ---------------------------------------------------------------------
         # 6) LOCAL EMERGENCY FALLBACK

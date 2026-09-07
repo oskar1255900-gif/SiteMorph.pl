@@ -126,7 +126,8 @@ const InlineWizard = ({
   const accentGreen = '#10b981';
 
   const current = questions[step];
-  if (!current) return null;
+  // Show the loading state even while the question list is still empty (Design Agent is generating it).
+  if (!current && !loading) return null;
   const total = questions.length;
   const isLast = step === total - 1;
 
@@ -167,8 +168,14 @@ const InlineWizard = ({
       </div>
       {loading ? (
         <div className="px-4 py-8 flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: accentGreen + '30', borderTopColor: accentGreen }} />
-          <span className="text-xs" style={{ color: textMuted }}>Analizuję prompt...</span>
+          <div className="relative w-6 h-6">
+            <div className="absolute inset-0 rounded-full border-2 animate-spin" style={{ borderColor: accentGreen + '30', borderTopColor: accentGreen }} />
+            <Sparkles size={10} className="absolute inset-0 m-auto" style={{ color: accentGreen }} />
+          </div>
+          <span className="text-xs font-semibold" style={{ color: textSecondary }}>Design Agent generuje formularz…</span>
+          <span className="text-[10px] text-center leading-relaxed" style={{ color: textMuted }}>
+            Analizuję Twój prompt i układam pytania dopasowane do tego biznesu. To potrwa chwilę.
+          </span>
         </div>
       ) : (
       <div>
@@ -329,6 +336,7 @@ export const BuilderFullView = ({
   const [activeMode, setActiveMode] = useState<'preview' | 'code'>('preview');
   const [builderPrompt, setBuilderPrompt] = useState(initialPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationErr, setGenerationErr] = useState('');
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
@@ -408,6 +416,8 @@ export const BuilderFullView = ({
       return;
     }
 
+    setGenerationErr('');
+    setGeneratedSite(null);
     setIsGenerating(true);
     const start = Date.now();
     const MIN_MS = 3000;
@@ -467,6 +477,15 @@ export const BuilderFullView = ({
         const meta = data.meta || {};
         const parsedBusiness = data.business_brief?.business || {};
         const parsedNiche = parsedBusiness.subcategory || parsedBusiness.category || niche || 'Firma';
+        const hasReact = Boolean(files['main/frontend/src/App.tsx']);
+        const hasHtmlFallback = Boolean(files['main/frontend/preview.html']);
+
+        if (!hasReact && !hasHtmlFallback) {
+          setGenerationErr(data.warning || 'Generator nie zwrócił działającego projektu React. Spróbuj wygenerować ponownie.');
+          setGeneratedSite(null);
+          setIsGenerating(false);
+          return;
+        }
 
         setGeneratedSite({
           title: meta.title || parsedBusiness.name || originalPrompt.slice(0, 28),
@@ -483,6 +502,10 @@ export const BuilderFullView = ({
           files,
         });
 
+        if (data.provider === 'fallback' && data.warning) {
+          setGenerationErr(`Tryb awaryjny: ${data.warning}`);
+        }
+
         const first =
           Object.keys(files).find((f) => f.endsWith('/src/App.tsx')) ||
           Object.keys(files).find((f) => f.endsWith('/src/index.css')) ||
@@ -492,15 +515,8 @@ export const BuilderFullView = ({
         if (first) setSelectedFile(first);
         setCredits((c) => Math.max(0, c - cost));
       } else if (fetchError) {
-        setGeneratedSite({
-          title: originalPrompt.slice(0, 25),
-          category: niche || 'Firma',
-          domain: 'blad.sitemorph.pl',
-          headline: originalPrompt,
-          subheadline: `Błąd: ${fetchError.message}`,
-          ctaText: 'Skontaktuj się',
-          files: {},
-        });
+        setGeneratedSite(null);
+        setGenerationErr(fetchError?.message || 'Nie udało się wygenerować strony.');
       }
 
       setIsGenerating(false);
@@ -790,12 +806,16 @@ export const BuilderFullView = ({
                 </motion.div>
               ) : !generatedSite ? (
                 <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex-1 flex items-center justify-center rounded-xl border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
-                  <div className="text-center space-y-2 p-8">
-                    <div className={`w-14 h-14 rounded-xl border flex items-center justify-center mx-auto ${theme === 'dark' ? 'bg-white/5 border-white/[0.06]' : 'bg-gray-50 border-gray-200'}`}>
-                      <Monitor size={24} className="text-white/20" />
+                  <div className="text-center space-y-2 p-8 max-w-lg">
+                    <div className={`w-14 h-14 rounded-xl border flex items-center justify-center mx-auto ${generationErr ? 'bg-red-500/10 border-red-500/20' : (theme === 'dark' ? 'bg-white/5 border-white/[0.06]' : 'bg-gray-50 border-gray-200')}`}>
+                      {generationErr ? <X size={24} className="text-red-400" /> : <Monitor size={24} className={theme === 'dark' ? 'text-white/20' : 'text-gray-300'} />}
                     </div>
-                    <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>Podgląd strony</h3>
-                    <p className={`text-xs max-w-xs ${theme === 'dark' ? 'text-white/20' : 'text-gray-300'}`}>Opisz stronę w panelu po lewej, aby wygenerować podgląd.</p>
+                    <h3 className={`text-sm font-semibold ${generationErr ? 'text-red-400' : (theme === 'dark' ? 'text-white/40' : 'text-gray-400')}`}>
+                      {generationErr ? 'Nie udało się uruchomić projektu' : 'Podgląd strony'}
+                    </h3>
+                    <p className={`text-xs ${generationErr ? (theme === 'dark' ? 'text-white/50' : 'text-gray-500') : (theme === 'dark' ? 'text-white/20' : 'text-gray-300')}`}>
+                      {generationErr || 'Opisz stronę w panelu po lewej, aby wygenerować podgląd.'}
+                    </p>
                   </div>
                 </motion.div>
               ) : activeMode === 'preview' ? (
@@ -810,19 +830,28 @@ export const BuilderFullView = ({
                     const hasReactProject = Boolean(generatedSite.files['main/frontend/src/App.tsx']);
 
                     if (!hasReactProject) {
-                      const emergencyHtml = generatedSite.files['main/frontend/preview.html'] || `
-                        <html>
-                          <body style="margin:0;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif">
-                            <h1>${generatedSite.headline}</h1>
-                          </body>
-                        </html>`;
+                      const emergencyHtml = generatedSite.files['main/frontend/preview.html'];
+                      if (emergencyHtml) {
+                        return (
+                          <iframe
+                            title="Awaryjny podgląd"
+                            className="flex-1 w-full border-0 bg-white"
+                            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                            srcDoc={emergencyHtml}
+                          />
+                        );
+                      }
+
                       return (
-                        <iframe
-                          title="Awaryjny podgląd"
-                          className="flex-1 w-full border-0 bg-white"
-                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                          srcDoc={emergencyHtml}
-                        />
+                        <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
+                          <div className="max-w-md text-center">
+                            <X size={28} className="mx-auto mb-3 text-red-400" />
+                            <h3 className="text-sm font-semibold text-white mb-2">Brak projektu React</h3>
+                            <p className="text-xs leading-relaxed text-white/50">
+                              Backend nie zwrócił pliku App.tsx ani awaryjnego HTML. Wygeneruj stronę ponownie i sprawdź komunikat backendu.
+                            </p>
+                          </div>
+                        </div>
                       );
                     }
 
