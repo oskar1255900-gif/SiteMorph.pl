@@ -346,11 +346,62 @@ const IMPORT_MAP = {
     'react/jsx-dev-runtime': 'https://esm.sh/react@18.2.0/jsx-dev-runtime',
     'react-dom': 'https://esm.sh/react-dom@18.2.0?external=react',
     'react-dom/client': 'https://esm.sh/react-dom@18.2.0/client?external=react',
-    'framer-motion': 'https://esm.sh/framer-motion@13.1.1?external=react,react-dom',
+    'framer-motion': 'https://esm.sh/framer-motion@11.11.17?external=react,react-dom',
+    motion: 'https://esm.sh/motion@11.11.17?external=react,react-dom',
     'lucide-react': 'https://esm.sh/lucide-react@0.344.0?external=react',
     clsx: 'https://esm.sh/clsx@2.1.1',
+    'class-variance-authority': 'https://esm.sh/class-variance-authority@0.7.0',
+    'tailwind-merge': 'https://esm.sh/tailwind-merge@2.5.2',
+    gsap: 'https://esm.sh/gsap@3.12.5',
+    '@studio-freight/lenis': 'https://esm.sh/@studio-freight/lenis@1.0.42',
+    lenis: 'https://esm.sh/lenis@1.1.14',
+    'embla-carousel-react': 'https://esm.sh/embla-carousel-react@8.1.6?external=react',
+    'canvas-confetti': 'https://esm.sh/canvas-confetti@1.9.3',
+    '@radix-ui/react-dialog': 'https://esm.sh/@radix-ui/react-dialog@1.1.2?external=react,react-dom',
   },
 };
+
+function hoistAndSanitizeImports(css: string): { imports: string[]; rest: string } {
+  const imports: string[] = [];
+  let rest = '';
+  let i = 0;
+  const n = css.length;
+  while (i < n) {
+    const idx = css.indexOf('@import', i);
+    if (idx === -1) {
+      rest += css.slice(i);
+      break;
+    }
+    rest += css.slice(i, idx);
+    // Scan forward to the terminating ';' that sits OUTSIDE any quoted string.
+    let j = idx + '@import'.length;
+    let quote: string | null = null;
+    let closed = false;
+    while (j < n) {
+      const c = css[j];
+      if (quote) {
+        if (c === quote) quote = null;
+        else if (c === '\\') j++; // skip escaped char inside the string
+      } else if (c === "'" || c === '"') {
+        quote = c;
+      } else if (c === ';') {
+        closed = true;
+        break;
+      }
+      j++;
+    }
+    if (!closed) {
+      rest += css.slice(idx);
+      break;
+    }
+    // Strip newlines (invalid inside CSS strings) and collapse whitespace so
+    // the @import can never poison the rest of the stylesheet.
+    const clean = css.slice(idx, j + 1).replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ');
+    imports.push(clean);
+    i = j + 1;
+  }
+  return { imports, rest };
+}
 
 function safeInlineScript(code: string): string {
   return code.replace(/<\/script/gi, '<\\/script');
@@ -363,9 +414,11 @@ function safeInlineStyle(code: string): string {
 async function compileReactProjectToHtml(files: Record<string, string>): Promise<string> {
   await ensureEsbuildReady();
   const virtualFiles = projectToVirtualFiles(files);
-  const entry = '/src/main.tsx';
+  const entry =
+    ['/src/main.tsx', '/src/main.jsx', '/src/index.tsx', '/src/index.jsx'].find(
+      (e) => virtualFiles[e],
+    ) || '/src/main.tsx';
   if (!virtualFiles[entry]) throw new Error('Brak main/frontend/src/main.tsx');
-  if (!virtualFiles['/src/App.tsx']) throw new Error('Brak main/frontend/src/App.tsx');
 
   const plugin: esbuild.Plugin = {
     name: 'sitemorph-virtual-project',
@@ -393,10 +446,12 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
           };
         }
 
-        // CSS: mark as external — we inject it directly into <style> to avoid
-        // esbuild-wasm's 'cannot import CSS without output path' error.
+        // CSS imports resolve to an EMPTY virtual module (never external).
+        // Marking them external would leave `import "./index.css"` in the bundle,
+        // and the browser would try to fetch a missing file at runtime, failing the
+        // whole module. The real CSS is collected below and inlined as <style>.
         if (resolved.endsWith('.css')) {
-          return { path: resolved, external: true };
+          return { path: resolved, namespace: 'sitemorph-css' };
         }
 
         return { path: resolved, namespace: 'sitemorph' };
@@ -413,20 +468,41 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
           resolveDir: dirnameVirtual(args.path),
         };
       });
+
+      // CSS imports become no-op JS modules — the real CSS is inlined below.
+      build.onLoad({ filter: /.*/, namespace: 'sitemorph-css' }, () => ({
+        contents: '',
+        loader: 'js',
+      }));
     },
   };
 
-  // Collect all CSS from the project and inject as <style>.
-  // This bypasses esbuild-wasm's CSS bundling which needs an output path.
+  // Collect every CSS file from the project and inline it as one <style> block.
+  // @import rules MUST stay at the very top of a stylesheet — browsers ignore
+  // them once any other rule appears. Since files are concatenated in arbitrary
+  // order, hoist every @import to the top of the final <style>.
+  //
+  // The scanner is quote-aware on purpose: LLM-generated @import URLs often
+  // contain a literal newline inside the quoted string (e.g. the Google Fonts
+  // family list) and may contain semicolons inside the URL. A newline inside a
+  // CSS string is a parse error that swallows the REST of the stylesheet, and a
+  // naive /@import[^;]+;/ match truncates at the first inner semicolon — both
+  // silently killed the whole design in production.
   const allProjectCss = Object.entries(virtualFiles)
     .filter(([k]) => k.endsWith('.css'))
     .map(([, v]) => v)
     .join('\n');
+  const { imports: hoistedImports, rest: cssWithoutImports } = hoistAndSanitizeImports(allProjectCss);
+  const finalCss = (hoistedImports.length ? hoistedImports.join('\n') + '\n' : '') + cssWithoutImports;
+
+  console.log('[SiteMorph Preview] input files:', Object.keys(virtualFiles));
 
   const result = await esbuild.build({
     entryPoints: [entry],
     bundle: true,
     write: false,
+    outdir: '/out',
+    entryNames: 'bundle',
     format: 'esm',
     target: ['es2020'],
     jsx: 'automatic',
@@ -435,15 +511,49 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
     logLevel: 'silent',
     sourcemap: false,
     minify: false,
-    // CSS is handled as external by the plugin — injected as <style> below.
   });
 
-  const js = result.outputFiles?.find((f) => f.path.endsWith('.js'))?.text || '';
-  if (!js.trim()) throw new Error('esbuild nie zwrócił bundla JavaScript');
+  console.log(
+    '[SiteMorph Preview] esbuild outputs:',
+    result.outputFiles?.map((f) => ({ path: f.path, bytes: f.contents?.length })),
+  );
 
-  const css = allProjectCss;
+  // With outdir + entryNames esbuild returns real paths like "/out/bundle.js" —
+  // never guess, always locate by extension.
+  const jsFile = result.outputFiles?.find((f) => f.path.endsWith('.js'));
+  const cssFile = result.outputFiles?.find((f) => f.path.endsWith('.css'));
+  const js = jsFile?.text || '';
+
+  if (!js.trim()) {
+    console.error(
+      '[SiteMorph Preview] esbuild outputFiles:',
+      result.outputFiles?.map((f) => f.path),
+    );
+    throw new Error('esbuild nie zwrócił bundla JavaScript');
+  }
+
+  const css = (cssFile?.text || '') + '\n' + finalCss;
+  console.log('[SiteMorph Preview] JS bytes:', js.length, 'CSS bytes:', css.length);
 
   const importMap = JSON.stringify(IMPORT_MAP).replace(/</g, '\\u003c');
+  // App-level technical observer: reports mount success and runtime errors back
+  // to the panel across the sandboxed (opaque-origin) iframe. It does NOT alter
+  // the generated React — it only observes, so the panel can show a real error
+  // instead of a blank iframe.
+  const observerScript = [
+    "(function(){",
+    "function tell(msg){try{window.parent.postMessage({__sm:'sitemorph', m:msg},'*')}catch(e){}}",
+    "window.addEventListener('error',function(ev){tell({t:'runtime-error',message:String(ev.message||'')})});",
+    "window.addEventListener('unhandledrejection',function(ev){tell({t:'runtime-error',message:'Unhandled promise rejection'})});",
+    "setTimeout(function(){",
+    "  var root=document.getElementById('root');",
+    "  var ok=!!(root&&root.childElementCount>0);",
+    "  tell({t:'mounted',ok:ok});",
+    "  var de=document.documentElement;",
+    "  if(de&&de.scrollWidth>de.clientWidth+2)tell({t:'overflow',w:de.scrollWidth,c:de.clientWidth});",
+    "},1600);",
+    "})();",
+  ].join('\n');
   return `<!doctype html>
 <html lang="pl">
 <head>
@@ -455,6 +565,7 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
 <body>
   <div id="root"></div>
   <script type="module">${safeInlineScript(js)}<\/script>
+  <script>${safeInlineScript(observerScript)}<\/script>
 </body>
 </html>`;
 }
@@ -495,6 +606,7 @@ export const BuilderFullView = ({
   const [activeMode, setActiveMode] = useState<'preview' | 'code'>('preview');
   const [builderPrompt, setBuilderPrompt] = useState(initialPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [thinkingPhase, setThinkingPhase] = useState<'generate' | 'parse' | 'validate' | 'compile' | 'mount' | 'done'>('generate');
   const [generationErr, setGenerationErr] = useState('');
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [showWizard, setShowWizard] = useState(false);
@@ -509,6 +621,30 @@ export const BuilderFullView = ({
   const [compiledPreviewHtml, setCompiledPreviewHtml] = useState('');
   const [previewBuildErr, setPreviewBuildErr] = useState('');
   const [previewBuilding, setPreviewBuilding] = useState(false);
+  const [previewRuntimeErr, setPreviewRuntimeErr] = useState('');
+  const [generatorWarnings, setGeneratorWarnings] = useState<string[]>([]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Render check for the sandboxed preview iframe: "iframe load" does NOT prove
+  // React mounted. The compiled HTML posts a mounted/runtime-error message back;
+  // only accept messages coming from our own preview iframe.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data;
+      if (!data || data.__sm !== 'sitemorph' || !data.m) return;
+      const m = data.m;
+      if (m.t === 'mounted' && !m.ok) {
+        setPreviewRuntimeErr('Strona nie zamontowała się poprawnie — sprawdź zakładkę „Kod” albo wygeneruj ponownie.');
+      } else if (m.t === 'runtime-error') {
+        setPreviewRuntimeErr((prev) => (prev ? prev : `Błąd uruchomienia: ${m.message}`));
+      } else if (m.t === 'overflow') {
+        console.warn(`[SiteMorph Preview] poziomy overflow: ${m.w}px > ${m.c}px`);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [leftW, setLeftW] = useState(400);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
@@ -560,9 +696,14 @@ export const BuilderFullView = ({
     } catch {}
   };
 
+  const generatingRef = useRef(false);
+
   const generateWithAnswers = async (ans: Record<string, string | string[]>, promptOverride?: string) => {
     const originalPrompt = (promptOverride || builderPrompt || '').trim();
     if (!originalPrompt) return;
+    // Duplicate-submit guard: one generation per click/Enter, ever.
+    if (generatingRef.current) return;
+    generatingRef.current = true;
 
     const selectedSections = Array.isArray(ans.sections) ? (ans.sections as string[]) : [];
     const niche = cleanAutoValue(ans.niche);
@@ -584,8 +725,7 @@ export const BuilderFullView = ({
     setPreviewBuildErr('');
     setPreviewBuilding(false);
     setIsGenerating(true);
-    const start = Date.now();
-    const MIN_MS = 3000;
+    setThinkingPhase('generate');
     let fetchResult: any = null;
     let fetchError: any = null;
 
@@ -633,9 +773,6 @@ export const BuilderFullView = ({
     } catch (e: any) {
       fetchError = e;
     } finally {
-      const elapsed = Date.now() - start;
-      if (elapsed < MIN_MS) await new Promise((r) => setTimeout(r, MIN_MS - elapsed));
-
       if (fetchResult && !fetchError) {
         const data = fetchResult;
         const files: Record<string, string> = data.files || {};
@@ -648,22 +785,25 @@ export const BuilderFullView = ({
           setGenerationErr(data.warning || 'DeepSeek nie zwrócił kompletnego projektu React (App.tsx + main.tsx).');
           setGeneratedSite(null);
           setIsGenerating(false);
+          generatingRef.current = false;
           return;
         }
 
-        // Compile the REAL generated React project in-browser. No preview.html is generated or stored.
-        setPreviewBuilding(true);
-        setPreviewBuildErr('');
-        try {
-          const html = await compileReactProjectToHtml(files);
-          setCompiledPreviewHtml(html);
-        } catch (previewError: any) {
-          setCompiledPreviewHtml('');
-          setPreviewBuildErr(previewError?.message || 'Nie udało się skompilować projektu React.');
-        } finally {
-          setPreviewBuilding(false);
-        }
+        setThinkingPhase('parse');
+        setThinkingPhase('validate');
 
+        // Compile the REAL generated React project in-browser. No preview.html is generated or stored.
+        setThinkingPhase('compile');
+        await compileFilesForPreview(files);
+        setThinkingPhase('mount');
+
+        setPreviewRuntimeErr('');
+        setGeneratorWarnings(
+          [
+            ...(Array.isArray(data.generator_warnings) ? data.generator_warnings : []),
+            ...(data.warning ? data.warning.split(' | ').filter(Boolean) : []),
+          ].slice(0, 4),
+        );
         setGeneratedSite({
           title: meta.title || parsedBusiness.name || originalPrompt.slice(0, 28),
           category: parsedNiche,
@@ -693,7 +833,25 @@ export const BuilderFullView = ({
         setGenerationErr(fetchError?.message || 'Nie udało się wygenerować strony.');
       }
 
+      setThinkingPhase('done');
       setIsGenerating(false);
+      generatingRef.current = false;
+    }
+  };
+
+  const compileFilesForPreview = async (files: Record<string, string>) => {
+    setPreviewBuilding(true);
+    setPreviewBuildErr('');
+    setPreviewRuntimeErr('');
+    try {
+      const html = await compileReactProjectToHtml(files);
+      setCompiledPreviewHtml(html);
+    } catch (previewError: any) {
+      setCompiledPreviewHtml('');
+      setPreviewBuildErr(previewError?.message || 'Nie udało się skompilować projektu React.');
+      console.error('[SiteMorph Preview] compile error:', previewError);
+    } finally {
+      setPreviewBuilding(false);
     }
   };
 
@@ -727,10 +885,17 @@ export const BuilderFullView = ({
           const saved = await res.json();
           setCurrentProjectId(saved.id);
           setSaveMsg('Zapisano na koncie ✓');
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          if (res.status === 409) {
+            setSaveMsg('⚠ Projekt z taką domeną już istnieje — otwórz go z listy albo wygeneruj z inną nazwą.');
+          } else {
+            setSaveMsg(errData.detail || `Błąd zapisu (HTTP ${res.status}) — wymagane zalogowanie?`);
+          }
         }
       }
       await loadProjects();
-      setTimeout(() => setSaveMsg(''), 2500);
+      setTimeout(() => setSaveMsg(''), 4000);
     } catch (e: any) {
       setSaveMsg(e.message || 'Wymaga zalogowania');
     }
@@ -802,7 +967,7 @@ export const BuilderFullView = ({
           {/* Left Panel — Agent Chat */}
           <div style={isDesktop ? { width: leftW } : undefined} className={`border-b md:border-b-0 md:border-r h-[45vh] md:h-auto flex flex-col overflow-hidden shrink-0 ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
             {isGenerating ? (
-              <ThinkingSteps mode={builderMode} />
+              <ThinkingSteps mode={builderMode} phase={thinkingPhase} theme={theme} />
             ) : generatedSite ? (
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
                 <div className="flex items-center gap-2">
@@ -824,6 +989,17 @@ export const BuilderFullView = ({
                   {saveMsg && <p className={`text-[10px] text-center ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>{saveMsg}</p>}
                 </div>
 
+                {generatorWarnings.length > 0 && (
+                  <div className={`rounded-lg border p-3 space-y-1.5 ${theme === 'dark' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+                    <div className={`text-[10px] font-semibold ${theme === 'dark' ? 'text-amber-300/90' : 'text-amber-700'}`}>
+                      ⚠ Uwagi do uzupełnienia
+                    </div>
+                    {generatorWarnings.map((w, i) => (
+                      <p key={i} className={`text-[10px] leading-relaxed ${theme === 'dark' ? 'text-amber-200/60' : 'text-amber-800/70'}`}>{w}</p>
+                    ))}
+                  </div>
+                )}
+
                 <div className="pt-3 border-t border-white/[0.06]">
                   <div className={`text-[10px] font-semibold mb-2 uppercase tracking-wider ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Projekty</div>
                   {savedProjects.length === 0 ? (
@@ -831,8 +1007,15 @@ export const BuilderFullView = ({
                   ) : savedProjects.slice(0, 5).map((p) => (
                     <button key={p.id} onClick={() => {
                       const meta = p.content?.meta || {};
-                      setGeneratedSite({ title: p.name, category: p.niche || '', domain: p.domain, headline: meta.headline || p.name, subheadline: meta.subheadline || '', ctaText: meta.ctaText || 'Kontakt', files: p.content?.files || {} });
+                      const files = p.content?.files || {};
+                      setGeneratedSite({ title: p.name, category: p.niche || '', domain: p.domain, headline: meta.headline || p.name, subheadline: meta.subheadline || '', ctaText: meta.ctaText || 'Kontakt', files });
                       setCurrentProjectId(p.id);
+                      if (files['main/frontend/src/App.tsx'] && files['main/frontend/src/main.tsx']) {
+                        compileFilesForPreview(files);
+                      } else {
+                        setCompiledPreviewHtml('');
+                        setPreviewBuildErr('Ten projekt nie zawiera kodu React (App.tsx + main.tsx) — wygeneruj stronę ponownie.');
+                      }
                     }} className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer border-none bg-transparent truncate ${theme === 'dark' ? 'text-white/50 hover:text-white/80 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
                       {p.name}
                     </button>
@@ -913,10 +1096,10 @@ export const BuilderFullView = ({
                         </div>
                         <div className="flex items-center gap-2">
                           <div className={`flex gap-0.5 p-0.5 rounded-lg border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
-                            {(['normal', 'ultra'] as const).map(m => (
+                            {(['normal', 'ultra', 'ultra+'] as const).map(m => (
                               <button key={m} onClick={() => setBuilderMode(m)}
-                                className={`px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-[#2563eb] text-white')) : (theme === 'dark' ? 'text-white/30 hover:text-white/50 bg-transparent' : 'text-gray-400 hover:text-gray-600 bg-transparent')}`}>
-                                {m === 'normal' ? 'S1' : 'Ultra'}
+                                className={`px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : m === 'ultra+' ? 'bg-amber-500/20 text-amber-300' : (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-[#2563eb] text-white')) : (theme === 'dark' ? 'text-white/30 hover:text-white/50 bg-transparent' : 'text-gray-400 hover:text-gray-600 bg-transparent')}`}>
+                                {m === 'normal' ? 'S1' : m === 'ultra' ? 'Ultra' : 'Ultra+'}
                               </button>
                             ))}
                           </div>
@@ -995,13 +1178,25 @@ export const BuilderFullView = ({
                       </div>
                     </div>
                   ) : compiledPreviewHtml ? (
+                    previewRuntimeErr ? (
+                      <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
+                        <div className="max-w-lg text-center">
+                          <X size={28} className="mx-auto mb-3 text-amber-400" />
+                          <h3 className="text-sm font-semibold text-white mb-2">Błąd podglądu</h3>
+                          <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewRuntimeErr}</p>
+                          <p className="text-[10px] text-white/30 mt-3">Kod DeepSeeka nadal jest dostępny w zakładce „Kod”.</p>
+                        </div>
+                      </div>
+                    ) : (
                     <iframe
                       key={generatedSite.domain}
+                      ref={iframeRef}
                       title={`Podgląd ${generatedSite.title}`}
                       className="flex-1 w-full border-0 bg-white"
-                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+                      sandbox="allow-scripts allow-popups allow-forms allow-modals"
                       srcDoc={compiledPreviewHtml}
                     />
+                    )
                   ) : (
                     <div className="flex-1 flex items-center justify-center bg-[#111111] text-white/40 text-xs">
                       Brak skompilowanego podglądu.

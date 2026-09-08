@@ -1,125 +1,256 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Sparkles,
-  FileCode,
-  Palette,
-  Layout,
-  Type,
-  Image,
-  FormInput,
-  CheckCircle2,
-  Loader2,
-} from 'lucide-react';
+import { Sparkles, Check, Loader2 } from 'lucide-react';
 
-interface Step {
-  text: string;
-  icon: any;
-  color: string;
-  startTime: number;
-}
+export type ThinkingPhase =
+  | 'generate'
+  | 'parse'
+  | 'validate'
+  | 'compile'
+  | 'mount'
+  | 'done';
 
 /**
- * Animated thinking steps shown during AI site generation.
- * Steps update in real-time based on elapsed time.
+ * Rozumiemy realny flow: jeden request DeepSeek V4 Pro (generate),
+ * potem lokalne fazy frontendu: parse → validate → compile → mount → done.
+ * Podczas długiego requestu pokazujemy obracające się OPISY pracy
+ * (nie fałszywe eventy backendu), a po odpowiedzi — prawdziwe fazy.
  */
-export const ThinkingSteps = ({ mode }: { mode: 'normal' | 'ultra' | 'ultra+' }) => {
-  const [activeStep, setActiveStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+const GENERATE_DESCRIPTIONS = [
+  { title: 'Rozumiem markę', sub: 'Analizuję produkt, odbiorców i charakter biznesu' },
+  { title: 'Układam kierunek wizualny', sub: 'Typografia, kolor, rytm i charakter strony' },
+  { title: 'Projektuję doświadczenie', sub: 'Hierarchia, sekcje i kluczowe interakcje' },
+  { title: 'Buduję stronę', sub: 'Generuję kompletny projekt React' },
+];
 
-  // Steps with timing (in seconds)
-  const steps: Step[] = [
-    { text: 'Analizuję Twój prompt...', icon: Sparkles, color: '#10b981', startTime: 0 },
-    { text: 'Odczytuję design guidelines...', icon: Palette, color: '#8b5cf6', startTime: 3 },
-    { text: 'Tworzę komponent Hero.tsx...', icon: Layout, color: '#3b82f6', startTime: 8 },
-    { text: 'Tworzę komponent Services.tsx...', icon: FileCode, color: '#06b6d4', startTime: 25 },
-    { text: 'Tworzę komponent Testimonials.tsx...', icon: Type, color: '#f59e0b', startTime: 45 },
-    { text: 'Tworzę komponent Contact.tsx...', icon: FormInput, color: '#ec4899', startTime: 65 },
-    { text: 'Dodaję zdjęcia z Unsplash...', icon: Image, color: '#14b8a6', startTime: 80 },
-    { text: 'Tworzę komponent Footer.tsx...', icon: FileCode, color: '#6366f1', startTime: 95 },
-    { text: 'Łączę komponenty w App.tsx...', icon: Layout, color: '#8b5cf6', startTime: 110 },
-    { text: 'Finalizuję i waliduję kod...', icon: CheckCircle2, color: '#10b981', startTime: 115 },
-  ];
+const REAL_PHASES: { key: ThinkingPhase; title: string; sub: string }[] = [
+  { key: 'parse', title: 'Projekt wygenerowany', sub: 'DeepSeek V4 Pro zwrócił kompletny projekt' },
+  { key: 'validate', title: 'Sprawdzam komponenty', sub: 'Weryfikuję strukturę i zależności' },
+  { key: 'compile', title: 'Kompiluję React', sub: 'Buduję bundel w przeglądarce (esbuild)' },
+  { key: 'mount', title: 'Uruchamiam podgląd', sub: 'Montuję stronę i czekam na render' },
+  { key: 'done', title: 'Strona gotowa', sub: 'Gotowa do publikacji' },
+];
 
+const PHASE_PROGRESS: Record<ThinkingPhase, number> = {
+  generate: 0, // asymptotyczny w UI
+  parse: 72,
+  validate: 82,
+  compile: 90,
+  mount: 97,
+  done: 100,
+};
+
+export const ThinkingSteps = ({
+  mode,
+  phase,
+  theme,
+}: {
+  mode: string;
+  phase: ThinkingPhase;
+  theme: 'light' | 'dark';
+}) => {
+  const dk = theme === 'dark';
+
+  const colors = {
+    text: dk ? '#ffffff' : '#111827',
+    textMuted: dk ? 'rgba(255,255,255,0.42)' : '#9ca3af',
+    textFaint: dk ? 'rgba(255,255,255,0.24)' : '#c4c9d2',
+    rail: dk ? 'rgba(255,255,255,0.08)' : '#e7e9ee',
+    card: dk ? 'rgba(255,255,255,0.03)' : 'rgba(17,24,39,0.03)',
+    green: '#10b981',
+    greenSoft: dk ? 'rgba(16,185,129,0.14)' : 'rgba(16,185,129,0.12)',
+    dot: dk ? 'rgba(255,255,255,0.16)' : '#d4d7dd',
+  };
+
+  // Rotating descriptive steps while the single AI request is in flight.
+  const [rot, setRot] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000;
+    if (phase !== 'generate') return;
+    const t = setInterval(() => {
+      setRot((r) => Math.min(r + 1, GENERATE_DESCRIPTIONS.length - 1));
+      setElapsed((e) => e + 1);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [phase]);
 
-      // Find current step based on elapsed time
-      let current = 0;
-      for (let i = steps.length - 1; i >= 0; i--) {
-        if (elapsed >= steps[i].startTime) {
-          current = i;
-          break;
-        }
-      }
+  // Asymptotic progress during the long generation, real values afterwards.
+  const progress = useMemo(() => {
+    if (phase !== 'generate') return PHASE_PROGRESS[phase];
+    // 6% → ~68% asymptotically over ~5 minutes of a single request.
+    const base = 6 + 62 * (1 - Math.exp(-elapsed / 48));
+    return Math.min(68, base);
+  }, [phase, elapsed]);
 
-      setActiveStep(current);
+  const modelLabel = mode === 'ultra+' ? 'Ultra+ · DeepSeek V4 Pro' : mode === 'ultra' ? 'Ultra · DeepSeek V4 Pro' : 'DeepSeek V4 Pro';
 
-      // Mark previous steps as completed
-      const completed: number[] = [];
-      for (let i = 0; i < current; i++) {
-        completed.push(i);
-      }
-      setCompletedSteps(completed);
-    }, 500);
+  const buildRows = () => {
+    if (phase === 'generate') {
+      return GENERATE_DESCRIPTIONS.map((d, i) => {
+        const isActive = i === rot;
+        const isDone = i < rot;
+        return (
+          <motion.div
+            key={`gen-${i}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="flex items-start gap-3"
+            style={{ padding: '9px 10px', borderRadius: 12, background: isActive ? colors.card : 'transparent' }}
+          >
+            <div className="relative shrink-0 mt-0.5 w-4 h-4 grid place-items-center">
+              {isDone ? (
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="w-4 h-4 rounded-full grid place-items-center"
+                  style={{ background: colors.greenSoft, color: colors.green }}
+                >
+                  <Check size={10} strokeWidth={3} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  animate={isActive ? { scale: [1, 1.18, 1] } : {}}
+                  transition={isActive ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : {}}
+                  className="w-4 h-4 rounded-full grid place-items-center"
+                  style={{ background: isActive ? colors.greenSoft : colors.dot }}
+                >
+                  {isActive && <motion.div className="w-2 h-2 rounded-full" style={{ background: colors.green }} />}
+                </motion.div>
+              )}
+              {i < GENERATE_DESCRIPTIONS.length - 1 && (
+                <span className="absolute top-4 left-2 w-px" style={{ height: 22, background: colors.rail }} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-xs font-semibold transition-colors duration-300"
+                style={{ color: isActive ? colors.text : isDone ? colors.textMuted : colors.textFaint }}
+              >
+                {d.title}
+              </div>
+              {isActive && (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={rot}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-[10px] leading-relaxed mt-0.5"
+                    style={{ color: colors.textMuted }}
+                  >
+                    {d.sub}
+                  </motion.div>
+                </AnimatePresence>
+              )}
+            </div>
+          </motion.div>
+        );
+      });
+    }
 
-    const startTime = Date.now();
-
-    return () => clearInterval(interval);
-  }, []);
+    const activeIdx = REAL_PHASES.findIndex((p) => p.key === phase);
+    return REAL_PHASES.map((p, i) => {
+      const isDone = i < activeIdx || phase === 'done';
+      const isActive = i === activeIdx;
+      return (
+        <motion.div
+          key={p.key}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="flex items-start gap-3"
+          style={{ padding: '9px 10px', borderRadius: 12, background: isActive ? colors.card : 'transparent' }}
+        >
+          <div className="relative shrink-0 mt-0.5 w-4 h-4 grid place-items-center">
+            {isDone ? (
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-4 h-4 rounded-full grid place-items-center"
+                style={{ background: colors.greenSoft, color: colors.green }}
+              >
+                <Check size={10} strokeWidth={3} />
+              </motion.div>
+            ) : (
+              <motion.div
+                animate={isActive ? { scale: [1, 1.18, 1] } : {}}
+                transition={isActive ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : {}}
+                className="w-4 h-4 rounded-full grid place-items-center"
+                style={{ background: isActive ? colors.greenSoft : colors.dot }}
+              >
+                {isActive && <motion.div className="w-2 h-2 rounded-full" style={{ background: colors.green }} />}
+              </motion.div>
+            )}
+            {i < REAL_PHASES.length - 1 && (
+              <span className="absolute top-4 left-2 w-px" style={{ height: 22, background: colors.rail }} />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div
+              className="text-xs font-semibold transition-colors duration-300"
+              style={{ color: isActive ? colors.text : isDone ? colors.textMuted : colors.textFaint }}
+            >
+              {p.title}
+            </div>
+            {isActive && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-[10px] leading-relaxed mt-0.5"
+                style={{ color: colors.textMuted }}
+              >
+                {p.sub}
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+      );
+    });
+  };
 
   return (
-    <div className="flex-1 p-5 overflow-y-auto">
-      <div className="flex items-center gap-2 mb-5">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center">
-          <Sparkles size={14} className="text-green-400" />
+    <div className="flex-1 overflow-y-auto" style={{ padding: 20 }}>
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-4">
+        <div
+          className="w-8 h-8 rounded-lg grid place-items-center shrink-0"
+          style={{ background: colors.greenSoft, color: colors.green }}
+        >
+          <Sparkles size={14} />
         </div>
-        <div>
-          <div className="text-xs font-semibold text-white">SiteMorph Agent</div>
-          <div className="text-[10px] text-white/40">Pracuję nad Twoją stroną...</div>
+        <div className="min-w-0">
+          <div className="text-xs font-bold" style={{ color: colors.text }}>SiteMorph AI</div>
+          <div className="text-[10px] truncate" style={{ color: colors.textMuted }}>{modelLabel}</div>
+        </div>
+        <div className="ml-auto shrink-0 text-[10px] font-semibold tabular-nums" style={{ color: colors.textMuted }}>
+          {Math.round(progress)}%
         </div>
       </div>
 
-      <div className="space-y-1">
-        {steps.map((step, i) => {
-          const isActive = i === activeStep;
-          const isCompleted = completedSteps.includes(i);
-          const Icon = step.icon;
-
-          if (!isActive && !isCompleted) return null;
-
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center gap-3 py-2 px-3 rounded-lg"
-              style={{
-                background: isActive ? `${step.color}10` : 'transparent',
-              }}
-            >
-              <div className="shrink-0">
-                {isCompleted ? (
-                  <CheckCircle2 size={14} style={{ color: step.color }} />
-                ) : (
-                  <Loader2 size={14} className="animate-spin" style={{ color: step.color }} />
-                )}
-              </div>
-              <span
-                className="text-xs"
-                style={{
-                  color: isActive ? step.color : 'rgba(255,255,255,0.3)',
-                  fontWeight: isActive ? 600 : 400,
-                }}
-              >
-                {step.text}
-              </span>
-            </motion.div>
-          );
-        })}
+      {/* Progress rail */}
+      <div className="h-[3px] rounded-full overflow-hidden mb-4" style={{ background: colors.rail }}>
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: 'linear-gradient(90deg, #10b981, #34d399)' }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        />
       </div>
+
+      {/* Timeline */}
+      <div className="space-y-0.5">{buildRows()}</div>
+
+      {phase === 'generate' && (
+        <div className="flex items-center gap-1.5 mt-4 px-1">
+          <Loader2 size={11} className="animate-spin shrink-0" style={{ color: colors.green }} />
+          <span className="text-[10px]" style={{ color: colors.textFaint }}>
+            To potrwa 2–5 minut — DeepSeek buduje całą stronę w jednym przebiegu.
+          </span>
+        </div>
+      )}
     </div>
   );
 };
