@@ -61,15 +61,34 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        is_published_page = request.url.path.startswith("/p/")
+        if is_published_page:
+            # Published SiteMorph builds contain an inline ESM bundle + import map,
+            # can load vetted package modules from esm.sh and brand fonts/images.
+            # The old API-only CSP blocked React completely on /p/<id>.
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; "
+                "script-src 'unsafe-inline' https://esm.sh; "
+                "style-src 'unsafe-inline' https://fonts.googleapis.com; "
+                "font-src https://fonts.gstatic.com data:; "
+                "img-src https: data: blob:; "
+                "media-src https: data: blob:; "
+                "connect-src https:; "
+                "frame-ancestors 'self'; "
+                "base-uri 'none'; form-action 'self'"
+            )
+        else:
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; img-src * data:; style-src 'unsafe-inline'; frame-ancestors 'none'"
+            )
         # HSTS tylko w produkcji (Vercel zawsze HTTPS)
         if _os.getenv("VERCEL") or _os.getenv("ENV") == "production":
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-        # CSP minimalistyczne — API zwraca JSON, nie HTML
-        response.headers["Content-Security-Policy"] = "default-src 'none'; img-src * data:; style-src 'unsafe-inline'; frame-ancestors 'none'"
         return response
 app.add_middleware(SecurityHeadersMiddleware)
 

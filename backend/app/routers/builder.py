@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any, Tuple
 import html
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -33,19 +34,16 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 
-# Vercel Hobby terminates functions after 300s (fluid compute), so the whole
-# pipeline (prompt parser + brand strategist + art director + main generation +
-# critic + preview) must fit inside that budget. We default to tighter, faster
-# budgets on Vercel and generous ones on a local/self-hosted backend. Every
-# value can still be overridden via env vars.
+# Runtime/platform flag. The normal generation path is intentionally one
+# DeepSeek V4 Pro request plus deterministic validation/asset resolution.
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
 # Quality must never be silently reduced on production. DeepSeek V4 Pro gets a
 # 32k output-token ceiling on BOTH Vercel and local. 32k is a LIMIT, not a target:
 # the model generates as many tokens as the site actually needs (typically far
 # fewer), so the Vercel 300s function cap is only at risk on unusually long runs.
-# If a provider technically caps output lower, xkiro_generate_model retries with
-# a smaller ceiling and logs it explicitly — never a silent quality cut.
+# If the provider rejects this ceiling, surface the error. Do not silently issue
+# another AI request with a smaller budget.
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
@@ -212,93 +210,58 @@ def xkiro_generate_model(
     max_tokens: int = MAX_OUTPUT_TOKENS,
     timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Call an OpenAI-compatible XKIRO model with safe output-token retries.
+    """Perform exactly one provider request for one SiteMorph generation call.
 
-    XKIRO/model gateways may reject an otherwise valid request when max_tokens is
-    above the model's real output ceiling. SiteMorph therefore starts at a safe
-    ceiling and automatically retries smaller values on request-size/token errors.
+    SiteMorph deliberately does not retry with smaller token budgets and does not
+    silently issue a second request after transport failures. A failed provider
+    request is surfaced to the caller so a retry only happens after an explicit
+    user action.
     """
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
 
-    requested = max(512, min(int(max_tokens or MAX_OUTPUT_TOKENS), MAX_OUTPUT_TOKENS, 32000))
-    token_attempts = []
-    for candidate in (requested, 24000, 16000, 12000):
-        candidate = min(candidate, requested)
-        if candidate >= 512 and candidate not in token_attempts:
-            token_attempts.append(candidate)
-
-    last_error = None
-    for output_tokens in token_attempts:
-        # XKIRO deduplicates requests by content hash: byte-identical payloads
-        # return the cached response, and an identical in-flight request gets
-        # HTTP 409 "duplicate request is already being processed". A per-attempt
-        # unique user id breaks that hash so every real generation is fresh.
-        request_id = f"sm-{uuid.uuid4().hex}"
+    output_tokens = max(512, min(int(max_tokens or MAX_OUTPUT_TOKENS), MAX_OUTPUT_TOKENS, 32000))
+    request_id = f"sm-{uuid.uuid4().hex}"
+    try:
+        r = requests.post(
+            f"{XKIRO_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {XKIRO_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": output_tokens,
+                "user": request_id,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            },
+            timeout=timeout or AI_TIMEOUT,
+        )
+        print(f"[SiteMorph][XKIRO] {model} max_tokens={output_tokens} -> HTTP {r.status_code}", flush=True)
+        if r.status_code != 200:
+            return None, f"{model}: HTTP {r.status_code} - {r.text[:400]}"
         try:
-            r = requests.post(
-                f"{XKIRO_BASE_URL}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {XKIRO_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "temperature": temperature,
-                    "max_tokens": output_tokens,
-                    "user": request_id,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                },
-                timeout=timeout or AI_TIMEOUT,
+            data = r.json()
+        except Exception as parse_exc:
+            return None, f"{model}: RESPONSE_BODY_ERROR - {str(parse_exc)[:220]}"
+        choices = data.get("choices") or []
+        if not choices:
+            return None, f"{model}: brak choices"
+        content = choices[0].get("message", {}).get("content", "")
+        if isinstance(content, list):
+            content = "".join(
+                part.get("text", "") if isinstance(part, dict) else str(part)
+                for part in content
             )
-
-            print(
-                f"[SiteMorph][XKIRO] {model} max_tokens={output_tokens} -> HTTP {r.status_code}",
-                flush=True,
-            )
-
-            if r.status_code != 200:
-                last_error = f"{model}: HTTP {r.status_code} - {r.text[:400]}"
-                # Retry smaller output limits for the common gateway/model limit failures.
-                if r.status_code in {400, 413, 422}:
-                    continue
-                return None, last_error
-
-            try:
-                data = r.json()
-            except Exception as parse_exc:
-                # HTTP 200 with an unparseable/truncated body — transport-level
-                # breakage, not a design decision. Marked so the caller can retry
-                # once with a fresh request id.
-                return None, f"{model}: RESPONSE_BODY_ERROR - {str(parse_exc)[:220]}"
-            choices = data.get("choices") or []
-            if not choices:
-                last_error = f"{model}: brak choices"
-                continue
-
-            content = choices[0].get("message", {}).get("content", "")
-            if isinstance(content, list):
-                content = "".join(
-                    part.get("text", "") if isinstance(part, dict) else str(part)
-                    for part in content
-                )
-
-            if not str(content).strip():
-                last_error = f"{model}: pusta odpowiedz"
-                continue
-
-            return str(content), None
-
-        except Exception as e:
-            last_error = f"{model}: {str(e)[:240]}"
-            # Network/timeout exceptions are not fixed by changing max_tokens.
-            break
-
-    return None, last_error or f"{model}: nieznany blad"
-
+        if not str(content).strip():
+            return None, f"{model}: pusta odpowiedz"
+        return str(content), None
+    except Exception as e:
+        return None, f"{model}: {str(e)[:240]}"
 
 
 # =============================================================================
@@ -312,7 +275,8 @@ def xkiro_generate_model(
 # source.unsplash.com is dead since 2023 and MUST NOT be used — it only produced
 # broken images.
 _CURATED_ASSET_CATALOG: List[Dict[str, str]] = [
-    {"keys": ["mochi", "donut", "dessert", "cafe", "coffee", "sweet"], "url": "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=1600&q=80"},
+    {"keys": ["mochi", "donut", "dessert", "pastry", "sweet"], "url": "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=1600&q=80"},
+    {"keys": ["cafe", "coffee shop", "cafe interior", "interior cafe", "coffee", "counter"], "url": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1600&q=80"},
     {"keys": ["matcha", "tea", "japan", "japanese"], "url": "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=1600&q=80"},
     {"keys": ["sakura", "cherry", "blossom", "garden"], "url": "https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=1600&q=80"},
     {"keys": ["restaurant", "food", "kitchen", "chef", "menu"], "url": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80"},
@@ -336,18 +300,31 @@ _CURATED_ASSET_CATALOG: List[Dict[str, str]] = [
 ]
 
 # Default when no keyword matches.
-_DEFAULT_CURATED_URL = _CURATED_ASSET_CATALOG[0]["url"]
-
-
 def curated_asset_for(query: str) -> str:
-    """Pick the best known-good catalog URL for a query, or the default."""
-    q = (query or "").lower()
-    best: Optional[str] = None
+    """Pick the strongest matching curated asset, never an unrelated default.
+
+    Unknown queries return an empty string so the UI can honestly leave the slot
+    unresolved instead of silently turning an architect, club, or unknown brand
+    into a dessert website.
+    """
+    q = (query or "").lower().strip()
+    if not q:
+        return ""
+    words = set(re.findall(r"[a-zA-ZÀ-ž0-9]+", q))
+    best_url = ""
+    best_score = 0
     for entry in _CURATED_ASSET_CATALOG:
+        score = 0
         for key in entry["keys"]:
-            if key in q:
-                return entry["url"]
-    return _DEFAULT_CURATED_URL
+            key_l = key.lower()
+            if key_l in q:
+                score += 3 if " " in key_l else 2
+            if key_l in words:
+                score += 1
+        if score > best_score:
+            best_score = score
+            best_url = entry["url"]
+    return best_url if best_score > 0 else ""
 
 
 def search_unsplash(query: str, count: int = 3) -> List[str]:
@@ -386,8 +363,10 @@ def search_unsplash(query: str, count: int = 3) -> List[str]:
         except Exception as e:
             print(f"[Unsplash] {query}: {e}", flush=True)
 
-    # Curated known-good fallback — real, stable Unsplash CDN URLs.
-    return [curated_asset_for(query)]
+    # Curated known-good fallback. Unknown queries stay unresolved instead of
+    # receiving an unrelated default image.
+    curated = curated_asset_for(query)
+    return [curated] if curated else []
 
 
 def collect_design_images(queries: List[str], max_total: int = 8) -> List[Dict[str, str]]:
@@ -1823,8 +1802,10 @@ def extract_contract(parsed: Dict[str, Any]) -> Dict[str, Any]:
     Everything is best-effort; the legacy meta fields remain the source of the
     response shape the frontend already understands.
     """
-    def _safe(obj: Any, limit: int = 6) -> List[Any]:
-        return obj[:limit] if isinstance(obj, list) else []
+    def _safe(obj: Any, limit: Optional[int] = None) -> List[Any]:
+        if not isinstance(obj, list):
+            return []
+        return obj[:limit] if limit is not None else list(obj)
 
     brief = parsed.get("designBrief")
     if not isinstance(brief, dict):
@@ -1866,8 +1847,9 @@ def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
     if len(app.strip()) < 120:
         issues.append("App.tsx is missing or suspiciously empty")
 
-    if len(css) < 400:
-        issues.append("index.css is suspiciously short")
+    css_rule_count = len(re.findall(r"[^@{}][^{}]*\{[^{}]*:[^{}]*\}", css, re.DOTALL)) if css else 0
+    if len(css.strip()) < 120 or css_rule_count < 3:
+        issues.append("index.css has too few real CSS rules")
 
     total_chars = sum(len(v) for v in files.values())
     if total_chars < 6500:
@@ -1926,6 +1908,41 @@ def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
     except Exception:
         issues.append("package.json is not valid JSON")
 
+    # Resolve local imports against the generated virtual project.
+    project_paths = set(files.keys())
+    local_import_errors: List[str] = []
+    source_exts = (".tsx", ".ts", ".jsx", ".js", ".css", ".json")
+
+    def _resolve_local(importer: str, spec: str) -> Optional[str]:
+        importer_rel = importer[len("main/frontend/"):]
+        if spec.startswith("@/"):
+            base = "src/" + spec[2:]
+        elif spec.startswith("/"):
+            base = spec.lstrip("/")
+        else:
+            parent = posixpath.dirname(importer_rel)
+            base = posixpath.normpath(posixpath.join(parent, spec))
+        candidates = [base]
+        if not any(base.endswith(ext) for ext in source_exts):
+            candidates += [base + ext for ext in source_exts]
+            candidates += [posixpath.join(base, "index" + ext) for ext in source_exts]
+        for rel in candidates:
+            full = "main/frontend/" + rel.lstrip("/")
+            if full in project_paths:
+                return full
+        return None
+
+    import_re = re.compile(r"(?:import\s+(?:[^'\"]*?\s+from\s+)?['\"]([^'\"]+)['\"]|require\(['\"]([^'\"]+)['\"]\))")
+    for importer, content in files.items():
+        if not importer.endswith((".tsx", ".ts", ".jsx", ".js")) or not isinstance(content, str):
+            continue
+        for match in import_re.finditer(content):
+            spec = (match.group(1) or match.group(2) or "").strip()
+            if spec.startswith(("./", "../", "/", "@/")) and not _resolve_local(importer, spec):
+                local_import_errors.append(f'{importer}: missing local import "{spec}"')
+    if local_import_errors:
+        issues.extend(local_import_errors[:8])
+
     # Slop heuristics. These are warnings, not automatic failures.
     rounded_3xl = all_code.count("rounded-3xl") + all_code.count("rounded-[32")
     gradient_text = all_code.count("bg-clip-text") + all_code.count("text-transparent")
@@ -1971,9 +1988,11 @@ def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
     hard_fail = (
         bool(missing)
         or len(app.strip()) < 120
+        or css_rule_count < 3
         or total_chars < 6500
         or not has_component_structure
         or has_placeholder_content
+        or bool(local_import_errors)
     )
     return (not hard_fail), issues
 
@@ -2837,12 +2856,10 @@ def _generate_project_with_retry(
     generation_prompt: str,
     max_tokens: Optional[int] = None,
 ) -> Tuple[Optional[Dict[str, str]], Dict[str, Any], Optional[str]]:
-    """Generate the site with ONE DeepSeek model response.
+    """Compatibility name for the strict single-request generation path.
 
-    The name is retained for compatibility with older code. There is deliberately no
-    second design/revision attempt here. The transport helper may retry a rejected
-    max_tokens ceiling, and a single gateway-timeout retry is allowed; a successful
-    generation is exactly one model answer.
+    There are no hidden token-downshift attempts and no transport retries here.
+    One user generation action results in at most one provider request.
     """
     text, err = xkiro_generate_model(
         model,
@@ -2852,16 +2869,6 @@ def _generate_project_with_retry(
         max_tokens=max_tokens or MAX_OUTPUT_TOKENS,
         timeout=AI_TIMEOUT,
     )
-    if not text and _is_retryable_transport_error(err):
-        print(f"[SiteMorph] transport retry after: {err}", flush=True)
-        text, err = xkiro_generate_model(
-            model,
-            SYSTEM_PROMPT,
-            generation_prompt,
-            temperature=0.58,
-            max_tokens=max_tokens or MAX_OUTPUT_TOKENS,
-            timeout=AI_TIMEOUT,
-        )
     if not text:
         return None, {}, err or "empty model response"
 
@@ -2870,27 +2877,18 @@ def _generate_project_with_retry(
         candidate_files = normalize_files(parsed.get("files") or {})
         candidate_meta = parsed.get("meta") or {}
         contract = extract_contract(parsed)
-
-        # preview.html must never come from the model.
         candidate_files.pop("main/frontend/preview.html", None)
-
         if not candidate_files:
             return None, {}, "model returned no project files"
-
         valid, issues = validate_project(candidate_files)
         if not valid:
             return None, candidate_meta, " | ".join(issues[:8])
-        # Merge contract fields into the returned meta so the endpoint can expose them.
         for key, value in contract.items():
             if value not in (None, "", [], {}):
-                candidate_meta.setdefault(key, value)
+                candidate_meta[key] = value
         return candidate_files, candidate_meta, None
     except Exception as exc:
-        # Diagnostic: show the head of the raw response so a JSON contract break
-        # is debuggable instead of a silent "parse error".
-        head = (text or "")[:600].replace("\n", "\\n")
-        print(f"[SiteMorph] JSON parse failed: {exc} | response head: {head}", flush=True)
-        return None, {}, f"parse error: {str(exc)[:260]}"
+        return None, {}, f"parse error / nieprawidlowy JSON/projekt: {str(exc)[:320]}"
 
 
 def _make_art_input(data: BuilderInput) -> DesignAgentInput:
@@ -2910,7 +2908,6 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
     )
 
 
-@router.post("/generate")
 @router.post("/generate")
 def generate_site(data: BuilderInput):
     warning_parts: List[str] = []
@@ -2965,23 +2962,14 @@ def generate_site(data: BuilderInput):
 
         provider = "deepseek-v4-pro"
         if parsed_files is None:
-            # Keep the mature emergency fallback, but never leak/generate preview.html.
-            warning_parts.append(f"DeepSeek generation failed: {generation_err}")
-            fb = fallback_content(data)
-            parsed_files = normalize_files(fb.get("files") or {})
-            parsed_files.pop("main/frontend/preview.html", None)
-            parsed_meta = fb.get("meta") or {}
-            provider = "fallback"
-
-            # A fallback that does not contain real React is not acceptable anymore.
-            if not _has_real_react_app(parsed_files):
-                raise HTTPException(
-                    status_code=502,
-                    detail=(
-                        "DeepSeek nie zwrócił poprawnego projektu React, a fallback również nie zawiera App.tsx. "
-                        + (generation_err or "")[:320]
-                    ),
-                )
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "DeepSeek V4 Pro nie zwrócił kompletnego, poprawnego projektu React. "
+                    "SiteMorph nie podmienia nieudanego generowania gotowym szablonem. "
+                    + (generation_err or "")[:360]
+                ),
+            )
 
         # Resolve image placeholders WITHOUT another AI request.
         # Prefer the v2 assetRequests contract (rich specs); fall back to the
@@ -3055,7 +3043,7 @@ def generate_site(data: BuilderInput):
         valid, validator_issues = validate_project(parsed_files)
         if validator_issues:
             warning_parts.append("Validator: " + " | ".join(validator_issues[:6]))
-        if not valid and provider != "fallback":
+        if not valid:
             raise HTTPException(
                 status_code=502,
                 detail="Projekt React nie przeszedł walidacji: " + " | ".join(validator_issues[:8]),
@@ -3071,14 +3059,14 @@ def generate_site(data: BuilderInput):
             if build_error:
                 warning_parts.append("Server build check: " + build_error.replace("\n", " | ")[:320])
 
-        # Lightweight non-AI quality report; no second DeepSeek critic call.
-        slop_issues = [i for i in validator_issues if i.startswith("Possible AI-slop")]
-        quality_score = 9.1 if not validator_issues else (8.4 if not slop_issues else 7.8)
+        # Static checks are not a visual score. Never pretend code heuristics saw
+        # the rendered page. Visual quality is intentionally left unscored here.
+        quality_score = None
         quality_review = {
-            "score": quality_score,
-            "source": "static-single-pass",
+            "score": None,
+            "source": "deterministic-validation",
             "issues": validator_issues,
-            "verdict": "Projekt wygenerowany jednym przebiegiem DeepSeek V4 Pro; bez osobnego AI critic/revision/preview.",
+            "verdict": "Walidacja techniczna zakończona. Jakość wizualna wymaga obejrzenia wyrenderowanej strony.",
         }
 
         meta = parsed_meta or {}
@@ -3125,8 +3113,8 @@ def generate_site(data: BuilderInput):
         return {
             "status": "success",
             "provider": provider,
-            "model": selected_model if provider != "fallback" else None,
-            "ai_calls": 1 if provider != "fallback" else 1,
+            "model": selected_model,
+            "ai_calls": 1,
             "pipeline": "single-deepseek-v4-pro-react",
             "warning": " | ".join(warning_parts) if warning_parts else None,
             "quality_score": quality_score,
@@ -3151,7 +3139,7 @@ def generate_site(data: BuilderInput):
             "image_assets": resolved_assets[:12],
             "gemini_key_loaded": False,
             "gemini_model": None,
-            "openrouter_model": selected_model if provider != "fallback" else None,
+            "openrouter_model": selected_model,
         }
 
     except HTTPException:

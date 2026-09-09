@@ -411,6 +411,26 @@ function safeInlineStyle(code: string): string {
   return code.replace(/<\/style/gi, '<\\/style');
 }
 
+function extractSafeHeadExtras(indexHtml: string): string {
+  if (!indexHtml) return '';
+  const head = indexHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i)?.[1] || '';
+  const allowed: string[] = [];
+  // Preserve metadata and font/style links from the generated index.html while
+  // deliberately excluding scripts and executable/event-bearing markup.
+  for (const m of head.matchAll(/<(meta|link)\b[^>]*>/gi)) {
+    const tag = m[0];
+    if (/\son[a-z]+\s*=/i.test(tag) || /javascript:/i.test(tag)) continue;
+    if (/^<meta\b/i.test(tag)) {
+      if (/charset=|name=["'](?:description|theme-color|color-scheme|robots)["']|property=["']og:/i.test(tag)) allowed.push(tag);
+      continue;
+    }
+    if (/^<link\b/i.test(tag) && /rel=["'](?:stylesheet|preconnect|dns-prefetch)["']/i.test(tag)) {
+      if (/href=["']https?:\/\//i.test(tag)) allowed.push(tag);
+    }
+  }
+  return allowed.join('\n');
+}
+
 async function compileReactProjectToHtml(files: Record<string, string>): Promise<string> {
   await ensureEsbuildReady();
   const virtualFiles = projectToVirtualFiles(files);
@@ -469,31 +489,19 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
         };
       });
 
-      // CSS imports become no-op JS modules — the real CSS is inlined below.
-      build.onLoad({ filter: /.*/, namespace: 'sitemorph-css' }, () => ({
-        contents: '',
-        loader: 'js',
-      }));
+      // Let esbuild follow and bundle ONLY CSS that is actually imported by the
+      // generated React dependency graph. This preserves import order and avoids
+      // leaking unused stylesheets into the preview.
+      build.onLoad({ filter: /.*/, namespace: 'sitemorph-css' }, (args) => {
+        const contents = virtualFiles[args.path];
+        if (contents == null) return { errors: [{ text: `Brak pliku CSS ${args.path}` }] };
+        return { contents, loader: 'css', resolveDir: dirnameVirtual(args.path) };
+      });
     },
   };
 
-  // Collect every CSS file from the project and inline it as one <style> block.
-  // @import rules MUST stay at the very top of a stylesheet — browsers ignore
-  // them once any other rule appears. Since files are concatenated in arbitrary
-  // order, hoist every @import to the top of the final <style>.
-  //
-  // The scanner is quote-aware on purpose: LLM-generated @import URLs often
-  // contain a literal newline inside the quoted string (e.g. the Google Fonts
-  // family list) and may contain semicolons inside the URL. A newline inside a
-  // CSS string is a parse error that swallows the REST of the stylesheet, and a
-  // naive /@import[^;]+;/ match truncates at the first inner semicolon — both
-  // silently killed the whole design in production.
-  const allProjectCss = Object.entries(virtualFiles)
-    .filter(([k]) => k.endsWith('.css'))
-    .map(([, v]) => v)
-    .join('\n');
-  const { imports: hoistedImports, rest: cssWithoutImports } = hoistAndSanitizeImports(allProjectCss);
-  const finalCss = (hoistedImports.length ? hoistedImports.join('\n') + '\n' : '') + cssWithoutImports;
+  // CSS is emitted by esbuild from the actual import graph. Do not concatenate
+  // every stylesheet in the project: unused CSS must remain unused.
 
   console.log('[SiteMorph Preview] input files:', Object.keys(virtualFiles));
 
@@ -532,7 +540,7 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
     throw new Error('esbuild nie zwrócił bundla JavaScript');
   }
 
-  const css = (cssFile?.text || '') + '\n' + finalCss;
+  const css = cssFile?.text || '';
   console.log('[SiteMorph Preview] JS bytes:', js.length, 'CSS bytes:', css.length);
 
   const importMap = JSON.stringify(IMPORT_MAP).replace(/</g, '\\u003c');
@@ -559,6 +567,7 @@ async function compileReactProjectToHtml(files: Record<string, string>): Promise
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  ${headExtras}
   <script type="importmap">${importMap}<\/script>
   <style>html,body,#root{margin:0;min-height:100%;width:100%;}${safeInlineStyle(css)}</style>
 </head>
@@ -817,6 +826,13 @@ export const BuilderFullView = ({
           subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'DeepSeek V4 Pro'})`,
           ctaText: meta.ctaText || 'Skontaktuj się',
           files,
+          meta,
+          designBrief: data.design_brief || {},
+          designTokens: data.design_tokens || {},
+          sectionPlan: Array.isArray(data.section_plan) ? data.section_plan : [],
+          assetRequests: Array.isArray(data.asset_requests) ? data.asset_requests : [],
+          generatorWarnings: Array.isArray(data.generator_warnings) ? data.generator_warnings : [],
+          schemaVersion: data.schema_version || 1,
         });
 
 
@@ -868,8 +884,35 @@ export const BuilderFullView = ({
     if (!generatedSite) return;
     setSaveMsg('');
     try {
+      const projectContent = {
+        files: generatedSite.files,
+        meta: generatedSite.meta || {
+          title: generatedSite.title,
+          headline: generatedSite.headline,
+          subheadline: generatedSite.subheadline,
+          ctaText: generatedSite.ctaText,
+        },
+        design_brief: generatedSite.designBrief || {},
+        design_tokens: generatedSite.designTokens || {},
+        section_plan: generatedSite.sectionPlan || [],
+        asset_requests: generatedSite.assetRequests || [],
+        generator_warnings: generatedSite.generatorWarnings || [],
+        schema_version: generatedSite.schemaVersion || 1,
+      };
       if (currentProjectId) {
-        await apiFetch(`/api/projects/${currentProjectId}`, { method: 'PATCH', body: JSON.stringify({ name: generatedSite.title }) });
+        const res = await apiFetch(`/api/projects/${currentProjectId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: generatedSite.title,
+            domain: generatedSite.domain,
+            niche: generatedSite.category,
+            content: projectContent,
+          }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Błąd zapisu (HTTP ${res.status})`);
+        }
         setSaveMsg('Zapisano ✓');
       } else {
         const res = await apiFetch('/api/projects/', {
@@ -878,7 +921,7 @@ export const BuilderFullView = ({
             name: generatedSite.title,
             domain: generatedSite.domain,
             niche: generatedSite.category,
-            content: { files: generatedSite.files, meta: { title: generatedSite.title, headline: generatedSite.headline, subheadline: generatedSite.subheadline, ctaText: generatedSite.ctaText } },
+            content: projectContent,
           }),
         });
         if (res.ok) {
@@ -953,8 +996,8 @@ export const BuilderFullView = ({
                 const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({ html, title: generatedSite.title }) });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
-                const apiOrigin = API_BASE || `${window.location.protocol}//${window.location.hostname}:8000`;
-                setPublishedUrl(`${apiOrigin}${data.url}`);
+                const base = API_BASE ? new URL(API_BASE, window.location.origin).origin : window.location.origin;
+                setPublishedUrl(new URL(data.url, base).toString());
               } catch (e: any) { setPublishErr(e.message); } finally { setPublishing(false) }
             }} className="font-semibold text-[11px]">
               {publishing ? '...' : 'Opublikuj'}
@@ -1008,7 +1051,22 @@ export const BuilderFullView = ({
                     <button key={p.id} onClick={() => {
                       const meta = p.content?.meta || {};
                       const files = p.content?.files || {};
-                      setGeneratedSite({ title: p.name, category: p.niche || '', domain: p.domain, headline: meta.headline || p.name, subheadline: meta.subheadline || '', ctaText: meta.ctaText || 'Kontakt', files });
+                      setGeneratedSite({
+                        title: p.name,
+                        category: p.niche || '',
+                        domain: p.domain,
+                        headline: meta.headline || p.name,
+                        subheadline: meta.subheadline || '',
+                        ctaText: meta.ctaText || 'Kontakt',
+                        files,
+                        meta,
+                        designBrief: p.content?.design_brief || {},
+                        designTokens: p.content?.design_tokens || {},
+                        sectionPlan: Array.isArray(p.content?.section_plan) ? p.content.section_plan : [],
+                        assetRequests: Array.isArray(p.content?.asset_requests) ? p.content.asset_requests : [],
+                        generatorWarnings: Array.isArray(p.content?.generator_warnings) ? p.content.generator_warnings : [],
+                        schemaVersion: p.content?.schema_version || 1,
+                      });
                       setCurrentProjectId(p.id);
                       if (files['main/frontend/src/App.tsx'] && files['main/frontend/src/main.tsx']) {
                         compileFilesForPreview(files);

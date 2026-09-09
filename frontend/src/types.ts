@@ -6,6 +6,13 @@ export interface GeneratedWebsite {
   subheadline: string;
   ctaText: string;
   files: Record<string, string>;
+  meta?: Record<string, any>;
+  designBrief?: Record<string, any>;
+  designTokens?: Record<string, any>;
+  sectionPlan?: any[];
+  assetRequests?: any[];
+  generatorWarnings?: string[];
+  schemaVersion?: string | number;
 }
 
 export interface Lead {

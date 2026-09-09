@@ -34,7 +34,7 @@ export async function apiFetch<T = any>(path: string, options: RequestInit & { t
     return res
   } catch (e: any) {
     clearTimeout(timer)
-    if (e.name === 'AbortError') throw new Error('Przekroczono czas oczekiwania — spróbuj ponownie (Vercel limit 60s)')
+    if (e.name === 'AbortError') throw new Error('Przekroczono czas oczekiwania na serwer — spróbuj ponownie')
     throw e
   }
 }
