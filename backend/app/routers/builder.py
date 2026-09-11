@@ -10,7 +10,6 @@ import subprocess
 import time
 import uuid
 import requests
-from openai import OpenAI
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -209,50 +208,122 @@ def xkiro_generate_model(
     model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
     max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Call XKIRO via OpenAI-compatible client with single retry on 429/5xx."""
+    """One streamed XKIRO request, without SDK or application retries."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
-    client = OpenAI(base_url=XKIRO_BASE_URL, api_key=XKIRO_API_KEY)
-    effective_timeout = timeout or AI_TIMEOUT
-    _RETRYABLE = {429, 500, 502, 503, 504}
-    last_err = None
-    for attempt in range(2):  # attempt 0 = first try, attempt 1 = single retry
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                temperature=temperature,
-                max_tokens=min(int(max_tokens), 32000),
-                timeout=effective_timeout,
-                messages=[
+    response = None
+    try:
+        response = requests.post(
+            f"{XKIRO_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {XKIRO_API_KEY}",
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+                "User-Agent": "SiteMorph/2",
+            },
+            json={
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": min(int(max_tokens), 32000),
+                "stream": True,
+                "stream_options": {"include_usage": True},
+                "response_format": {"type": "json_object"},
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-            )
-            if response.choices:
-                finish = response.choices[0].finish_reason
-                if finish == "length":
-                    return None, "Odpowiedź ucięta przez limit modelu."
-                content = response.choices[0].message.content or ""
-                if isinstance(content, list):
-                    content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
-                return (content, None) if isinstance(content, str) and content.strip() else (None, "Pusta odpowiedź modelu.")
-            return None, "Provider zwrócił pustą odpowiedź."
-        except Exception as exc:
-            err_str = str(exc).lower()
-            status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
-            is_retryable = (
-                status_code in _RETRYABLE
-                or any(kw in err_str for kw in ("429", "rate limit", "too many", "timeout", "timed out", "500", "502", "503", "504"))
-            )
-            if is_retryable and attempt == 0:
-                import time as _time
-                wait = 15 if status_code == 429 or "429" in err_str or "rate limit" in err_str else 8
-                print(f"[SiteMorph] Retryable error ({status_code or err_str[:60]}) — retrying in {wait}s (attempt {attempt+1}/2)")
-                _time.sleep(wait)
-                last_err = f"Provider: {exc}"
+            },
+            timeout=(10, timeout or AI_TIMEOUT),
+            stream=True,
+        )
+        if response.status_code != 200:
+            return None, _xkiro_http_error(response)
+
+        content_type = str(response.headers.get("content-type", "")).lower()
+        if "text/event-stream" not in content_type:
+            body = response.json()
+            if body.get("error"):
+                return None, _xkiro_error_message(body["error"], response.status_code, response.headers)
+            choices = body.get("choices") or []
+            if not choices:
+                return None, "XKIRO zwróciło pustą odpowiedź."
+            if choices[0].get("finish_reason") == "length":
+                return None, "XKIRO ucięło odpowiedź przez limit modelu."
+            content = choices[0].get("message", {}).get("content", "")
+            return (content, None) if isinstance(content, str) and content.strip() else (None, "XKIRO zwróciło pustą odpowiedź.")
+
+        parts: List[str] = []
+        finish_reason = None
+        done = False
+        for raw_line in response.iter_lines(decode_unicode=True):
+            if not raw_line:
                 continue
-            return None, f"Provider: {exc}"
-    return None, last_err or "Wyczerpano próby transportowe."
+            line = raw_line.decode("utf-8", "replace") if isinstance(raw_line, bytes) else str(raw_line)
+            if not line.startswith("data:"):
+                continue
+            payload = line[5:].strip()
+            if payload == "[DONE]":
+                done = True
+                break
+            try:
+                event = json.loads(payload)
+            except json.JSONDecodeError:
+                return None, "XKIRO zwróciło uszkodzony fragment odpowiedzi strumieniowej."
+            if event.get("error"):
+                return None, _xkiro_error_message(event["error"], 200, response.headers)
+            choices = event.get("choices") or []
+            if not choices:
+                continue
+            choice = choices[0]
+            if choice.get("finish_reason"):
+                finish_reason = choice["finish_reason"]
+            delta = choice.get("delta", {}).get("content")
+            if isinstance(delta, str):
+                parts.append(delta)
+            elif isinstance(delta, list):
+                parts.extend(str(item.get("text", "")) for item in delta if isinstance(item, dict))
+
+        if not done:
+            return None, "Połączenie z XKIRO zostało przerwane przed zakończeniem odpowiedzi."
+        if finish_reason == "length":
+            return None, "XKIRO ucięło odpowiedź przez limit modelu."
+        if finish_reason in {"content_filter", "error"}:
+            return None, f"XKIRO zakończyło odpowiedź: {finish_reason}."
+        content = "".join(parts).strip()
+        return (content, None) if content else (None, "XKIRO zwróciło pustą odpowiedź.")
+    except requests.Timeout:
+        return None, "XKIRO przekroczyło czas odpowiedzi. Spróbuj ponownie za chwilę."
+    except requests.RequestException as exc:
+        return None, "Nie udało się połączyć z XKIRO: " + exc.__class__.__name__
+    except (ValueError, TypeError, AttributeError):
+        return None, "Nie udało się odczytać kompletnej odpowiedzi XKIRO."
+    finally:
+        if response is not None and callable(getattr(response, "close", None)):
+            response.close()
+
+
+def _xkiro_error_message(error: Any, status: int, headers: Any) -> str:
+    data = error if isinstance(error, dict) else {}
+    code = str(data.get("code") or data.get("type") or "unknown_error")[:80]
+    message = re.sub(r"\s+", " ", str(data.get("message") or "Brak opisu błędu."))[:500]
+    request_id = str(headers.get("x-request-id") or headers.get("request-id") or "")[:120]
+    suffix = f" Request ID: {request_id}." if request_id else ""
+    if status == 402:
+        return f"XKIRO: brak środków ({code}). {message}{suffix}"
+    if status == 403:
+        return f"XKIRO: konto nie ma dostępu do modelu ({code}). {message}{suffix}"
+    if status in {429, 500, 502, 503, 529}:
+        return f"XKIRO chwilowo nie może obsłużyć modelu, HTTP {status} ({code}). {message} Spróbuj ponownie za chwilę.{suffix}"
+    return f"XKIRO HTTP {status} ({code}). {message}{suffix}"
+
+
+def _xkiro_http_error(response: Any) -> str:
+    try:
+        body = response.json()
+        error = body.get("error") if isinstance(body, dict) else None
+    except (ValueError, TypeError, AttributeError):
+        error = None
+    return _xkiro_error_message(error, int(response.status_code), response.headers)
 
 
 # =============================================================================
@@ -2034,26 +2105,6 @@ def _art_image_queries(art: Dict[str, Any]) -> List[str]:
         if isinstance(q, str) and q.strip():
             queries.append(q.strip())
     return queries[:5]
-
-
-def _is_retryable_transport_error(err: Optional[str]) -> bool:
-    """True when the model call failed at the transport/gateway level (not design).
-
-    XKIRO sits behind Cloudflare which intermittently answers HTTP 524 (origin
-    took too long) even for generations that would otherwise succeed. Retrying
-    the SAME single generation once is transport resilience — it never adds a
-    second design/revision stage.
-    """
-    if not err:
-        return False
-    low = err.lower()
-    return any(
-        token in low
-        for token in (
-            "http 5", "http 429", "http 409", "duplicate", "response_body_error",
-            "timed out", "timeout", "connection", "network", "max retries", "remote end",
-        )
-    )
 
 
 def _generate_project_with_retry(
