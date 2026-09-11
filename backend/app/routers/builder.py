@@ -63,10 +63,11 @@ DEEPSEEK_MODEL = os.getenv(
     "deepseek/deepseek-v4-pro",
 )
 FABLE_MODEL = "anthropic/claude-fable-5"
+ULTRA_MODEL = "qwen/qwen3.8-max:free"
 
 MODEL_MAP = {
     "normal": DEEPSEEK_MODEL,
-    "ultra": DEEPSEEK_MODEL,
+    "ultra": ULTRA_MODEL,
     "ultra+": FABLE_MODEL,
 }
 
@@ -2153,7 +2154,7 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
             "ctaText": ctas[0]["label"] if ctas else "", "schemaVersion": "2.0"}
     brief = spec.businessBrief.model_dump()
     selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
-    provider_label = "claude-fable-5" if "fable" in selected_model else "deepseek-v4-pro"
+    provider_label = "claude-fable-5" if "fable" in selected_model else "qwen3.8-max" if "qwen" in selected_model else "deepseek-v4-pro"
     return {
         "status": "success", "provider": provider_label, "model": selected_model,
         "ai_calls": 1, "prompt_version": spec_prompt_version,
