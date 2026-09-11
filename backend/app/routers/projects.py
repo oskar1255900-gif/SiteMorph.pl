@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from ..database import get_db
 from ..models import Project
 from ..auth import get_current_user, require_owner
+from ..publishing import require_user, validate_content
+from typing import Optional
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
@@ -19,38 +21,26 @@ class GitHubExport(BaseModel):
     repo_name: str
     github_token: str
 
-class ProjectUpdate(BaseModel):
+class ProjectRename(BaseModel):
     name: Optional[str] = None
-    domain: Optional[str] = None
-    niche: Optional[str] = None
     content: Optional[Dict[str, Any]] = None
+    niche: Optional[str] = None
 
 @router.get("/")
 def get_projects(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    require_user(current_user)
     # RLS: tylko wlasne projekty
     return db.query(Project).filter(Project.owner_id == current_user["id"]).all()
 
 @router.post("/")
 def create_project(proj: ProjectCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    # Saving the same generated domain again should update the owner's project
-    # instead of producing a noisy 409. A domain owned by somebody else remains
-    # a real conflict because the database column is globally unique.
-    existing = db.query(Project).filter(Project.domain == proj.domain).first()
-    if existing:
-        if existing.owner_id != current_user["id"]:
-            raise HTTPException(status_code=409, detail="Ta domena projektu jest już zajęta")
-        existing.name = proj.name.strip()[:200]
-        existing.niche = proj.niche.strip()[:200]
-        existing.content = proj.content
-        db.commit()
-        db.refresh(existing)
-        return existing
-
+    require_user(current_user)
+    validate_content(proj.content)
     db_project = Project(
         owner_id=current_user["id"],
-        name=proj.name.strip()[:200],
-        domain=proj.domain.strip()[:255],
-        niche=proj.niche.strip()[:200],
+        name=proj.name,
+        domain=proj.domain,
+        niche=proj.niche,
         content=proj.content
     )
     db.add(db_project)
@@ -63,39 +53,21 @@ def create_project(proj: ProjectCreate, db: Session = Depends(get_db), current_u
     return db_project
 
 @router.patch("/{project_id}")
-def update_project(project_id: int, body: ProjectUpdate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def rename_project(project_id: int, body: ProjectRename, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Projekt nie znaleziony")
     require_owner(project.owner_id, current_user)
-
     if body.name is not None:
         if not body.name.strip():
             raise HTTPException(status_code=400, detail="Nazwa nie może być pusta")
         project.name = body.name.strip()[:200]
-    if body.domain is not None:
-        domain = body.domain.strip()[:255]
-        if not domain:
-            raise HTTPException(status_code=400, detail="Domena nie może być pusta")
-        conflict = (
-            db.query(Project)
-            .filter(Project.domain == domain, Project.id != project_id)
-            .first()
-        )
-        if conflict:
-            raise HTTPException(status_code=409, detail="Projekt z taką domeną już istnieje")
-        project.domain = domain
-    if body.niche is not None:
-        project.niche = body.niche.strip()[:200]
     if body.content is not None:
-        project.content = body.content
-
-    try:
-        db.commit()
-        db.refresh(project)
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Projekt z taką domeną już istnieje")
+        project.content = validate_content(body.content)
+    if body.niche is not None:
+        project.niche = body.niche[:200]
+    db.commit()
+    db.refresh(project)
     return project
 
 @router.delete("/{project_id}")

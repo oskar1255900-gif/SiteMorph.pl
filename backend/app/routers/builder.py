@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any, Tuple
 import html
 import json
 import os
-import posixpath
 import re
 import shutil
 import subprocess
@@ -18,7 +17,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import UploadedAsset
-from app.routers.builder_fallback_modern import fallback_content
+from app.auth import get_current_user
+from app.builder_prompt import SYSTEM_PROMPT, PROMPT_VERSION
+from app.builder_validation import validate_project
+from app.builder_assets import resolve_assets, add_photo_credits, track_selected_photos
 
 
 load_dotenv()
@@ -34,16 +36,16 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 
-# Runtime/platform flag. The normal generation path is intentionally one
-# DeepSeek V4 Pro request plus deterministic validation/asset resolution.
+# The active pipeline is one compact design-spec response plus deterministic
+# validation/assets/React compilation. Hosting timeouts are configurable; they
+# are limits, never promised generation durations.
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
 # Quality must never be silently reduced on production. DeepSeek V4 Pro gets a
 # 32k output-token ceiling on BOTH Vercel and local. 32k is a LIMIT, not a target:
 # the model generates as many tokens as the site actually needs (typically far
 # fewer), so the Vercel 300s function cap is only at risk on unusually long runs.
-# If the provider rejects this ceiling, surface the error. Do not silently issue
-# another AI request with a smaller budget.
+# Provider errors are surfaced; no retries or smaller token ceilings.
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
@@ -52,12 +54,9 @@ FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL 
 PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "16000"))
 GENERATION_ATTEMPTS = 1
 
-# One DeepSeek model powers every AI stage in SiteMorph.
-# Keep the mode names for frontend/pricing compatibility, but they all resolve
-# to the same model. Quality differences can still come from refinement policy.
-# One model identity everywhere. The normal /generate path makes one autonomous
-# DeepSeek V4 Pro website-generation pass. Legacy helper model constants remain
-# below only so older/debug functions keep importing cleanly.
+# Keep mode names for frontend/pricing compatibility. All modes currently use
+# the same one-call spec compiler path. Legacy helper constants remain only
+# for older/debug functions; they are not called by /generate.
 DEEPSEEK_MODEL = os.getenv(
     "SITEMORPH_DEEPSEEK_MODEL",
     "deepseek/deepseek-v4-pro",
@@ -128,6 +127,7 @@ class BuilderInput(BaseModel):
     fonts: Optional[str] = None
     photo_style: Optional[str] = None
     image_urls: Optional[List[str]] = None
+    image_details: Optional[List[Dict[str, str]]] = None
     answers: Optional[dict] = None
     mode: Optional[str] = "normal"
 
@@ -203,65 +203,38 @@ def extract_json_array(text: str) -> list:
 
 
 def xkiro_generate_model(
-    model: str,
-    system_prompt: str,
-    user_prompt: str,
-    temperature: float = 0.72,
-    max_tokens: int = MAX_OUTPUT_TOKENS,
-    timeout: Optional[int] = None,
+    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
+    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Perform exactly one provider request for one SiteMorph generation call.
-
-    SiteMorph deliberately does not retry with smaller token budgets and does not
-    silently issue a second request after transport failures. A failed provider
-    request is surfaced to the caller so a retry only happens after an explicit
-    user action.
-    """
+    """Exactly one HTTP attempt; no hidden retries or output-budget downgrade."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
-
-    output_tokens = max(512, min(int(max_tokens or MAX_OUTPUT_TOKENS), MAX_OUTPUT_TOKENS, 32000))
-    request_id = f"sm-{uuid.uuid4().hex}"
     try:
-        r = requests.post(
+        response = requests.post(
             f"{XKIRO_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {XKIRO_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": output_tokens,
-                "user": request_id,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            },
-            timeout=timeout or AI_TIMEOUT,
+            headers={"Authorization": f"Bearer {XKIRO_API_KEY}", "Content-Type": "application/json"},
+            json={"model": model, "temperature": temperature,
+                  "max_tokens": min(int(max_tokens), 32000),
+                  "messages": [{"role": "system", "content": system_prompt},
+                               {"role": "user", "content": user_prompt}]},
+            timeout=(10, timeout or AI_TIMEOUT),
         )
-        print(f"[SiteMorph][XKIRO] {model} max_tokens={output_tokens} -> HTTP {r.status_code}", flush=True)
-        if r.status_code != 200:
-            return None, f"{model}: HTTP {r.status_code} - {r.text[:400]}"
-        try:
-            data = r.json()
-        except Exception as parse_exc:
-            return None, f"{model}: RESPONSE_BODY_ERROR - {str(parse_exc)[:220]}"
-        choices = data.get("choices") or []
+        if response.status_code != 200:
+            return None, f"Provider HTTP {response.status_code}; nie ponowiono zapytania."
+        body = response.json()
+        choices = body.get("choices") or []
         if not choices:
-            return None, f"{model}: brak choices"
+            return None, "Provider zwrócił pustą odpowiedź."
+        if choices[0].get("finish_reason") == "length":
+            return None, "Odpowiedź została ucięta przez limit modelu; projekt nie jest kompletny."
         content = choices[0].get("message", {}).get("content", "")
         if isinstance(content, list):
-            content = "".join(
-                part.get("text", "") if isinstance(part, dict) else str(part)
-                for part in content
-            )
-        if not str(content).strip():
-            return None, f"{model}: pusta odpowiedz"
-        return str(content), None
-    except Exception as e:
-        return None, f"{model}: {str(e)[:240]}"
+            content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+        return (content, None) if isinstance(content, str) and content.strip() else (None, "Pusta odpowiedź modelu.")
+    except requests.Timeout:
+        return None, "Model przekroczył czas odpowiedzi. Zapytanie nie zostało automatycznie ponowione."
+    except (requests.RequestException, ValueError, TypeError, AttributeError):
+        return None, "Nie udało się odebrać kompletnej odpowiedzi modelu."
 
 
 # =============================================================================
@@ -269,104 +242,14 @@ def xkiro_generate_model(
 # =============================================================================
 
 
-# Curated catalog of known-good, stable Unsplash CDN URLs (images.unsplash.com).
-# These are real, long-lived photo IDs that will render in preview AND publish.
-# Used only when no user asset applies and no UNSPLASH_ACCESS_KEY is configured.
-# source.unsplash.com is dead since 2023 and MUST NOT be used — it only produced
-# broken images.
-_CURATED_ASSET_CATALOG: List[Dict[str, str]] = [
-    {"keys": ["mochi", "donut", "dessert", "pastry", "sweet"], "url": "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["cafe", "coffee shop", "cafe interior", "interior cafe", "coffee", "counter"], "url": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["matcha", "tea", "japan", "japanese"], "url": "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["sakura", "cherry", "blossom", "garden"], "url": "https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["restaurant", "food", "kitchen", "chef", "menu"], "url": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["barber", "hair", "beard", "barbershop"], "url": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["architecture", "building", "interior", "studio"], "url": "https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["techno", "club", "concert", "music", "dj", "party"], "url": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["law", "lawyer", "legal", "office", "contract"], "url": "https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["real estate", "house", "home", "property", "apartment"], "url": "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["spa", "wellness", "massage", "relax", "beauty"], "url": "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["fitness", "gym", "sport", "training", "crossfit"], "url": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["car", "auto", "mechanic", "warsztat", "garage"], "url": "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["pizza", "italian", "kebab", "burger", "fastfood"], "url": "https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["bakery", "bread", "pastry", "piekarnia"], "url": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["salon", "hair", "nails", "stylist", "fryzjer"], "url": "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["dentist", "dental", "clinic", "medical", "lekarz"], "url": "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["hotel", "travel", "vacation", "tour", "wycieczka"], "url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["clothing", "fashion", "store", "sklep", "boutique"], "url": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["plumber", "electrician", "remont", "budowlanka", "serwis"], "url": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["photography", "photo", "portfolio"], "url": "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?auto=format&fit=crop&w=1600&q=80"},
-    {"keys": ["startup", "saas", "tech", "software", "it", "digital"], "url": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1600&q=80"},
-]
-
-# Default when no keyword matches.
 def curated_asset_for(query: str) -> str:
-    """Pick the strongest matching curated asset, never an unrelated default.
-
-    Unknown queries return an empty string so the UI can honestly leave the slot
-    unresolved instead of silently turning an architect, club, or unknown brand
-    into a dessert website.
-    """
-    q = (query or "").lower().strip()
-    if not q:
-        return ""
-    words = set(re.findall(r"[a-zA-ZÀ-ž0-9]+", q))
-    best_url = ""
-    best_score = 0
-    for entry in _CURATED_ASSET_CATALOG:
-        score = 0
-        for key in entry["keys"]:
-            key_l = key.lower()
-            if key_l in q:
-                score += 3 if " " in key_l else 2
-            if key_l in words:
-                score += 1
-        if score > best_score:
-            best_score = score
-            best_url = entry["url"]
-    return best_url if best_score > 0 else ""
+    """Legacy API: no unverified generic fallback image."""
+    return ""
 
 
 def search_unsplash(query: str, count: int = 3) -> List[str]:
-    """Resolve a real asset for an image query.
-
-    Order: live Unsplash API when a key exists -> curated known-good catalog.
-    NEVER fabricate URLs (source.unsplash.com is dead) — if nothing can be
-    resolved the caller receives [] and handles it honestly.
-    """
-    query = (query or "").strip()
-    if not query:
-        return []
-
-    if UNSPLASH_ACCESS_KEY:
-        try:
-            r = requests.get(
-                "https://api.unsplash.com/search/photos",
-                headers={"Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"},
-                params={
-                    "query": query,
-                    "per_page": max(1, min(count, 10)),
-                    "orientation": "landscape",
-                    "content_filter": "high",
-                },
-                timeout=12,
-            )
-            if r.status_code == 200:
-                results = r.json().get("results") or []
-                urls = [
-                    item.get("urls", {}).get("regular")
-                    for item in results
-                    if item.get("urls", {}).get("regular")
-                ]
-                if urls:
-                    return urls[:count]
-        except Exception as e:
-            print(f"[Unsplash] {query}: {e}", flush=True)
-
-    # Curated known-good fallback. Unknown queries stay unresolved instead of
-    # receiving an unrelated default image.
-    curated = curated_asset_for(query)
-    return [curated] if curated else []
+    from app.builder_assets import _search
+    return [p["url"] for p in _search({"query": query, "subject": query}, UNSPLASH_ACCESS_KEY)][:count]
 
 
 def collect_design_images(queries: List[str], max_total: int = 8) -> List[Dict[str, str]]:
@@ -1138,7 +1021,6 @@ def create_art_direction(
 
 
 @router.post("/design-agent")
-@router.post("/design-agent")
 def run_design_agent(data: DesignAgentInput):
     """Compatibility/debug endpoint.
 
@@ -1168,538 +1050,7 @@ def run_design_agent(data: DesignAgentInput):
 # =============================================================================
 
 
-SYSTEM_PROMPT = r"""
-You are SiteMorph — an autonomous senior brand designer, art director, UX designer,
-motion designer and React engineer. You receive raw information about a REAL business
-and must return one complete, sellable React website.
-
-THIS IS A SINGLE-PASS BUILD.
-There is no separate brand strategist, art director, critic or preview model after you.
-You must silently make all important design decisions BEFORE writing code, then execute
-them faithfully in the same project.
-
-Do not output your reasoning. Return only the final JSON project.
-
-===============================================================================
-A. SILENT DESIGN PROCESS — DO THIS BEFORE CODING
-===============================================================================
-
-1) UNDERSTAND THE BUSINESS
-Extract and respect the real facts from the raw prompt:
-- exact brand/business name
-- what is sold
-- real products/services
-- address/city/phone/opening hours/prices/rating/reviews when supplied
-- explicit requested sections and CTA actions
-- existing image URLs or assets
-- explicit user design preferences
-
-Ignore copied UI garbage from Google Maps such as "Zapisz", "Udostępnij",
-"Wyznacz trasę", icons and unrelated navigation labels.
-Never invent missing business facts.
-
-2) UNDERSTAND THE BRAND
-Infer, from evidence in the prompt:
-- audience
-- price/positioning
-- emotional personality
-- product character
-- cultural associations
-- physical environment
-- colors/materials/textures naturally associated with the brand
-- photography mood
-- typography personality
-- motion personality
-- visual directions that would feel WRONG
-
-Explicit user preferences ALWAYS beat inference.
-
-Example of semantic reasoning:
-A Japanese mochi donut + matcha shop mentioning sakura, Japanese atmosphere,
-soft desserts and Instagram-friendly presentation should naturally suggest a light,
-appetizing, tactile world: warm cream, sakura pink, matcha green, charcoal text,
-soft rounded product-inspired geometry, airy Japanese restraint and playful controlled
-motion. Random black/gold luxury, yellow/black industrial or corporate blue would be
-wrong unless the user explicitly asks for it.
-
-3) CREATE ONE COHERENT ART DIRECTION
-Silently choose:
-- one visual concept/story
-- palette with semantic reason
-- display/body typography
-- hero composition
-- page rhythm
-- grid/alignment logic
-- shape language
-- photography direction
-- CTA hierarchy
-- motion language
-- mobile behavior
-
-Do not mix unrelated visual trends.
-One strong idea is better than ten trendy effects.
-
-CRITICAL: Do not put all sections into App.tsx. Split into meaningful components.
-Putting the entire website in a single App.tsx file is considered a failure.
-
-4) ARCHITECT THE PAGE
-Choose the sections that THIS business needs. Do not force a generic template.
-A restaurant may need menu/gallery/reviews/location. An architect may need project-led
-editorial case studies. A barber may need services/pricing/booking. A product landing
-page may need proof/features/demo/pricing.
-
-Consecutive sections should not repeat the same composition.
-
-===============================================================================
-A2. DESIGN INTELLIGENCE FRAMEWORK — SET THREE INTERNAL DIALS FIRST
-===============================================================================
-Before coding, silently choose three internal parameters based on the business
-(they stay internal — never show them to the user):
-
-- DESIGN_VARIANCE 1-10: how far from conventional layouts the page should go.
-- MOTION_INTENSITY 1-10: how much motion the brand calls for.
-- VISUAL_DENSITY 1-10: how much content/decoration per viewport.
-
-Examples: premium local restaurant → variance 7, motion 5, density 3.
-Playful Japanese dessert brand → variance 8, motion 7, density 4.
-Law firm → variance 4, motion 2, density 4. Creative studio → variance 9, motion 8, density 3.
-
-ONE STRONG IDEA
-Give the page ONE memorable creative concept (e.g. for a mochi/matcha shop:
-"Soft Tokyo Dessert Garden"). It is an internal art-direction anchor, not user copy.
-Palette, shapes, photography, motion and layout must all serve that one idea.
-
-LAYOUT RHYTHM — KILL THE TEMPLATE
-If the page has ~8 sections, use at least 4 distinct composition families, chosen
-for THIS business: asymmetric hero, immersive image strip, editorial product grid,
-full-bleed image, typography-led story, horizontal gallery, large testimonial
-composition, map/location split, visual menu, sticky product story.
-NEVER: card grid + card grid + card grid + CTA + footer.
-Do not put a tiny uppercase eyebrow label above EVERY section. Vary the entry.
-
-MOTION CLAIMED = MOTION SHOWN
-If MOTION_INTENSITY >= 5 the page MUST visibly move: hero entrance, purposeful
-scroll reveals, CTA feedback, image/product motion or one signature interaction.
-But do not animate everything. Motion must match the brand (mochi = soft elastic
-springs; luxury = slow controlled reveals; technical = crisp precise transitions).
-Prefer transform/opacity, 100-250ms for frequent interactions, and always respect
-prefers-reduced-motion.
-
-TYPOGRAPHIC INTELLIGENCE
-Fonts are a branding tool, not a default. Do NOT default to Inter. Choose type by
-personality: rounded = friendly/tactile, grotesk = modern/confident, serif =
-editorial/cultural, condensed = energetic/poster-like, geometric = precise/
-contemporary. Keep one coherent type system (display + body + nav + CTA) with
-controlled measure and line-height. Do not reach for a random serif just because
-"premium" — that is exactly the AI tell.
-
-IMAGERY INTELLIGENCE
-Photography is art direction, not decoration. Decide light, crop, perspective,
-background, saturation and subject distance so every image shares one mood.
-For food/hospitality/lifestyle the imagery IS the product — make it large and
-appetizing, never tiny stock thumbnails. Never replace photos with gradient divs
-or decorative blobs.
-
-ONE WORD TEST / CONTEXT OVERRIDES WORDS
-"mochi" alone should produce a soft, tactile, airy Japanese dessert world.
-"brutalist architecture" a completely different one. "underground techno club"
-another. Read the FULL prompt: context always overrides isolated words.
-"Japanese" does NOT mean red circle + sakura + anime — prefer restraint,
-whitespace, materiality, craft and composition as cultural references.
-
-PRE-FLIGHT — SAME REQUEST, BEFORE THE FINAL JSON
-Silently verify: does this look like THIS business? No generic AI template?
-Hero complete and impressive in the first viewport? No empty sections? Coherent
-palette/typography/shape system? CTA visible with contrast? Mobile handled?
-Every import exists and every component file was returned? package.json matches
-imports? No TODO, no placeholders, no "implement later"? Motion actually works?
-If anything fails, improve it BEFORE answering — this is still the same request.
-
-===============================================================================
-A3. DESIGN QUALITY CONTRACT — BE A DESIGNER, NOT A TEMPLATE ENGINE
-===============================================================================
-The page you return IS the product. It must look art-directed by a very good
-digital designer: one strong concept, excellent typography, real imagery,
-composed layout, smooth motion, coherent color, brand character. A merely
-"correct" React page is a FAILURE.
-
-1) ONE CREATIVE CONCEPT GOVERNS EVERYTHING
-Choose ONE internal concept name (e.g. Mad Mochi → "Soft Tokyo Dessert
-Garden"). Every decision — font, color, photo, grid, shape, motion, CTA,
-microdetail — must serve that concept. If an element does not serve it,
-remove it.
-
-2) HERO MUST WOW IN THE FIRST VIEWPORT
-Do NOT default to navbar + headline + paragraph + two buttons + image on the
-right. Consider, for THIS business: oversized display typography; text
-interacting with photography; background photography with layered content;
-typography crossing image boundaries; masking reveals; unusual but controlled
-alignment; asymmetric grids; product close-ups; editorial crops; text used as
-a graphic form; intentional whitespace; brand-specific microdetails. The hero
-must communicate the brand character in a single screenshot.
-
-3) TYPOGRAPHY IS PART OF THE COMPOSITION
-Design display, body, label and CTA type as one system. Conscious pairings
-welcome when they fit the brand: wide grotesk + expressive italic serif,
-condensed display + clean sans, rounded display + neutral grotesk, editorial
-serif + geometric sans. Use huge controlled headings, deliberate line breaks,
-italic emphasis, outlined display text, uppercase micro labels, letter
-spacing, text width and line-height as design tools. NEVER ship "everything
-16px + one 64px heading".
-
-4) COLOR IS ART DIRECTION, NOT A TOKEN SET
-Define: base, surface, dominant brand field, accent, text, muted, and image
-treatment. Photos must sit tonally inside the palette (subtle overlay, wash,
-vignette or soft gradient allowed — never loud). Never introduce a random new
-color in section 5. Example direction for a mochi/matcha brand: warm cream
-base + dusty sakura field + deep matcha accents + warm near-black text.
-
-5) IMAGERY IS THE DESIGN FOR FOOD/HOSPITALITY/FASHION/BEAUTY/ARCHITECTURE
-Prefer large, full-bleed, close-up, textured, asymmetrically cropped imagery.
-An image can BE a section (edge-to-edge break, overlapping strip, gallery
-sequence, photographic break between blocks). Do not put every photo inside a
-rounded-3xl card.
-
-6) SECTION RHYTHM — NO REPEATED PATTERN
-With 7-9 sections use several distinct composition families (immersive hero,
-typography-led statement, product grid, full-width image break, editorial
-story, horizontal gallery, large testimonial, location split). Vary density:
-dense → airy → visual → informational → immersive. Not every section is
-centered, not every section has the same padding or a 1200px container — mix
-contained, full-bleed, edge-aligned and oversized.
-
-7) MOTION SYSTEM (NOT RANDOM FADES)
-Timing bands: micro interactions 100-220ms; content reveals 400-750ms; hero
-signature 600-1100ms when justified. Easings: entry = ease-out, moving object
-= ease-in-out, continuous = linear, hover = fast responsive. Prefer transform,
-opacity, clip-path, mask, scale, subtle blur, slight parallax — avoid
-animating width/height/top/left. At most one motion library (framer-motion is
-fine).
-
-8) SIGNATURE MOTION — 1-2 IDEAS MAX
-Give visually strong pages 1-2 signature interactions (e.g. hero headline
-mask reveal, hero photo scale 1.04→1, staggered product hovers, a light
-horizontal momentum moment). Do NOT stack ten gimmicks.
-
-9) SCROLL IS A CONTINUOUS COMPOSITION
-Sections should bleed into each other: color fields continuing across borders,
-images overlapping the next block, typography crossing section edges, a sticky
-or masked moment, subtle parallax. Never scroll-jack. The page is ONE
-composition, not eight stacked component demos.
-
-10) DESIGN THE WHOLE PAGE, NOT JUST THE HERO
-Every major section — products/menu, gallery, story, reviews, location, CTA,
-footer — gets a conscious composition. The footer is part of the design.
-
-11) MICRODETAILS
-Deliberately design dividers, nav hover, small labels, badges, image captions,
-price alignment, icon treatment, button arrows, underline animation, focus
-states. Restraint wins.
-
-12) RESPONSIVE IS DESIGNED, NOT PATCHED
-Mobile gets its own composition: resized headlines, reordered sections,
-changed crops, adjusted whitespace, reduced animation intensity, large touch
-targets. The mobile hero must still be impressive. Respect
-prefers-reduced-motion.
-
-13) MENTAL SCREENSHOT PRE-FLIGHT (same request, before final JSON)
-Imagine screenshots: (A) hero alone — designer quality? (B) middle section —
-still interesting? (C) full page — one coherent brand? (D) mobile — premium?
-(E) motion — purposeful and smooth? Then run the BRAND REPLACEMENT TEST:
-"Could I swap only the name, text and photos and this would fit a totally
-different business?" If YES, the design is generic — make composition,
-typography, shape, imagery, details and motion brand-specific until it isn't.
-
-14) QUALITY OVER TOKEN COUNT
-32k is space, not a target. Never pad code. Rich, complete, maintainable,
-well-split components; every line earns its place.
-
-===============================================================================
-B. VISUAL QUALITY STANDARD
-===============================================================================
-The result must look like a website a strong boutique agency could sell tomorrow.
-It must NOT look like an AI starter template.
-
-HIERARCHY
-- Each viewport has one dominant focal point.
-- Headline, image, CTA and decorations must not all fight equally.
-
-COMPOSITION
-- Use intentional grids and alignment.
-- Use whitespace deliberately.
-- Hero composition should be specific to the business, not always centered.
-- Alternate scale, density, alignment and image treatment between sections.
-
-TYPOGRAPHY
-- Typography is part of the brand identity.
-- Do not default to Inter unless it genuinely fits.
-- Use a clear responsive type scale and intentional line lengths.
-- You MAY import Google Fonts with @import in index.css.
-
-COLOR
-- Every major color must make sense for the business.
-- Do not default to dark mode, black/gold, corporate blue, purple gradients or neon.
-
-SHAPE LANGUAGE
-- Borders, radii, buttons, image crops and decorative forms must feel related.
-- Do not put everything in giant rounded cards.
-
-PHOTOGRAPHY
-- Images should share a coherent mood, light and framing.
-- Make product/venue photography large enough to matter.
-- Do not use tiny decorative stock thumbnails everywhere.
-
-MOTION
-- Use framer-motion selectively when it improves the experience.
-- Motion must match the brand personality.
-- Avoid animating every element with the same fade-up.
-- Respect prefers-reduced-motion when practical.
-
-MOBILE
-- Design intentionally for narrow screens.
-- No horizontal overflow.
-- Navigation, hero, galleries, menus and CTAs must remain usable.
-
-===============================================================================
-C. ANTI-AI-SLOP RULES
-===============================================================================
-Do NOT default to any of these unless the business-specific concept truly calls for it:
-- centered hero + two buttons + three equal cards
-- bento grid
-- gradient headline text
-- purple/blue blobs
-- glassmorphism
-- huge rounded-3xl containers everywhere
-- icon-in-circle for every bullet
-- same eyebrow + heading + paragraph structure in every section
-- fake statistics
-- fake testimonials
-- generic SaaS layout for a local business
-- random marquee, tilt, parallax or counters
-- excessive shadows
-- animation on everything
-
-No lorem ipsum. No TODOs. No fake addresses, phone numbers, prices, ratings or reviews.
-When exact facts are unknown, write neutral copy that does not invent them.
-
-===============================================================================
-D. IMPLEMENTATION CONTRACT — REAL REACT ONLY
-===============================================================================
-Build a real React 18 + TypeScript + Vite project.
-
-IMPORTANT FOR SITEMORPH LIVE PREVIEW:
-- Use NORMAL CSS in src/index.css and semantic className values.
-- DO NOT use Tailwind utility classes.
-- DO NOT rely on Tailwind/PostCSS to generate the design.
-- Do not use CSS modules that are not returned.
-- Do not generate preview.html.
-
-Allowed runtime imports ONLY:
-- react
-- react-dom / react-dom/client
-- framer-motion
-- lucide-react
-- clsx
-
-Do NOT import gsap, lenis, radix, embla, three, swiper, styled-components,
-Tailwind plugins or any other package. The SiteMorph browser preview intentionally
-supports a small reliable dependency set.
-
-MUST split into components. Do NOT put the entire page in App.tsx.
-App.tsx should ONLY compose section components — like an orchestrator.
-Each major section (hero, menu, gallery, reviews, contact, footer) MUST be
-a separate file in src/components/ (or src/lib/ for shared data/types).
-
-Required minimum component split for a multi-section site:
-- src/components/Hero.tsx (or equivalent primary section)
-- src/components/Section2.tsx, Section3.tsx, etc. for each distinct section
-- src/components/Footer.tsx
-- src/App.tsx — ONLY imports and composes the above
-
-App.tsx should be under 80 lines. If it is longer, you are doing it wrong.
-Every imported local file MUST be returned in the files object.
-Keep arrays/data close to the component that owns them (e.g. src/data/menu.ts).
-
-Interactions should work:
-- anchor navigation scrolls to valid ids
-- mobile navigation opens/closes
-- galleries/carousels use simple React state if needed
-- buttons use real supplied links/phone numbers when available
-- forms must not pretend to submit to a backend that was not supplied
-
-===============================================================================
-D2. CONTENT CREDIBILITY — ONLY REAL FACTS
-===============================================================================
-The user's prompt is the ONLY source of factual data. Extract real facts
-(name, offer, address, phone, hours, prices, real menu items) and use them.
-
-NEVER invent:
-- customer reviews, ratings or star counts
-- awards, certifications or years of experience
-- numbers of completed projects or clients
-- addresses, phone numbers, emails or opening hours
-- prices or menu items that are not in the prompt
-- team members, qualifications or partners
-
-If a fact is missing, omit the element entirely or use honest neutral copy
-(e.g. "Zadzwoń po aktualny cennik") — never fabricate a plausible value.
-If you must show demo content, make it clearly recognizable as demo (e.g.
-"Przykładowa cena") even in the preview.
-
-INTERACTIONS MUST WORK: mobile menus, accordions, filters, tabs and anchors
-must actually function. A contact form without a real backend must NOT claim
-it sent the message — use mailto/tel links or a clearly labeled demo state.
-
-INTERPRETING VAGUE WORDS:
-"premium", "nowoczesny", "ładny", "profesjonalny" and "wow" are NOT design
-instructions. Translate them into context-specific decisions: what does
-premium mean for THIS product, audience and price point? Choose concrete
-composition, typography, photography and detail — not black+gold by default.
-
-===============================================================================
-E. IMAGE PLACEHOLDERS — ONE AI CALL, REAL ASSETS AFTERWARD
-===============================================================================
-If the user supplied usable image URLs, use those exact URLs where appropriate.
-
-If more imagery is needed, do NOT hallucinate random image URLs.
-Instead use placeholders in JSX/CSS:
-__SITEMORPH_IMAGE_1__
-__SITEMORPH_IMAGE_2__
-...
-up to __SITEMORPH_IMAGE_8__
-
-For every placeholder used, return a matching asset request in the
-"assetRequests" array (below). Each request is a precise, searchable spec:
-
-{
-  "id": "hero-food",
-  "placeholder": "__SITEMORPH_IMAGE_1__",
-  "role": "hero background | product close-up | venue interior | texture | lifestyle",
-  "subject": "Japanese mochi donuts with matcha glaze on a ceramic plate",
-  "orientation": "landscape | portrait | square",
-  "aspect": "wide | 4:3 | 1:1",
-  "lighting": "bright natural light, soft shadows",
-  "color": "cream, pink, green tones",
-  "mood": "fresh, appetizing, delicate",
-  "query": "mochi donut matcha pastel food photography natural light"
-}
-
-The "query" field is the final English search string used to resolve the asset.
-The other fields guide the resolver's choice. Every placeholder you emit MUST
-have a matching assetRequests entry, and every assetRequests entry should
-reference a placeholder that actually appears in the code.
-
-Also keep the short-form list in meta.image_queries (query per placeholder) for
-backward compatibility with older resolvers.
-
-SiteMorph will resolve those placeholders to real assets AFTER your single AI
-response, using (in order): user-supplied images, the SiteMorph curated asset
-catalog, a live Unsplash search. If nothing can be resolved for a slot, the
-placeholder is removed gracefully and SiteMorph reports a warning — never a
-fake or broken URL.
-
-===============================================================================
-F. OUTPUT — VALID JSON ONLY (SINGLE OBJECT, NO FENCES, NO COMMENTARY)
-===============================================================================
-Return exactly ONE JSON object. Your budget is up to 32000 output tokens — use
-only what the site actually needs; never pad. Rich, complete, well-split
-components beat long ones.
-
-{
-  "schemaVersion": 2,
-  "projectName": "Mad Mochi",
-
-  "designBrief": {
-    "businessFacts": "exact facts from the prompt: name, offer, address, phone, hours",
-    "goal": "primary conversion action and what the page must achieve",
-    "audience": "who it is for (label assumptions as assumptions)",
-    "brandCharacter": "personality, positioning, price level",
-    "creativeConcept": "ONE concept name (e.g. Soft Tokyo Dessert Garden)",
-    "paletteDirection": "why these colors serve the brand",
-    "typographyDirection": "font choices and their character rationale",
-    "shapeLanguage": "radius/border/button system",
-    "composition": "hero idea, section rhythm, grid logic",
-    "photoStyle": "lighting, framing, mood for all imagery",
-    "motion": "motion personality + 1-2 signature interactions",
-    "userConstraints": "explicit user preferences and bans",
-    "avoidPatterns": "concrete patterns that would be wrong for THIS brand"
-  },
-
-  "designTokens": {
-    "background": "#...", "surface": "#...", "text": "#...",
-    "mutedText": "#...", "primary": "#...", "secondary": "#...",
-    "accent": "#...", "border": "#...",
-    "displayFont": "Google Font name", "bodyFont": "Google Font name",
-    "fontWeights": "...", "headingScale": "...", "lineHeight": "...",
-    "letterSpacing": "...", "spacingScale": "...", "contentWidth": "...",
-    "radiusSystem": "...", "shadowSystem": "...",
-    "motionDurations": "...", "motionEasings": "..."
-  },
-
-  "sectionPlan": [
-    {
-      "id": "hero",
-      "purpose": "what this section achieves",
-      "message": "key message",
-      "content": "which real facts/data belong here",
-      "imageRole": "role of imagery",
-      "composition": "concrete layout",
-      "cta": "optional CTA",
-      "mobile": "behavior on narrow screens"
-    }
-  ],
-
-  "assetRequests": [ { "id": "...", "placeholder": "__SITEMORPH_IMAGE_1__", "role": "...", "subject": "...", "orientation": "...", "aspect": "...", "lighting": "...", "color": "...", "mood": "...", "query": "English search string" } ],
-
-  "files": {
-    "main/frontend/package.json": "...",
-    "main/frontend/index.html": "...",
-    "main/frontend/src/main.tsx": "...",
-    "main/frontend/src/index.css": "...",
-    "main/frontend/src/App.tsx": "...",
-    "main/frontend/src/components/SomeComponent.tsx": "..."
-  },
-
-  "warnings": ["missing facts to be completed by the owner", "user constraints honored"],
-
-  "meta": {
-    "title": "...", "businessName": "...", "niche": "...",
-    "headline": "...", "subheadline": "...", "ctaText": "...",
-    "designConcept": "short concept name", "brandSummary": "short brand/design summary",
-    "palette": ["#...", "#..."],
-    "image_queries": ["query for image 1", "query for image 2"]
-  }
-}
-
-RULES FOR designTokens:
-- Every value MUST be actually used in the project (CSS custom properties in
-  src/index.css, referenced by components). Tokens that exist only in this JSON
-  are a defect. Colors, radii, shadows, spacing and motion values in the code
-  must come from the same system — no random new values in later sections.
-- Fonts MUST be loaded via @import of Google Fonts at the very top of
-  src/index.css (or <link> in index.html). Never reference a font the project
-  does not load.
-
-Minimum required files:
-- main/frontend/package.json
-- main/frontend/index.html
-- main/frontend/src/main.tsx
-- main/frontend/src/index.css
-- main/frontend/src/App.tsx
-- At least 3 additional component files in main/frontend/src/components/
-  (e.g. Hero.tsx, Footer.tsx, Menu.tsx — adapt to the business)
-
-CRITICAL: App.tsx must be SHORT (under 80 lines) and only compose components.
-The FULL page code MUST live in separate component files, not in App.tsx.
-If App.tsx contains section JSX markup, the project has FAILED the requirement.
-
-package.json should contain only the dependencies actually needed by this project.
-Use React 18. Vite is allowed as a devDependency for export/build compatibility.
-
-Before answering, silently inspect the complete page as if you were selling it to the
-business owner. If it looks generic, repetitive, underdesigned, disconnected from the
-brand or too empty, improve it BEFORE returning JSON.
-"""
+# The active system contract lives in app.builder_prompt.
 
 
 def _build_generation_prompt(
@@ -1712,7 +1063,7 @@ def _build_generation_prompt(
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     prefs = _explicit_preferences(data)
     user_assets = [
-        str(item.get("url"))
+        {"url": str(item.get("url")), "description": item.get("query", "")}
         for item in (image_assets or [])
         if isinstance(item, dict) and str(item.get("url") or "").startswith(("http://", "https://", "/api/"))
     ]
@@ -1802,10 +1153,8 @@ def extract_contract(parsed: Dict[str, Any]) -> Dict[str, Any]:
     Everything is best-effort; the legacy meta fields remain the source of the
     response shape the frontend already understands.
     """
-    def _safe(obj: Any, limit: Optional[int] = None) -> List[Any]:
-        if not isinstance(obj, list):
-            return []
-        return obj[:limit] if limit is not None else list(obj)
+    def _safe(obj: Any, limit: int = 40) -> List[Any]:
+        return obj[:limit] if isinstance(obj, list) else []
 
     brief = parsed.get("designBrief")
     if not isinstance(brief, dict):
@@ -1831,170 +1180,7 @@ def extract_contract(parsed: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def validate_project(files: Dict[str, str]) -> Tuple[bool, List[str]]:
-    issues: List[str] = []
-
-    missing = sorted(REQUIRED_PROJECT_FILES - set(files.keys()))
-    if missing:
-        issues.append("Missing required files: " + ", ".join(missing))
-
-    app = files.get("main/frontend/src/App.tsx", "")
-    css = files.get("main/frontend/src/index.css", "")
-    package = files.get("main/frontend/package.json", "")
-
-    # A well-architected App.tsx can be intentionally tiny when the real design
-    # lives in meaningful components. Reject only genuinely empty/broken entry files.
-    if len(app.strip()) < 120:
-        issues.append("App.tsx is missing or suspiciously empty")
-
-    css_rule_count = len(re.findall(r"[^@{}][^{}]*\{[^{}]*:[^{}]*\}", css, re.DOTALL)) if css else 0
-    if len(css.strip()) < 120 or css_rule_count < 3:
-        issues.append("index.css has too few real CSS rules")
-
-    total_chars = sum(len(v) for v in files.values())
-    if total_chars < 6500:
-        issues.append("Project is too small for a polished business website")
-
-    all_code = "\n".join(files.values())
-    for pattern in BANNED_PLACEHOLDER_PATTERNS:
-        if re.search(pattern, all_code, re.IGNORECASE):
-            issues.append(f"Placeholder content detected: {pattern}")
-
-    try:
-        pkg = json.loads(package) if package else {}
-        deps = {**(pkg.get("dependencies") or {}), **(pkg.get("devDependencies") or {})}
-        if "react" not in deps or "react-dom" not in deps:
-            issues.append("package.json misses React dependencies")
-        if "vite" not in deps:
-            issues.append("package.json misses Vite")
-
-        # Import/dependency coherence — warnings only, never a hard fail.
-        # Every bare import should exist in package.json (or in the preview-safe
-        # allowlist below). Catches the AI importing random libraries without
-        # declaring them.
-        PREVIEW_SAFE_IMPORTS = {
-            "react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime",
-            "react-dom/client", "framer-motion", "motion", "lucide-react", "clsx",
-            "class-variance-authority", "tailwind-merge", "gsap",
-            "@studio-freight/lenis", "lenis", "embla-carousel-react",
-            "canvas-confetti", "@radix-ui/react-dialog",
-            "vite", "@vitejs/plugin-react", "typescript", "tailwindcss",
-            "postcss", "autoprefixer",
-        }
-        import_specs: set = set()
-        for v in files.values():
-            if not isinstance(v, str):
-                continue
-            for m in re.finditer(
-                r"""(?:import\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]|require\(['"]([^'"]+)['"]\))""",
-                v,
-            ):
-                spec = (m.group(1) or m.group(2) or "").strip()
-                if not spec or spec.startswith((".", "/", "@/")) or "\0" in spec:
-                    continue
-                if spec.startswith("@") and spec.count("/") >= 1:
-                    spec = "/".join(spec.split("/")[:2])
-                else:
-                    spec = spec.split("/")[0]
-                import_specs.add(spec)
-        missing_deps = sorted(
-            s for s in import_specs
-            if s not in PREVIEW_SAFE_IMPORTS and s not in deps
-        )
-        if missing_deps:
-            issues.append(
-                "Imports without package.json dependency: " + ", ".join(missing_deps[:6])
-            )
-    except Exception:
-        issues.append("package.json is not valid JSON")
-
-    # Resolve local imports against the generated virtual project.
-    project_paths = set(files.keys())
-    local_import_errors: List[str] = []
-    source_exts = (".tsx", ".ts", ".jsx", ".js", ".css", ".json")
-
-    def _resolve_local(importer: str, spec: str) -> Optional[str]:
-        importer_rel = importer[len("main/frontend/"):]
-        if spec.startswith("@/"):
-            base = "src/" + spec[2:]
-        elif spec.startswith("/"):
-            base = spec.lstrip("/")
-        else:
-            parent = posixpath.dirname(importer_rel)
-            base = posixpath.normpath(posixpath.join(parent, spec))
-        candidates = [base]
-        if not any(base.endswith(ext) for ext in source_exts):
-            candidates += [base + ext for ext in source_exts]
-            candidates += [posixpath.join(base, "index" + ext) for ext in source_exts]
-        for rel in candidates:
-            full = "main/frontend/" + rel.lstrip("/")
-            if full in project_paths:
-                return full
-        return None
-
-    import_re = re.compile(r"(?:import\s+(?:[^'\"]*?\s+from\s+)?['\"]([^'\"]+)['\"]|require\(['\"]([^'\"]+)['\"]\))")
-    for importer, content in files.items():
-        if not importer.endswith((".tsx", ".ts", ".jsx", ".js")) or not isinstance(content, str):
-            continue
-        for match in import_re.finditer(content):
-            spec = (match.group(1) or match.group(2) or "").strip()
-            if spec.startswith(("./", "../", "/", "@/")) and not _resolve_local(importer, spec):
-                local_import_errors.append(f'{importer}: missing local import "{spec}"')
-    if local_import_errors:
-        issues.extend(local_import_errors[:8])
-
-    # Slop heuristics. These are warnings, not automatic failures.
-    rounded_3xl = all_code.count("rounded-3xl") + all_code.count("rounded-[32")
-    gradient_text = all_code.count("bg-clip-text") + all_code.count("text-transparent")
-    backdrop = all_code.count("backdrop-blur")
-    if rounded_3xl >= 8:
-        issues.append("Possible AI-slop: excessive huge rounded containers")
-    if gradient_text >= 4:
-        issues.append("Possible AI-slop: excessive gradient text")
-    if backdrop >= 8:
-        issues.append("Possible AI-slop: excessive glass/backdrop blur")
-
-    tsx_files = [k for k in files if k.endswith((".tsx", ".jsx"))]
-    component_files = [
-        k for k in tsx_files
-        if k.startswith("main/frontend/src/components/")
-    ]
-    
-    # A well-structured project has separate component files, not everything in App.tsx.
-    # App.tsx should be SHORT (< 80 lines for a multi-section site) — it should only
-    # compose components, not contain all section markup.
-    app_lines = len(app.strip().splitlines()) if app.strip() else 0
-    
-    if len(component_files) < 2:
-        issues.append(
-            f"Project has only {len(component_files)} component file(s) — "
-            f"minimum 3 expected (e.g. Hero.tsx, Footer.tsx, Menu.tsx). "
-            f"Do NOT put all sections in App.tsx."
-        )
-    
-    if len(app.strip()) >= 900 and len(component_files) < 2:
-        issues.append(
-            f"App.tsx is {app_lines} lines long but has {len(component_files)} "
-            f"component file(s). App.tsx should be SHORT and compose components."
-        )
-    
-    has_component_structure = len(component_files) >= 2 or (len(tsx_files) >= 2 and app_lines < 80)
-    if not has_component_structure:
-        issues.append("React project has too little component structure")
-    
-    has_placeholder_content = any(
-        re.search(pattern, all_code, re.IGNORECASE) for pattern in BANNED_PLACEHOLDER_PATTERNS
-    )
-    hard_fail = (
-        bool(missing)
-        or len(app.strip()) < 120
-        or css_rule_count < 3
-        or total_chars < 6500
-        or not has_component_structure
-        or has_placeholder_content
-        or bool(local_import_errors)
-    )
-    return (not hard_fail), issues
+# Validation is imported from app.builder_validation.
 
 
 # =============================================================================
@@ -2740,7 +1926,6 @@ Return ONLY JSON array:
 
 
 @router.post("/generate-questions")
-@router.post("/generate-questions")
 def generate_questions(data: QuestionInput):
     """Cheap compatibility wizard. No AI request is made here.
 
@@ -2811,8 +1996,10 @@ def _should_refine(mode: str, review_score: float, validator_issues: List[str]) 
 
 
 def _user_uploaded_assets(data: BuilderInput) -> List[Dict[str, str]]:
+    descriptions = {d.get("url"): str(d.get("name") or d.get("description") or "")[:160]
+                    for d in (data.image_details or []) if isinstance(d, dict)}
     return [
-        {"query": "user uploaded asset", "url": url}
+        {"query": descriptions.get(url) or "user uploaded asset", "url": url}
         for url in (data.image_urls or [])[:8]
         if url
     ]
@@ -2852,43 +2039,27 @@ def _is_retryable_transport_error(err: Optional[str]) -> bool:
 
 
 def _generate_project_with_retry(
-    model: str,
-    generation_prompt: str,
-    max_tokens: Optional[int] = None,
+    model: str, generation_prompt: str, max_tokens: Optional[int] = None,
 ) -> Tuple[Optional[Dict[str, str]], Dict[str, Any], Optional[str]]:
-    """Compatibility name for the strict single-request generation path.
-
-    There are no hidden token-downshift attempts and no transport retries here.
-    One user generation action results in at most one provider request.
-    """
+    """Compatibility name; exactly one request, including on HTTP errors."""
     text, err = xkiro_generate_model(
-        model,
-        SYSTEM_PROMPT,
-        generation_prompt,
-        temperature=0.58,
-        max_tokens=max_tokens or MAX_OUTPUT_TOKENS,
-        timeout=AI_TIMEOUT,
+        model, SYSTEM_PROMPT, generation_prompt, temperature=0.58,
+        max_tokens=max_tokens or MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT,
     )
     if not text:
-        return None, {}, err or "empty model response"
-
+        return None, {}, err or "Pusta odpowiedź modelu"
     try:
         parsed = extract_json(text)
-        candidate_files = normalize_files(parsed.get("files") or {})
-        candidate_meta = parsed.get("meta") or {}
-        contract = extract_contract(parsed)
-        candidate_files.pop("main/frontend/preview.html", None)
-        if not candidate_files:
-            return None, {}, "model returned no project files"
-        valid, issues = validate_project(candidate_files)
+        files = normalize_files(parsed.get("files"))
+        files.pop("main/frontend/preview.html", None)
+        valid, issues = validate_project(files)
         if not valid:
-            return None, candidate_meta, " | ".join(issues[:8])
-        for key, value in contract.items():
-            if value not in (None, "", [], {}):
-                candidate_meta[key] = value
-        return candidate_files, candidate_meta, None
-    except Exception as exc:
-        return None, {}, f"parse error / nieprawidlowy JSON/projekt: {str(exc)[:320]}"
+            return None, {}, " | ".join(issues[:10])
+        meta = parsed.get("meta") if isinstance(parsed.get("meta"), dict) else {}
+        meta.update(extract_contract(parsed))
+        return files, meta, None
+    except (ValueError, TypeError, AttributeError):
+        return None, {}, "Niekompletny lub niepoprawny JSON projektu."
 
 
 def _make_art_input(data: BuilderInput) -> DesignAgentInput:
@@ -2908,247 +2079,87 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
     )
 
 
-@router.post("/generate")
-def generate_site(data: BuilderInput):
-    warning_parts: List[str] = []
-    mode = (data.mode or "normal").lower().strip()
-    selected_model = DEEPSEEK_MODEL
-
+def _generate_design_spec(data: BuilderInput, supplied):
+    from app.design.prompt import SYSTEM_PROMPT as spec_prompt
+    from app.design.validation import validate_spec
+    raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
+    request = json.dumps({"original_user_prompt": raw_prompt, "preferences": _explicit_preferences(data),
+                          "provided_images": supplied}, ensure_ascii=False, separators=(",", ":"))
+    text, error = xkiro_generate_model(DEEPSEEK_MODEL, spec_prompt, request,
+        temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
+    if not text:
+        return None, [], error or "Pusta odpowiedź modelu."
     try:
-        if not XKIRO_API_KEY:
-            raise HTTPException(status_code=503, detail="Brak XKIRO_API_KEY")
+        spec, warnings = validate_spec(extract_json(text), [asset["url"] for asset in supplied])
+        return spec, warnings, None
+    except (ValueError, TypeError, AttributeError, KeyError) as exc:
+        # A concise contract error, no additional AI request and no substitute website.
+        detail = str(exc).split("\n")
+        return None, [], "Niepoprawny plan strony: " + " ".join(detail[:4])[:700]
 
-        raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
-        if not raw_prompt:
-            raise HTTPException(status_code=400, detail="Prompt jest pusty")
 
-        print(f"[SiteMorph] single-pass mode={mode} model={selected_model}", flush=True)
-
-        # User-owned / prompt-provided assets can be passed to the one generation call.
-        image_assets: List[Dict[str, str]] = _user_uploaded_assets(data)
-        prompt_urls = re.findall(r"https?://[^\s)\]>\"']+", raw_prompt)
-        for url in prompt_urls:
-            if re.search(r"\.(?:png|jpe?g|webp|gif)(?:\?|$)|googleusercontent\.com|gstatic\.com", url, re.I):
-                if not any(a.get("url") == url for a in image_assets):
-                    image_assets.append({"query": "image from original prompt", "url": url})
-            if len(image_assets) >= 8:
-                break
-
-        # Compatibility hints are generated LOCALLY only — no extra model calls.
-        art_input = _make_art_input(data)
-        local_brief = _fallback_business_brief(art_input)
-        local_strategy = _fallback_brand_strategy(local_brief, art_input)
-        local_art = _fallback_art_direction(art_input, local_brief, local_strategy)
-
-        generation_prompt = _build_generation_prompt(
-            data,
-            local_brief,
-            local_strategy,
-            local_art,
-            image_assets,
-        )
-
-        # Full 32k ceiling everywhere — no adaptive shrinking on Vercel.
-        # (Vercel Hobby caps functions at 300s; a single 32k-limit request only
-        # 504s on unusually long runs — see final report for the platform math.)
-        main_budget = MAX_OUTPUT_TOKENS
-        print(f"[SiteMorph] single-pass token budget={main_budget}", flush=True)
-
-        parsed_files, parsed_meta, generation_err = _generate_project_with_retry(
-            selected_model,
-            generation_prompt,
-            max_tokens=main_budget,
-        )
-
-        provider = "deepseek-v4-pro"
-        if parsed_files is None:
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    "DeepSeek V4 Pro nie zwrócił kompletnego, poprawnego projektu React. "
-                    "SiteMorph nie podmienia nieudanego generowania gotowym szablonem. "
-                    + (generation_err or "")[:360]
-                ),
-            )
-
-        # Resolve image placeholders WITHOUT another AI request.
-        # Prefer the v2 assetRequests contract (rich specs); fall back to the
-        # legacy flat image_queries list. Never a second LLM call.
-        asset_requests = parsed_meta.get("asset_requests") or []
-        image_queries = parsed_meta.get("image_queries") or parsed_meta.get("imageQueries") or []
-        if not isinstance(image_queries, list):
-            image_queries = []
-
-        # ordered: (placeholder, query) pairs covering every slot used in code.
-        slots: List[Tuple[str, str]] = []
-        if asset_requests:
-            for req in asset_requests:
-                if not isinstance(req, dict):
-                    continue
-                ph = str(req.get("placeholder") or "")
-                if not ph.startswith("__SITEMORPH_IMAGE_"):
-                    continue
-                slots.append((ph, str(req.get("query") or "").strip()))
-        if not slots:
-            for idx, query in enumerate(image_queries[:8], start=1):
-                slots.append((f"__SITEMORPH_IMAGE_{idx}__", str(query or "").strip()))
-
-        # Also fill any placeholder the model used but forgot to declare.
-        used_placeholders = sorted(
-            set(re.findall(r"__SITEMORPH_IMAGE_(\d+)__", "\n".join(parsed_files.values())))
-        )
-        known = {ph for ph, _ in slots}
-        for num in used_placeholders:
-            ph = f"__SITEMORPH_IMAGE_{num}__"
-            if ph not in known:
-                slots.append((ph, ""))
-
-        resolved_assets = list(image_assets)
-        unresolved_slots = 0
-        for idx, (placeholder, query) in enumerate(slots[:12], start=1):
-            replacement = ""
-
-            # Prefer a user-supplied asset for the corresponding slot when available.
-            if idx <= len(image_assets):
-                replacement = str(image_assets[idx - 1].get("url") or "")
-
-            if not replacement and query:
-                urls = search_unsplash(query, count=1)
-                if urls:
-                    replacement = urls[0]
-                    resolved_assets.append({"query": query, "url": replacement})
-
-            if replacement:
-                for path in list(parsed_files.keys()):
-                    parsed_files[path] = parsed_files[path].replace(placeholder, replacement)
-            else:
-                unresolved_slots += 1
-                # Never leave a broken placeholder URL in the real React project.
-                for path in list(parsed_files.keys()):
-                    parsed_files[path] = parsed_files[path].replace(placeholder, "")
-
-        if unresolved_slots:
-            warning_parts.append(
-                f"Zdjęcia: {unresolved_slots} slot(ów) bez źródła — usunięto placeholder (dodaj własne zdjęcia, aby je wypełnić)."
-            )
-
-        # Surface honest content warnings from the generator contract.
-        for w in (parsed_meta.get("warnings") or [])[:5]:
-            if isinstance(w, str) and w.strip() and w not in warning_parts:
-                warning_parts.append(f"Generator: {w.strip()}")
-        # Strip accidental AI preview artifacts one final time.
-        parsed_files.pop("main/frontend/preview.html", None)
-
-        # Mature static validator remains. It is local/non-AI.
-        valid, validator_issues = validate_project(parsed_files)
-        if validator_issues:
-            warning_parts.append("Validator: " + " | ".join(validator_issues[:6]))
-        if not valid:
-            raise HTTPException(
-                status_code=502,
-                detail="Projekt React nie przeszedł walidacji: " + " | ".join(validator_issues[:8]),
-            )
-
-        # Optional server-side compile diagnostic. This never becomes preview.html and
-        # never replaces the React files shown by the browser preview.
-        build_ok: Optional[bool] = None
-        build_error: Optional[str] = None
-        if SERVER_BUILD_CHECK and not _IS_VERCEL and _has_real_react_app(parsed_files):
-            built_html, build_error = build_single_file_preview(parsed_files)
-            build_ok = bool(built_html)
-            if build_error:
-                warning_parts.append("Server build check: " + build_error.replace("\n", " | ")[:320])
-
-        # Static checks are not a visual score. Never pretend code heuristics saw
-        # the rendered page. Visual quality is intentionally left unscored here.
-        quality_score = None
-        quality_review = {
-            "score": None,
-            "source": "deterministic-validation",
-            "issues": validator_issues,
-            "verdict": "Walidacja techniczna zakończona. Jakość wizualna wymaga obejrzenia wyrenderowanej strony.",
-        }
-
-        meta = parsed_meta or {}
-        business_name = (
-            str(meta.get("businessName") or meta.get("business_name") or "").strip()
-            or (data.business_name or "").strip()
-            or _guess_business_name(raw_prompt, "Strona")
-        )
-        niche = str(meta.get("niche") or data.niche or "").strip()
-        if not meta.get("title"):
-            meta["title"] = business_name or "Strona"
-        if not meta.get("headline"):
-            meta["headline"] = business_name or "Strona"
-        if not meta.get("ctaText"):
-            meta["ctaText"] = "Kontakt"
-
-        compatibility_brief = {
-            "business": {
-                **(local_brief.get("business") or {}),
-                "name": business_name,
-                "category": niche or (local_brief.get("business") or {}).get("category", ""),
-                "subcategory": niche or (local_brief.get("business") or {}).get("subcategory", ""),
-            },
-            "brand_signals": [meta.get("brandSummary")] if meta.get("brandSummary") else [],
-        }
-        compatibility_strategy = {
-            "one_sentence_positioning": meta.get("brandSummary") or "",
-            "visual_associations": [],
-            "color_direction": meta.get("palette") or [],
-            "reasoning_summary": "Integrated inside the single DeepSeek V4 Pro generation response.",
-        }
-        compatibility_art = {
-            "concept_name": meta.get("designConcept") or "",
-            "palette": meta.get("palette") or [],
-            "source": "integrated-single-pass",
-        }
-
-        hero = {
-            "title": meta.get("headline") or business_name,
-            "subtitle": meta.get("subheadline") or "",
-            "cta_text": meta.get("ctaText") or "Kontakt",
-        }
-
-        return {
-            "status": "success",
-            "provider": provider,
-            "model": selected_model,
-            "ai_calls": 1,
-            "pipeline": "single-deepseek-v4-pro-react",
-            "warning": " | ".join(warning_parts) if warning_parts else None,
-            "quality_score": quality_score,
-            "quality_review": quality_review,
-            "refined": False,
-            "build_ok": build_ok,
-            "build_error": build_error,
-            "content": {"hero": hero, "services": [], "pricing": []},
-            "files": parsed_files,
-            "meta": meta,
-            # v2 design contract, passed through from the single generation response.
-            "schema_version": parsed_meta.get("schemaVersion") or 1,
-            "design_brief": parsed_meta.get("design_brief") or {},
-            "design_tokens": parsed_meta.get("design_tokens") or {},
-            "section_plan": parsed_meta.get("section_plan") or [],
-            "asset_requests": parsed_meta.get("asset_requests") or [],
-            "generator_warnings": parsed_meta.get("warnings") or [],
-            "business_brief": compatibility_brief,
-            "brand_strategy": compatibility_strategy,
-            "design_guidelines": compatibility_art,
-            "art_director": "integrated-single-pass",
-            "image_assets": resolved_assets[:12],
-            "gemini_key_loaded": False,
-            "gemini_model": None,
-            "openrouter_model": selected_model,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as exc:
-        import traceback
-        print(f"[Builder] CRITICAL ERROR: {exc}\n{traceback.format_exc()}", flush=True)
-        raise HTTPException(status_code=500, detail=f"Builder critical error: {str(exc)[:420]}")
-
+@router.post("/generate")
+def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    from app.design.assets import bind_assets
+    from app.design.compiler import compile_design, VERSION as design_version
+    from app.design.prompt import PROMPT_VERSION as spec_prompt_version
+    if not current_user.get("id") or current_user.get("is_anon") or current_user["id"] == "anon":
+        raise HTTPException(status_code=401, detail="Zaloguj się, aby wygenerować stronę.")
+    if not XKIRO_API_KEY:
+        raise HTTPException(status_code=503, detail="Brak konfiguracji modelu (XKIRO_API_KEY).")
+    started = time.perf_counter()
+    raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
+    if not raw_prompt or len(raw_prompt) > 24000:
+        raise HTTPException(status_code=400, detail="Prompt musi zawierać od 1 do 24000 znaków.")
+    supplied = _user_uploaded_assets(data)
+    llm_started = time.perf_counter()
+    spec, warnings, error = _generate_design_spec(data, supplied)
+    llm_ms = round((time.perf_counter() - llm_started) * 1000)
+    if spec is None:
+        raise HTTPException(status_code=502, detail="Nie udało się wygenerować poprawnej strony. " + (error or ""))
+    asset_started = time.perf_counter()
+    resolved, photos, asset_warnings, asset_report = bind_assets(spec, UNSPLASH_ACCESS_KEY)
+    asset_ms = round((time.perf_counter() - asset_started) * 1000)
+    compile_started = time.perf_counter()
+    files, bindings, token_warnings = compile_design(spec, resolved)
+    valid, issues = validate_project(files)
+    if not valid:
+        raise HTTPException(status_code=502, detail="Projekt nie przeszedł walidacji: " + " | ".join(issues[:10]))
+    compile_ms = round((time.perf_counter() - compile_started) * 1000, 1)
+    background_tasks.add_task(track_selected_photos, photos, UNSPLASH_ACCESS_KEY)
+    warnings = warnings + asset_warnings + token_warnings
+    hero = resolved["pagePlan"]["sections"][0]["props"]
+    ctas = hero.get("ctas") or ([hero["cta"]] if hero.get("cta") else [])
+    meta = {"title": spec.businessBrief.name, "headline": hero["headline"],
+            "subheadline": hero.get("supportingText") or hero.get("lead") or hero.get("subheadline") or "",
+            "ctaText": ctas[0]["label"] if ctas else "", "schemaVersion": "2.0"}
+    brief = spec.businessBrief.model_dump()
+    return {
+        "status": "success", "provider": "deepseek-v4-pro", "model": DEEPSEEK_MODEL,
+        "ai_calls": 1, "prompt_version": spec_prompt_version,
+        "pipeline": "single-deepseek-spec-design-compiler-react",
+        "design_compiler_version": design_version,
+        "files": files, "meta": meta, "schema_version": "2.0",
+        "design_spec": spec.model_dump(), "resolved_design": resolved,
+        "design_brief": {**brief, "creative": spec.creative.model_dump(),
+                         "semanticProfile": spec.semanticProfile.model_dump()},
+        "design_tokens": spec.tokens.model_dump(), "design_bindings": bindings,
+        "section_plan": resolved["pagePlan"]["sections"],
+        "asset_requests": [asset.model_dump() for asset in spec.assetPlan.requests],
+        "asset_report": asset_report,
+        "generator_warnings": warnings, "warning": " | ".join(warnings) or None,
+        "image_assets": supplied + photos, "refined": False,
+        "quality_review": {"source": "deterministic-spec-and-project-validation",
+                          "issues": issues, "visual_review_performed": False,
+                          "review_input": {"concept": spec.creative.conceptTitle,
+                                           "must_keep_working": spec.validationHints.mustKeepWorking}},
+        "timings": {"model_and_spec_ms": llm_ms, "model_ms": llm_ms, "assets_ms": asset_ms,
+                    "design_compile_ms": compile_ms,
+                    "server_total_ms": round((time.perf_counter() - started) * 1000)},
+        "business_brief": {**brief, "business": {"name": brief["name"], "category": brief["category"]}},
+        "content": {"hero": {"title": meta["headline"], "subtitle": meta["subheadline"],
+                             "cta_text": meta["ctaText"]}},
+    }
 
 # =============================================================================
 # UPLOADS
@@ -3156,17 +2167,22 @@ def generate_site(data: BuilderInput):
 
 
 @router.post("/upload")
-async def upload_assets(files: List[UploadFile] = File(...), db: Session = Depends(get_db)):
+async def upload_assets(files: List[UploadFile] = File(...), db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    if current_user.get("is_anon") or current_user.get("id") == "anon":
+        raise HTTPException(status_code=401, detail="Zaloguj się, aby dodać zdjęcia.")
     urls: List[str] = []
 
     for f in files[:8]:
-        raw = await f.read()
+        raw = await f.read(6_000_001)
         if not raw or len(raw) > 6_000_000:
-            continue
+            raise HTTPException(status_code=422, detail="Zdjęcie musi mieć od 1 bajtu do 6 MB.")
 
-        content_type = f.content_type or "image/jpeg"
-        if not content_type.startswith("image/"):
-            continue
+        content_type = ("image/png" if raw.startswith(b"\x89PNG\r\n\x1a\n") else
+                        "image/jpeg" if raw.startswith(b"\xff\xd8\xff") else
+                        "image/gif" if raw.startswith((b"GIF87a", b"GIF89a")) else
+                        "image/webp" if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP" else None)
+        if not content_type:
+            raise HTTPException(status_code=422, detail="Dodaj zdjęcie PNG, JPG, WebP lub GIF.")
 
         asset = UploadedAsset(
             id=uuid.uuid4().hex[:16],
@@ -3176,9 +2192,9 @@ async def upload_assets(files: List[UploadFile] = File(...), db: Session = Depen
             created_at=time.time(),
         )
         db.add(asset)
-        db.commit()
         urls.append(f"/api/builder/asset/{asset.id}")
 
+    db.commit()
     return {"urls": urls}
 
 

@@ -28,7 +28,7 @@ class RateLimitMiddleware:
         if xff:
             ip = xff.split(b",")[0].strip().decode(errors="ignore")
         else:
-            ip = scope.get("client", ("unknown", 0))[0]
+            ip = (scope.get("client") or ("unknown", 0))[0]
         now = time.time()
         q = self.hits[ip]
         # usun stare

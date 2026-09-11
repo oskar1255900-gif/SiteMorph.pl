@@ -1,50 +1,39 @@
-import { supabase } from './supabase'
+import { supabase } from './supabase';
 
-/**
- * Baza URL dla API. W dev Vite proxy /api -> http://localhost:8000,
- * w prod Vercel rewrite /api/* -> serwis backend. Zwykle zostaje ''.
- * Można nadpisać przez VITE_API_URL (np. przy osobnym hostingu backendu).
- */
-export const API_BASE: string =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+type ApiOptions = RequestInit & { timeoutMs?: number };
 
-/** fetch z JSON-em, bazą API i automatycznym tokenem Supabase (jeśli zalogowany). */
-export async function apiFetch<T = any>(path: string, options: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string> | undefined),
-  }
-  if (options.body && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json'
-  }
+export async function apiFetch<T = any>(path: string, options: ApiOptions = {}): Promise<Response> {
+  const { timeoutMs = 25000, signal, ...fetchOptions } = options;
+  const headers = new Headers(options.headers);
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`);
+  const controller = new AbortController();
+  const cancel = () => controller.abort(signal?.reason);
+  if (signal?.aborted) cancel();
+  else signal?.addEventListener('abort', cancel, { once: true });
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`
-    }
-  } catch {
-    // brak sesji — idziemy jako anon
-  }
-  const timeoutMs = (options as any).timeoutMs ?? 25000
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  const { timeoutMs: _, ...fetchOpts } = options as any
-  try {
-    const res = await fetch(`${API_BASE}${path}`, { ...fetchOpts, headers, signal: controller.signal })
-    clearTimeout(timer)
-    return res
-  } catch (e: any) {
-    clearTimeout(timer)
-    if (e.name === 'AbortError') throw new Error('Przekroczono czas oczekiwania na serwer — spróbuj ponownie')
-    throw e
+    const response = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers, signal: controller.signal });
+    // Keep the timeout active until the complete body arrives.
+    const body = await response.arrayBuffer();
+    return new Response([204, 205, 304].includes(response.status) ? null : body, {
+      status: response.status, statusText: response.statusText, headers: response.headers,
+    });
+  } catch (error: any) {
+    if (signal?.aborted) throw new Error('Żądanie anulowane.');
+    if (controller.signal.aborted) throw new Error('Przekroczono czas oczekiwania na odpowiedź.');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', cancel);
   }
 }
 
-/** apiFetch + parsowanie JSON z rzucaniem błędu na !ok. */
-export async function apiJson<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await apiFetch(path, options)
-  const data = await res.json().catch(() => null)
-  if (!res.ok) {
-    throw new Error((data as any)?.detail || `HTTP ${res.status}`)
-  }
-  return data as T
+export async function apiJson<T = any>(path: string, options: ApiOptions = {}): Promise<T> {
+  const response = await apiFetch(path, options);
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : `HTTP ${response.status}`);
+  return data as T;
 }

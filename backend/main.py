@@ -6,6 +6,9 @@ from pydantic import BaseModel
 from app.database import engine, Base, SessionLocal
 from app.routers import leads, builder, projects, admin, geocode, domains, invoices, settings, credits
 from sqlalchemy import text, inspect
+from app.publishing import require_user, validate_content, published_response
+from app.models import Project
+from fastapi import HTTPException
 
 # Migration: ensure leads table has new columns (sqlite - add if missing)
 try:
@@ -61,34 +64,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        is_published_page = request.url.path.startswith("/p/")
-        if is_published_page:
-            # Published SiteMorph builds contain an inline ESM bundle + import map,
-            # can load vetted package modules from esm.sh and brand fonts/images.
-            # The old API-only CSP blocked React completely on /p/<id>.
-            response.headers["X-Frame-Options"] = "SAMEORIGIN"
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'none'; "
-                "script-src 'unsafe-inline' https://esm.sh; "
-                "style-src 'unsafe-inline' https://fonts.googleapis.com; "
-                "font-src https://fonts.gstatic.com data:; "
-                "img-src https: data: blob:; "
-                "media-src https: data: blob:; "
-                "connect-src https:; "
-                "frame-ancestors 'self'; "
-                "base-uri 'none'; form-action 'self'"
-            )
-        else:
-            response.headers["X-Frame-Options"] = "DENY"
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'none'; img-src * data:; style-src 'unsafe-inline'; frame-ancestors 'none'"
-            )
         # HSTS tylko w produkcji (Vercel zawsze HTTPS)
         if _os.getenv("VERCEL") or _os.getenv("ENV") == "production":
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+        # CSP minimalistyczne — API zwraca JSON, nie HTML
+        response.headers.setdefault("Content-Security-Policy", "default-src 'none'; img-src * data:; style-src 'unsafe-inline'; frame-ancestors 'none'")
         return response
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -156,7 +140,7 @@ class CustomDomainMiddleware:
                     finally:
                         db.close()
                     if page and page.html:
-                        resp = HTMLResponse(page.html)
+                        resp = published_response(page.html)
                         await resp(scope, receive, send)
                         return
             except Exception:
@@ -188,19 +172,26 @@ from app.auth import get_current_user as _get_current_user
 from typing import Optional as _Optional
 
 class _PublishBody(BaseModel):
-    html: str
-    title: _Optional[str] = None
+    project_id: int
+    source_hash: str
+    build_id: str
 
 @app.post("/api/publish")
 def publish_page(body: _PublishBody, current_user: dict = Depends(_get_current_user), db: _Session = Depends(_get_db)):
-    if not body.html or len(body.html) < 50:
-        return JSONResponse(status_code=400, content={"detail": "Brak HTML do publikacji"})
+    require_user(current_user)
+    project = db.query(Project).filter(Project.id == body.project_id, Project.owner_id == current_user["id"]).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nie znaleziony")
+    content = validate_content(project.content or {})
+    artifact = content.get("artifact") or {}
+    if artifact.get("sourceHash") != body.source_hash or artifact.get("buildId") != body.build_id:
+        raise HTTPException(status_code=409, detail="Zapisz aktualny podgląd przed publikacją")
     pid = _make_pid()
     page = _PublishedPage(
         id=pid,
         owner_id=current_user.get("id", "anon"),
-        title=(body.title or "Strona SiteMorph")[:200],
-        html=body.html,
+        title=(project.name or "Strona SiteMorph")[:200],
+        html=artifact["html"],
         created_at=_time.time(),
     )
     db.add(page)
@@ -216,4 +207,4 @@ def get_published_page(page_id: str, request: Request, db: _Session = Depends(_g
     page = db.query(_PublishedPage).filter(_PublishedPage.id == page_id).first()
     if not page:
         return HTMLResponse("<h1 style='font-family:sans-serif;padding:40px'>404 — ta strona nie istnieje lub wygasła.</h1>", status_code=404)
-    return HTMLResponse(page.html or "")
+    return published_response(page.html or "")

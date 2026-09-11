@@ -1,3 +1,11 @@
+export interface PreviewArtifact {
+  html: string;
+  sourceHash: string;
+  buildId: string;
+  compilerVersion: string;
+  compileMs: number;
+}
+
 export interface GeneratedWebsite {
   title: string;
   category: string;
@@ -6,13 +14,8 @@ export interface GeneratedWebsite {
   subheadline: string;
   ctaText: string;
   files: Record<string, string>;
-  meta?: Record<string, any>;
-  designBrief?: Record<string, any>;
-  designTokens?: Record<string, any>;
-  sectionPlan?: any[];
-  assetRequests?: any[];
-  generatorWarnings?: string[];
-  schemaVersion?: string | number;
+  metadata?: Record<string, any>;
+  artifact?: PreviewArtifact;
 }
 
 export interface Lead {

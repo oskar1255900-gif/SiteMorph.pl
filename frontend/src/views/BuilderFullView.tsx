@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as esbuild from 'esbuild-wasm';
-import esbuildWasmUrl from 'esbuild-wasm/esbuild.wasm?url';
+import { compileReactProject, warmPreviewCompiler, sourceHash, COMPILER_VERSION } from '../lib/previewCompiler';
 import {
   Sparkles,
   CheckCircle2,
@@ -257,328 +256,6 @@ const InlineWizard = ({
 // No Sandpack, no CodeSandbox Nodebox, no AI-generated preview.html.
 // ============================================================================
 
-let esbuildInitPromise: Promise<void> | null = null;
-
-function ensureEsbuildReady(): Promise<void> {
-  if (!esbuildInitPromise) {
-    esbuildInitPromise = esbuild.initialize({
-      wasmURL: esbuildWasmUrl,
-      worker: true,
-    }).catch((err) => {
-      esbuildInitPromise = null;
-      throw err;
-    });
-  }
-  return esbuildInitPromise;
-}
-
-function normalizeVirtualPath(input: string): string {
-  const raw = input.replace(/\\/g, '/');
-  const parts: string[] = [];
-  for (const part of raw.split('/')) {
-    if (!part || part === '.') continue;
-    if (part === '..') parts.pop();
-    else parts.push(part);
-  }
-  return '/' + parts.join('/');
-}
-
-function dirnameVirtual(path: string): string {
-  const normalized = normalizeVirtualPath(path);
-  const i = normalized.lastIndexOf('/');
-  return i <= 0 ? '/' : normalized.slice(0, i);
-}
-
-function projectToVirtualFiles(files: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [fullPath, content] of Object.entries(files || {})) {
-    if (!fullPath.startsWith('main/frontend/')) continue;
-    const rel = fullPath.slice('main/frontend/'.length);
-    if (!rel || rel.toLowerCase().endsWith('preview.html')) continue;
-    out[normalizeVirtualPath('/' + rel)] = content;
-  }
-  return out;
-}
-
-const LOCAL_EXTENSIONS = ['', '.tsx', '.ts', '.jsx', '.js', '.css', '.json'];
-const LOCAL_INDEXES = ['/index.tsx', '/index.ts', '/index.jsx', '/index.js'];
-
-function resolveVirtualImport(
-  specifier: string,
-  importer: string,
-  files: Record<string, string>,
-): string | null {
-  let base: string;
-  if (specifier.startsWith('@/')) {
-    base = '/src/' + specifier.slice(2);
-  } else if (specifier.startsWith('/')) {
-    base = specifier;
-  } else {
-    base = dirnameVirtual(importer || '/') + '/' + specifier;
-  }
-
-  base = normalizeVirtualPath(base);
-  for (const ext of LOCAL_EXTENSIONS) {
-    const candidate = normalizeVirtualPath(base + ext);
-    if (Object.prototype.hasOwnProperty.call(files, candidate)) return candidate;
-  }
-  for (const suffix of LOCAL_INDEXES) {
-    const candidate = normalizeVirtualPath(base + suffix);
-    if (Object.prototype.hasOwnProperty.call(files, candidate)) return candidate;
-  }
-  return null;
-}
-
-function loaderFor(path: string): esbuild.Loader {
-  if (path.endsWith('.tsx')) return 'tsx';
-  if (path.endsWith('.ts')) return 'ts';
-  if (path.endsWith('.jsx')) return 'jsx';
-  if (path.endsWith('.js')) return 'js';
-  if (path.endsWith('.css')) return 'css';
-  if (path.endsWith('.json')) return 'json';
-  return 'tsx';
-}
-
-const IMPORT_MAP = {
-  imports: {
-    react: 'https://esm.sh/react@18.2.0',
-    'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
-    'react/jsx-dev-runtime': 'https://esm.sh/react@18.2.0/jsx-dev-runtime',
-    'react-dom': 'https://esm.sh/react-dom@18.2.0?external=react',
-    'react-dom/client': 'https://esm.sh/react-dom@18.2.0/client?external=react',
-    'framer-motion': 'https://esm.sh/framer-motion@11.11.17?external=react,react-dom',
-    motion: 'https://esm.sh/motion@11.11.17?external=react,react-dom',
-    'lucide-react': 'https://esm.sh/lucide-react@0.344.0?external=react',
-    clsx: 'https://esm.sh/clsx@2.1.1',
-    'class-variance-authority': 'https://esm.sh/class-variance-authority@0.7.0',
-    'tailwind-merge': 'https://esm.sh/tailwind-merge@2.5.2',
-    gsap: 'https://esm.sh/gsap@3.12.5',
-    '@studio-freight/lenis': 'https://esm.sh/@studio-freight/lenis@1.0.42',
-    lenis: 'https://esm.sh/lenis@1.1.14',
-    'embla-carousel-react': 'https://esm.sh/embla-carousel-react@8.1.6?external=react',
-    'canvas-confetti': 'https://esm.sh/canvas-confetti@1.9.3',
-    '@radix-ui/react-dialog': 'https://esm.sh/@radix-ui/react-dialog@1.1.2?external=react,react-dom',
-  },
-};
-
-function hoistAndSanitizeImports(css: string): { imports: string[]; rest: string } {
-  const imports: string[] = [];
-  let rest = '';
-  let i = 0;
-  const n = css.length;
-  while (i < n) {
-    const idx = css.indexOf('@import', i);
-    if (idx === -1) {
-      rest += css.slice(i);
-      break;
-    }
-    rest += css.slice(i, idx);
-    // Scan forward to the terminating ';' that sits OUTSIDE any quoted string.
-    let j = idx + '@import'.length;
-    let quote: string | null = null;
-    let closed = false;
-    while (j < n) {
-      const c = css[j];
-      if (quote) {
-        if (c === quote) quote = null;
-        else if (c === '\\') j++; // skip escaped char inside the string
-      } else if (c === "'" || c === '"') {
-        quote = c;
-      } else if (c === ';') {
-        closed = true;
-        break;
-      }
-      j++;
-    }
-    if (!closed) {
-      rest += css.slice(idx);
-      break;
-    }
-    // Strip newlines (invalid inside CSS strings) and collapse whitespace so
-    // the @import can never poison the rest of the stylesheet.
-    const clean = css.slice(idx, j + 1).replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ');
-    imports.push(clean);
-    i = j + 1;
-  }
-  return { imports, rest };
-}
-
-function safeInlineScript(code: string): string {
-  return code.replace(/<\/script/gi, '<\\/script');
-}
-
-function safeInlineStyle(code: string): string {
-  return code.replace(/<\/style/gi, '<\\/style');
-}
-
-function extractSafeHeadExtras(indexHtml: string): string {
-  if (!indexHtml) return '';
-  const head = indexHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i)?.[1] || '';
-  const allowed: string[] = [];
-  // Preserve metadata and font/style links from the generated index.html while
-  // deliberately excluding scripts and executable/event-bearing markup.
-  for (const m of head.matchAll(/<(meta|link)\b[^>]*>/gi)) {
-    const tag = m[0];
-    if (/\son[a-z]+\s*=/i.test(tag) || /javascript:/i.test(tag)) continue;
-    if (/^<meta\b/i.test(tag)) {
-      if (/charset=|name=["'](?:description|theme-color|color-scheme|robots)["']|property=["']og:/i.test(tag)) allowed.push(tag);
-      continue;
-    }
-    if (/^<link\b/i.test(tag) && /rel=["'](?:stylesheet|preconnect|dns-prefetch)["']/i.test(tag)) {
-      if (/href=["']https?:\/\//i.test(tag)) allowed.push(tag);
-    }
-  }
-  return allowed.join('\n');
-}
-
-async function compileReactProjectToHtml(files: Record<string, string>): Promise<string> {
-  await ensureEsbuildReady();
-  const virtualFiles = projectToVirtualFiles(files);
-  const entry =
-    ['/src/main.tsx', '/src/main.jsx', '/src/index.tsx', '/src/index.jsx'].find(
-      (e) => virtualFiles[e],
-    ) || '/src/main.tsx';
-  if (!virtualFiles[entry]) throw new Error('Brak main/frontend/src/main.tsx');
-
-  const plugin: esbuild.Plugin = {
-    name: 'sitemorph-virtual-project',
-    setup(build) {
-      build.onResolve({ filter: /.*/ }, (args) => {
-        const spec = args.path;
-
-        if (/^https?:\/\//i.test(spec)) return { path: spec, external: true };
-
-        const isLocal =
-          args.kind === 'entry-point' ||
-          spec.startsWith('.') ||
-          spec.startsWith('/') ||
-          spec.startsWith('@/');
-
-        if (!isLocal) return { path: spec, external: true };
-
-        const resolved = args.kind === 'entry-point'
-          ? resolveVirtualImport(spec, '/', virtualFiles)
-          : resolveVirtualImport(spec, args.importer || '/', virtualFiles);
-
-        if (!resolved) {
-          return {
-            errors: [{ text: `Nie znaleziono lokalnego importu "${spec}" z ${args.importer || 'entry'}` }],
-          };
-        }
-
-        // CSS imports resolve to an EMPTY virtual module (never external).
-        // Marking them external would leave `import "./index.css"` in the bundle,
-        // and the browser would try to fetch a missing file at runtime, failing the
-        // whole module. The real CSS is collected below and inlined as <style>.
-        if (resolved.endsWith('.css')) {
-          return { path: resolved, namespace: 'sitemorph-css' };
-        }
-
-        return { path: resolved, namespace: 'sitemorph' };
-      });
-
-      build.onLoad({ filter: /.*/, namespace: 'sitemorph' }, (args) => {
-        const contents = virtualFiles[args.path];
-        if (contents == null) {
-          return { errors: [{ text: `Brak pliku ${args.path}` }] };
-        }
-        return {
-          contents,
-          loader: loaderFor(args.path),
-          resolveDir: dirnameVirtual(args.path),
-        };
-      });
-
-      // Let esbuild follow and bundle ONLY CSS that is actually imported by the
-      // generated React dependency graph. This preserves import order and avoids
-      // leaking unused stylesheets into the preview.
-      build.onLoad({ filter: /.*/, namespace: 'sitemorph-css' }, (args) => {
-        const contents = virtualFiles[args.path];
-        if (contents == null) return { errors: [{ text: `Brak pliku CSS ${args.path}` }] };
-        return { contents, loader: 'css', resolveDir: dirnameVirtual(args.path) };
-      });
-    },
-  };
-
-  // CSS is emitted by esbuild from the actual import graph. Do not concatenate
-  // every stylesheet in the project: unused CSS must remain unused.
-
-  console.log('[SiteMorph Preview] input files:', Object.keys(virtualFiles));
-
-  const result = await esbuild.build({
-    entryPoints: [entry],
-    bundle: true,
-    write: false,
-    outdir: '/out',
-    entryNames: 'bundle',
-    format: 'esm',
-    target: ['es2020'],
-    jsx: 'automatic',
-    platform: 'browser',
-    plugins: [plugin],
-    logLevel: 'silent',
-    sourcemap: false,
-    minify: false,
-  });
-
-  console.log(
-    '[SiteMorph Preview] esbuild outputs:',
-    result.outputFiles?.map((f) => ({ path: f.path, bytes: f.contents?.length })),
-  );
-
-  // With outdir + entryNames esbuild returns real paths like "/out/bundle.js" —
-  // never guess, always locate by extension.
-  const jsFile = result.outputFiles?.find((f) => f.path.endsWith('.js'));
-  const cssFile = result.outputFiles?.find((f) => f.path.endsWith('.css'));
-  const js = jsFile?.text || '';
-
-  if (!js.trim()) {
-    console.error(
-      '[SiteMorph Preview] esbuild outputFiles:',
-      result.outputFiles?.map((f) => f.path),
-    );
-    throw new Error('esbuild nie zwrócił bundla JavaScript');
-  }
-
-  const css = cssFile?.text || '';
-  console.log('[SiteMorph Preview] JS bytes:', js.length, 'CSS bytes:', css.length);
-
-  const importMap = JSON.stringify(IMPORT_MAP).replace(/</g, '\\u003c');
-  // App-level technical observer: reports mount success and runtime errors back
-  // to the panel across the sandboxed (opaque-origin) iframe. It does NOT alter
-  // the generated React — it only observes, so the panel can show a real error
-  // instead of a blank iframe.
-  const observerScript = [
-    "(function(){",
-    "function tell(msg){try{window.parent.postMessage({__sm:'sitemorph', m:msg},'*')}catch(e){}}",
-    "window.addEventListener('error',function(ev){tell({t:'runtime-error',message:String(ev.message||'')})});",
-    "window.addEventListener('unhandledrejection',function(ev){tell({t:'runtime-error',message:'Unhandled promise rejection'})});",
-    "setTimeout(function(){",
-    "  var root=document.getElementById('root');",
-    "  var ok=!!(root&&root.childElementCount>0);",
-    "  tell({t:'mounted',ok:ok});",
-    "  var de=document.documentElement;",
-    "  if(de&&de.scrollWidth>de.clientWidth+2)tell({t:'overflow',w:de.scrollWidth,c:de.clientWidth});",
-    "},1600);",
-    "})();",
-  ].join('\n');
-  return `<!doctype html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  ${headExtras}
-  <script type="importmap">${importMap}<\/script>
-  <style>html,body,#root{margin:0;min-height:100%;width:100%;}${safeInlineStyle(css)}</style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module">${safeInlineScript(js)}<\/script>
-  <script>${safeInlineScript(observerScript)}<\/script>
-</body>
-</html>`;
-}
-
 function cleanAutoValue(value: unknown): string {
   const text = typeof value === 'string' ? value.trim() : '';
   if (!text) return '';
@@ -633,27 +310,58 @@ export const BuilderFullView = ({
   const [previewRuntimeErr, setPreviewRuntimeErr] = useState('');
   const [generatorWarnings, setGeneratorWarnings] = useState<string[]>([]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [previewReady, setPreviewReady] = useState(false);
+  const [previewEpoch, setPreviewEpoch] = useState(0);
+  const buildIdRef = useRef('');
+  const operationRef = useRef(0);
+  const savingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploadedAssets, setUploadedAssets] = useState<{ url: string; name: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const pendingGeneration = useRef<{ previous: GeneratedWebsite | null; previousId: number | null; cost: number; started: number } | null>(null);
+  useEffect(() => { warmPreviewCompiler().catch(() => {}); }, []);
 
-  // Render check for the sandboxed preview iframe: "iframe load" does NOT prove
-  // React mounted. The compiled HTML posts a mounted/runtime-error message back;
-  // only accept messages coming from our own preview iframe.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
       const data = event.data;
-      if (!data || data.__sm !== 'sitemorph' || !data.m) return;
+      if (data?.__sm !== 'sitemorph' || data.buildId !== buildIdRef.current || !data.m) return;
       const m = data.m;
-      if (m.t === 'mounted' && !m.ok) {
-        setPreviewRuntimeErr('Strona nie zamontowała się poprawnie — sprawdź zakładkę „Kod” albo wygeneruj ponownie.');
-      } else if (m.t === 'runtime-error') {
-        setPreviewRuntimeErr((prev) => (prev ? prev : `Błąd uruchomienia: ${m.message}`));
+      if (m.t === 'mounted' && m.ok) {
+        setPreviewReady(true);
+        setThinkingPhase('done');
+        const pending = pendingGeneration.current;
+        if (pending) {
+          setCredits(c => Math.max(0, c - pending.cost));
+          setGeneratedSite(site => site ? { ...site, metadata: { ...site.metadata,
+            timings: { ...site.metadata?.timings, client_total_ms: Math.round(performance.now() - pending.started) } } } : site);
+          pendingGeneration.current = null;
+        }
+      } else if (m.t === 'runtime-error' || (m.t === 'mounted' && !m.ok)) {
+        const message = m.message || 'Nie udało się uruchomić strony.';
+        const pending = pendingGeneration.current;
+        pendingGeneration.current = null;
+        if (pending?.previous?.artifact) {
+          setGeneratedSite(pending.previous);
+          setCurrentProjectId(pending.previousId);
+          setCompiledPreviewHtml(pending.previous.artifact.html);
+          setPreviewEpoch(value => value + 1);
+          buildIdRef.current = pending.previous.artifact.buildId;
+          setPreviewRuntimeErr('');
+          setGenerationErr(message + ' Zachowano poprzednią stronę.');
+          setPreviewReady(true);
+        } else {
+          setPreviewReady(false);
+          setPreviewRuntimeErr(message);
+        }
       } else if (m.t === 'overflow') {
-        console.warn(`[SiteMorph Preview] poziomy overflow: ${m.w}px > ${m.c}px`);
+        setGeneratorWarnings(w => [...w, 'Podgląd wychodzi poza szerokość okna. Sprawdź układ przed publikacją.'].slice(-6));
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [setCredits]);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [leftW, setLeftW] = useState(400);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
@@ -707,167 +415,120 @@ export const BuilderFullView = ({
 
   const generatingRef = useRef(false);
 
+  const uploadImages = async (selection: FileList | null) => {
+    if (!selection?.length || uploading || isGenerating) return;
+    setUploading(true);
+    setGenerationErr('');
+    try {
+      // One file per upload avoids an oversized multipart body on hosted APIs.
+      for (const file of Array.from(selection).slice(0, Math.max(0, 8 - uploadedAssets.length))) {
+        if (file.size > 4_000_000) throw new Error('Zdjęcie jest za duże. Wybierz plik do 4 MB.');
+        const body = new FormData(); body.append('files', file);
+        const response = await apiFetch('/api/builder/upload', { method: 'POST', body });
+        const data = await response.json();
+        if (!response.ok || !data.urls?.[0]) throw new Error(data.detail || 'Nie udało się dodać zdjęcia.');
+        const asset = { url: data.urls[0], name: file.name };
+        setUploadedAssets(previous => [...previous, asset].slice(0, 8));
+      }
+    } catch (error: any) { setGenerationErr(error.message || 'Nie udało się dodać zdjęcia.'); }
+    finally { setUploading(false); if (fileInput.current) fileInput.current.value = ''; }
+  };
+
   const generateWithAnswers = async (ans: Record<string, string | string[]>, promptOverride?: string) => {
     const originalPrompt = (promptOverride || builderPrompt || '').trim();
-    if (!originalPrompt) return;
-    // Duplicate-submit guard: one generation per click/Enter, ever.
-    if (generatingRef.current) return;
-    generatingRef.current = true;
-
-    const selectedSections = Array.isArray(ans.sections) ? (ans.sections as string[]) : [];
-    const niche = cleanAutoValue(ans.niche);
-    const layout = cleanAutoValue(ans.layout);
-    const themePreference = cleanAutoValue(ans.theme);
-    const tone = cleanAutoValue(ans.tone);
-    const photoStyle = cleanAutoValue(ans.photos);
-    const accent = cleanAutoValue(ans.accent);
-    const fonts = cleanAutoValue(ans.fonts);
-
+    if (!originalPrompt || uploading || generatingRef.current || pendingGeneration.current || previewBuilding || publishing || savingRef.current) return;
     if (credits < cost) {
-      alert(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
+      setGenerationErr(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
       return;
     }
-
+    generatingRef.current = true;
+    const operation = ++operationRef.current;
+    const started = performance.now();
     setGenerationErr('');
-    setGeneratedSite(null);
-    setCompiledPreviewHtml('');
-    setPreviewBuildErr('');
-    setPreviewBuilding(false);
     setIsGenerating(true);
+    setSaveMsg('');
+    setPublishErr('');
     setThinkingPhase('generate');
-    let fetchResult: any = null;
-    let fetchError: any = null;
-
+    setPublishedUrl(null);
     try {
-      const plan = (() => {
-        try { return localStorage.getItem('sitemorph-plan') || 'Starter'; }
-        catch { return 'Starter'; }
-      })();
-
       const res = await apiFetch('/api/builder/generate', {
-        method: 'POST',
-        headers: { 'X-User-Plan': plan },
-        timeoutMs: 480000,
+        method: 'POST', timeoutMs: 480000,
         body: JSON.stringify({
-          // Do not fake a business name. DeepSeek extracts it from the raw prompt.
-          business_name: '',
-          niche,
-
-          // Raw user prompt stays intact and is the factual source of truth.
-          description: originalPrompt,
-          extraPrompt: originalPrompt,
-
-          // Only explicit wizard choices are sent. Empty means "infer intelligently".
-          style: [layout, tone].filter(Boolean).join(', '),
-          colors: themePreference,
-          sections: selectedSections,
-          accent_color: accent,
-          layout,
-          fonts,
-          photo_style: photoStyle,
-          answers: ans,
-
-          // Backend currently keeps these modes for pricing/refinement compatibility,
-          // but every AI stage uses DeepSeek V4 Pro.
-          mode: builderMode,
+          business_name: '', niche: cleanAutoValue(ans.niche),
+          description: originalPrompt, extraPrompt: originalPrompt,
+          style: [cleanAutoValue(ans.layout), cleanAutoValue(ans.tone)].filter(Boolean).join(', '),
+          colors: cleanAutoValue(ans.theme),
+          sections: Array.isArray(ans.sections) ? ans.sections : [],
+          accent_color: cleanAutoValue(ans.accent), layout: cleanAutoValue(ans.layout),
+          fonts: cleanAutoValue(ans.fonts), photo_style: cleanAutoValue(ans.photos),
+          image_urls: uploadedAssets.map(a => a.url), image_details: uploadedAssets,
+          answers: ans, mode: builderMode,
         }),
-      } as any);
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || errData.warning || `Błąd: HTTP ${res.status}`);
-      }
-
-      fetchResult = await res.json();
-    } catch (e: any) {
-      fetchError = e;
+      });
+      const data = await res.json().catch(() => ({ detail: `Niepoprawna odpowiedź serwera (HTTP ${res.status})` }));
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : `Błąd generowania (HTTP ${res.status})`);
+      setThinkingPhase('compile');
+      const files: Record<string, string> = data.files || {};
+      const artifact = await compileReactProject(files, API_BASE || window.location.origin);
+      if (operation !== operationRef.current) return;
+      const meta = data.meta || {};
+      const title = meta.title || meta.projectName || 'Nowa strona';
+      const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').slice(0, 40) || 'strona';
+      pendingGeneration.current = { previous: previewReady ? generatedSite : null, previousId: currentProjectId, cost, started };
+      const { files: _files, ...metadata } = data;
+      setGeneratedSite({
+        title, category: data.business_brief?.business?.category || '', domain: `${slug}-${crypto.randomUUID().slice(0, 8)}.sitemorph.pl`,
+        headline: meta.headline || title, subheadline: meta.subheadline || '',
+        ctaText: meta.ctaText || 'Kontakt', files, artifact,
+        metadata: { ...metadata, originalPrompt, preferences: ans },
+      });
+      setCurrentProjectId(null);
+      setActiveMode('preview');
+      setSelectedFile('main/frontend/src/App.tsx');
+      setPreviewReady(false);
+      setPreviewBuildErr('');
+      setPreviewRuntimeErr('');
+      setGeneratorWarnings(Array.isArray(data.generator_warnings) ? data.generator_warnings : []);
+      buildIdRef.current = artifact.buildId;
+      setCompiledPreviewHtml(artifact.html);
+      setPreviewEpoch(value => value + 1);
+      setThinkingPhase('mount');
+    } catch (error: any) {
+      setGenerationErr(error.message || 'Nie udało się wygenerować strony.');
     } finally {
-      if (fetchResult && !fetchError) {
-        const data = fetchResult;
-        const files: Record<string, string> = data.files || {};
-        const meta = data.meta || {};
-        const parsedBusiness = data.business_brief?.business || {};
-        const parsedNiche = parsedBusiness.subcategory || parsedBusiness.category || meta.category || niche || 'Firma';
-        const hasReact = Boolean(files['main/frontend/src/App.tsx'] && files['main/frontend/src/main.tsx']);
-
-        if (!hasReact) {
-          setGenerationErr(data.warning || 'DeepSeek nie zwrócił kompletnego projektu React (App.tsx + main.tsx).');
-          setGeneratedSite(null);
-          setIsGenerating(false);
-          generatingRef.current = false;
-          return;
-        }
-
-        setThinkingPhase('parse');
-        setThinkingPhase('validate');
-
-        // Compile the REAL generated React project in-browser. No preview.html is generated or stored.
-        setThinkingPhase('compile');
-        await compileFilesForPreview(files);
-        setThinkingPhase('mount');
-
-        setPreviewRuntimeErr('');
-        setGeneratorWarnings(
-          [
-            ...(Array.isArray(data.generator_warnings) ? data.generator_warnings : []),
-            ...(data.warning ? data.warning.split(' | ').filter(Boolean) : []),
-          ].slice(0, 4),
-        );
-        setGeneratedSite({
-          title: meta.title || parsedBusiness.name || originalPrompt.slice(0, 28),
-          category: parsedNiche,
-          domain: `${(meta.title || parsedBusiness.name || 'strona')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/\s+/g, '')
-            .replace(/[^a-z0-9]/g, '')}.sitemorph.pl`,
-          headline: meta.headline || parsedBusiness.name || originalPrompt,
-          subheadline: meta.subheadline || `Wygenerowane przez SiteMorph AI (${data.provider || 'DeepSeek V4 Pro'})`,
-          ctaText: meta.ctaText || 'Skontaktuj się',
-          files,
-          meta,
-          designBrief: data.design_brief || {},
-          designTokens: data.design_tokens || {},
-          sectionPlan: Array.isArray(data.section_plan) ? data.section_plan : [],
-          assetRequests: Array.isArray(data.asset_requests) ? data.asset_requests : [],
-          generatorWarnings: Array.isArray(data.generator_warnings) ? data.generator_warnings : [],
-          schemaVersion: data.schema_version || 1,
-        });
-
-
-        const first =
-          Object.keys(files).find((f) => f.endsWith('/src/App.tsx')) ||
-          Object.keys(files).find((f) => f.endsWith('/src/index.css')) ||
-          Object.keys(files).find((f) => f.endsWith('index.html')) ||
-          Object.keys(files)[0];
-
-        if (first) setSelectedFile(first);
-        setCredits((c) => Math.max(0, c - cost));
-      } else if (fetchError) {
-        setGeneratedSite(null);
-        setGenerationErr(fetchError?.message || 'Nie udało się wygenerować strony.');
-      }
-
-      setThinkingPhase('done');
       setIsGenerating(false);
       generatingRef.current = false;
     }
   };
 
-  const compileFilesForPreview = async (files: Record<string, string>) => {
+  const openProject = async (project: any) => {
+    if (generatingRef.current || pendingGeneration.current || publishing || savingRef.current) return;
+    const operation = ++operationRef.current;
     setPreviewBuilding(true);
-    setPreviewBuildErr('');
-    setPreviewRuntimeErr('');
+    setGenerationErr('');
     try {
-      const html = await compileReactProjectToHtml(files);
-      setCompiledPreviewHtml(html);
-    } catch (previewError: any) {
-      setCompiledPreviewHtml('');
-      setPreviewBuildErr(previewError?.message || 'Nie udało się skompilować projektu React.');
-      console.error('[SiteMorph Preview] compile error:', previewError);
+      const files = project.content?.files || {};
+      const saved = project.content?.artifact;
+      const artifact = saved?.compilerVersion === COMPILER_VERSION && saved?.sourceHash === await sourceHash(files)
+        ? saved : await compileReactProject(files, API_BASE || window.location.origin);
+      if (operation !== operationRef.current) return;
+      const meta = project.content?.meta || {};
+      setGeneratedSite({ title: project.name, category: project.niche || '', domain: project.domain,
+        headline: meta.headline || project.name, subheadline: meta.subheadline || '', ctaText: meta.ctaText || 'Kontakt',
+        files, artifact, metadata: project.content?.metadata || {} });
+      setCurrentProjectId(project.id);
+      setPublishedUrl(null);
+      buildIdRef.current = artifact.buildId;
+      setCompiledPreviewHtml(artifact.html);
+      setPreviewEpoch(value => value + 1);
+      setPreviewRuntimeErr('');
+      setPreviewBuildErr('');
+      setPreviewReady(false);
+      setActiveMode('preview');
+    } catch (error: any) {
+      if (operation === operationRef.current) setGenerationErr(error.message || 'Nie udało się otworzyć projektu.');
     } finally {
-      setPreviewBuilding(false);
+      if (operation === operationRef.current) setPreviewBuilding(false);
     }
   };
 
@@ -880,72 +541,32 @@ export const BuilderFullView = ({
     setTimeout(() => generateWithAnswers(ans, builderPrompt), 300);
   };
 
-  const handleSaveProject = async () => {
-    if (!generatedSite) return;
-    setSaveMsg('');
+  const persistProject = async (): Promise<number> => {
+    if (!generatedSite?.artifact || !previewReady || previewRuntimeErr) throw new Error('Poczekaj na poprawne uruchomienie podglądu.');
+    if (savingRef.current) throw new Error('Trwa już zapis projektu.');
+    savingRef.current = true;
+    setIsSaving(true);
     try {
-      const projectContent = {
-        files: generatedSite.files,
-        meta: generatedSite.meta || {
-          title: generatedSite.title,
-          headline: generatedSite.headline,
-          subheadline: generatedSite.subheadline,
-          ctaText: generatedSite.ctaText,
-        },
-        design_brief: generatedSite.designBrief || {},
-        design_tokens: generatedSite.designTokens || {},
-        section_plan: generatedSite.sectionPlan || [],
-        asset_requests: generatedSite.assetRequests || [],
-        generator_warnings: generatedSite.generatorWarnings || [],
-        schema_version: generatedSite.schemaVersion || 1,
-      };
-      if (currentProjectId) {
-        const res = await apiFetch(`/api/projects/${currentProjectId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            name: generatedSite.title,
-            domain: generatedSite.domain,
-            niche: generatedSite.category,
-            content: projectContent,
-          }),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `Błąd zapisu (HTTP ${res.status})`);
-        }
-        setSaveMsg('Zapisano ✓');
-      } else {
-        const res = await apiFetch('/api/projects/', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: generatedSite.title,
-            domain: generatedSite.domain,
-            niche: generatedSite.category,
-            content: projectContent,
-          }),
-        });
-        if (res.ok) {
-          const saved = await res.json();
-          setCurrentProjectId(saved.id);
-          setSaveMsg('Zapisano na koncie ✓');
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          if (res.status === 409) {
-            setSaveMsg('⚠ Projekt z taką domeną już istnieje — otwórz go z listy albo wygeneruj z inną nazwą.');
-          } else {
-            setSaveMsg(errData.detail || `Błąd zapisu (HTTP ${res.status}) — wymagane zalogowanie?`);
-          }
-        }
-      }
+      const content = { files: generatedSite.files, metadata: generatedSite.metadata,
+        artifact: generatedSite.artifact,
+        meta: { ...(generatedSite.metadata?.meta || {}), title: generatedSite.title,
+          headline: generatedSite.headline, subheadline: generatedSite.subheadline, ctaText: generatedSite.ctaText } };
+      const res = await apiFetch(currentProjectId ? `/api/projects/${currentProjectId}` : '/api/projects/', {
+        method: currentProjectId ? 'PATCH' : 'POST',
+        body: JSON.stringify({ name: generatedSite.title, domain: generatedSite.domain, niche: generatedSite.category, content }),
+      });
+      const saved = await res.json();
+      if (!res.ok) throw new Error(typeof saved.detail === 'string' ? saved.detail : `Błąd zapisu (HTTP ${res.status})`);
+      setCurrentProjectId(saved.id);
       await loadProjects();
-      setTimeout(() => setSaveMsg(''), 4000);
-    } catch (e: any) {
-      setSaveMsg(e.message || 'Wymaga zalogowania');
-    }
+      return saved.id;
+    } finally { savingRef.current = false; setIsSaving(false); }
   };
 
-
-
+  const handleSaveProject = async () => {
+    try { await persistProject(); setSaveMsg('Zapisano projekt wraz z podglądem ✓'); }
+    catch (error: any) { setSaveMsg(error.message || 'Nie udało się zapisać projektu.'); }
+  };
 
   // Quick prompts for badges
   const quickPrompts = [
@@ -957,6 +578,7 @@ export const BuilderFullView = ({
 
   return (
     <>
+      <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden onChange={event => uploadImages(event.target.files)} />
       
       {/* Inline questionnaire appears above input when showWizard is true */}
 
@@ -986,18 +608,19 @@ export const BuilderFullView = ({
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>{credits} kr.</span>
-            <Button variant="primary" size="sm" disabled={isGenerating || !generatedSite || !compiledPreviewHtml} onClick={async () => {
+            <Button variant="primary" size="sm" disabled={isSaving || publishing || isGenerating || previewBuilding || !previewReady || Boolean(previewRuntimeErr) || !generatedSite || !compiledPreviewHtml} onClick={async () => {
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
               try {
-                // Publish exactly the same browser-compiled React build shown in the preview.
-                const html = compiledPreviewHtml;
-                if (!html) throw new Error('Podgląd React nie został jeszcze skompilowany.');
-                const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({ html, title: generatedSite.title }) });
+                const artifact = generatedSite.artifact;
+                if (!artifact || !previewReady) throw new Error('Podgląd jeszcze nie jest gotowy.');
+                const projectId = await persistProject();
+                const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({
+                  project_id: projectId, source_hash: artifact.sourceHash, build_id: artifact.buildId,
+                }) });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
-                const base = API_BASE ? new URL(API_BASE, window.location.origin).origin : window.location.origin;
-                setPublishedUrl(new URL(data.url, base).toString());
+                setPublishedUrl(new URL(data.url, API_BASE || window.location.origin).href);
               } catch (e: any) { setPublishErr(e.message); } finally { setPublishing(false) }
             }} className="font-semibold text-[11px]">
               {publishing ? '...' : 'Opublikuj'}
@@ -1005,6 +628,12 @@ export const BuilderFullView = ({
           </div>
         </header>
 
+        {generationErr && generatedSite && <div role="alert" className="px-4 py-2 text-xs bg-amber-500/10 text-amber-500">{generationErr}</div>}
+        {publishErr && <div role="alert" className="px-4 py-2 text-xs bg-red-500/10 text-red-500">{publishErr}</div>}
+        <div className="px-4 py-2 flex flex-wrap gap-2 text-xs border-b border-gray-500/20">
+          <button disabled={uploading || isGenerating || uploadedAssets.length >= 8} onClick={() => fileInput.current?.click()} className="disabled:opacity-40">{uploading ? 'Dodaję zdjęcia…' : 'Dodaj własne zdjęcia'}</button>
+          {uploadedAssets.map(asset => <button key={asset.url} disabled={isGenerating} onClick={() => setUploadedAssets(list => list.filter(a => a.url !== asset.url))} title="Usuń zdjęcie z następnej generacji" className="rounded bg-gray-500/10 px-2 py-1">{asset.name} ×</button>)}
+        </div>
         {/* Main */}
         <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left Panel — Agent Chat */}
@@ -1018,13 +647,16 @@ export const BuilderFullView = ({
                     <CheckCircle2 size={14} className="text-green-400" />
                   </div>
                   <div>
-                    <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Strona gotowa!</div>
+                    <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{previewRuntimeErr ? 'Podgląd wymaga poprawki' : previewReady ? 'Strona gotowa!' : 'Uruchamiam stronę…'}</div>
                     <div className={`text-[10px] ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>{generatedSite.title}</div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <button onClick={handleSaveProject} className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-white/90' : 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'}`}>
+                  <label className="block text-xs" htmlFor="next-prompt">Opis kolejnej strony</label>
+                  <textarea id="next-prompt" value={builderPrompt} onChange={e => setBuilderPrompt(e.target.value)} className={`w-full rounded-lg p-3 text-xs border ${dk ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`} rows={3} />
+                  <button onClick={() => generateWithAnswers(answers)} disabled={!builderPrompt.trim() || isGenerating || previewBuilding || (!previewReady && !previewRuntimeErr) || publishing} className="w-full py-2 rounded-lg text-xs bg-green-600 text-white disabled:opacity-40">Wygeneruj nową stronę · {cost} kr.</button>
+                  <button onClick={handleSaveProject} disabled={isSaving || publishing || !previewReady} className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none disabled:opacity-40 ${theme === 'dark' ? 'bg-white text-black hover:bg-white/90' : 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'}`}>
                     <Save size={12} className="inline mr-1.5" />
                     {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
                   </button>
@@ -1048,33 +680,7 @@ export const BuilderFullView = ({
                   {savedProjects.length === 0 ? (
                     <p className={`text-[10px] ${theme === 'dark' ? 'text-white/20' : 'text-gray-300'}`}>Brak zapisanych projektów</p>
                   ) : savedProjects.slice(0, 5).map((p) => (
-                    <button key={p.id} onClick={() => {
-                      const meta = p.content?.meta || {};
-                      const files = p.content?.files || {};
-                      setGeneratedSite({
-                        title: p.name,
-                        category: p.niche || '',
-                        domain: p.domain,
-                        headline: meta.headline || p.name,
-                        subheadline: meta.subheadline || '',
-                        ctaText: meta.ctaText || 'Kontakt',
-                        files,
-                        meta,
-                        designBrief: p.content?.design_brief || {},
-                        designTokens: p.content?.design_tokens || {},
-                        sectionPlan: Array.isArray(p.content?.section_plan) ? p.content.section_plan : [],
-                        assetRequests: Array.isArray(p.content?.asset_requests) ? p.content.asset_requests : [],
-                        generatorWarnings: Array.isArray(p.content?.generator_warnings) ? p.content.generator_warnings : [],
-                        schemaVersion: p.content?.schema_version || 1,
-                      });
-                      setCurrentProjectId(p.id);
-                      if (files['main/frontend/src/App.tsx'] && files['main/frontend/src/main.tsx']) {
-                        compileFilesForPreview(files);
-                      } else {
-                        setCompiledPreviewHtml('');
-                        setPreviewBuildErr('Ten projekt nie zawiera kodu React (App.tsx + main.tsx) — wygeneruj stronę ponownie.');
-                      }
-                    }} className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer border-none bg-transparent truncate ${theme === 'dark' ? 'text-white/50 hover:text-white/80 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                    <button key={p.id} onClick={() => openProject(p)} className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer border-none bg-transparent truncate ${theme === 'dark' ? 'text-white/50 hover:text-white/80 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
                       {p.name}
                     </button>
                   ))}
@@ -1084,6 +690,10 @@ export const BuilderFullView = ({
               /* Empty State — Agent Chat */
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 p-5 overflow-y-auto space-y-5">
+                  {savedProjects.length > 0 && <div className="space-y-1">
+                    <p className="text-xs opacity-60">Wróć do projektu</p>
+                    {savedProjects.slice(0, 5).map(project => <button key={project.id} disabled={previewBuilding} onClick={() => openProject(project)} className="block w-full truncate rounded-lg border border-gray-500/20 px-3 py-2 text-left text-xs hover:bg-gray-500/10 disabled:opacity-40">{project.name}</button>)}
+                  </div>}
                   <div className="flex items-center gap-2.5">
                     <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${theme === 'dark' ? 'bg-gradient-to-br from-green-500/20 to-blue-500/20 border-white/10' : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'}`}>
                       <svg fill="none" height="24" viewBox="0 0 48 48" width="24">
@@ -1098,7 +708,7 @@ export const BuilderFullView = ({
                   </div>
 
                   <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
-                    Wklej dane firmy prosto z Google Maps albo opisz własnymi słowami. Zbuduję kompletną stronę z treściami, zdjęciami i formularzem kontaktowym.
+                    Wklej dane firmy prosto z Google Maps albo opisz własnymi słowami. Dobiorę układ, fonty i treści do Twojej marki. Możesz też dodać własne zdjęcia.
                   </p>
 
                   <div className="flex flex-wrap gap-1.5">
@@ -1145,10 +755,10 @@ export const BuilderFullView = ({
                       />
                       <div className="flex items-center justify-between px-3 pb-3">
                         <div className="flex items-center gap-1">
-                          <button className={`p-1.5 rounded-md transition-colors cursor-pointer border-none bg-transparent ${theme === 'dark' ? 'hover:bg-white/5 text-white/30 hover:text-white/60' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}>
+                          <button aria-label="Dodaj zdjęcie" onClick={() => fileInput.current?.click()} disabled={uploading} className={`p-1.5 rounded-md transition-colors cursor-pointer border-none bg-transparent ${theme === 'dark' ? 'hover:bg-white/5 text-white/30 hover:text-white/60' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}>
                             <Paperclip size={14} />
                           </button>
-                          <button className="p-1.5 rounded-md hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors cursor-pointer border-none bg-transparent">
+                          <button aria-label="Wybierz zdjęcia" onClick={() => fileInput.current?.click()} disabled={uploading} className="p-1.5 rounded-md hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors cursor-pointer border-none bg-transparent">
                             <ImageIcon size={14} />
                           </button>
                         </div>
@@ -1218,7 +828,7 @@ export const BuilderFullView = ({
                   <div className={`h-8 border-b flex items-center justify-between px-3 shrink-0 ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'}`}>
                     <span className={`text-[10px] font-medium truncate ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>{generatedSite.domain}</span>
                     <div className="flex items-center gap-1.5">
-                      <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[9px] font-semibold">LIVE</span>
+                      <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[9px] font-semibold">{previewReady ? 'LIVE' : 'Ładowanie…'}</span>
                     </div>
                   </div>
                   {previewBuilding ? (
@@ -1247,7 +857,7 @@ export const BuilderFullView = ({
                       </div>
                     ) : (
                     <iframe
-                      key={generatedSite.domain}
+                      key={`${generatedSite.artifact?.buildId || generatedSite.domain}:${previewEpoch}`}
                       ref={iframeRef}
                       title={`Podgląd ${generatedSite.title}`}
                       className="flex-1 w-full border-0 bg-white"
@@ -1292,7 +902,7 @@ export const BuilderFullView = ({
                     <CheckCircle2 size={18} className="text-green-400" />
                     <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Opublikowano!</span>
                   </div>
-                  <button onClick={() => setPublishedUrl(null)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/10 text-white/40 cursor-pointer border-none bg-transparent"><X size={14} /></button>
+                  <button aria-label="Zamknij publikację" onClick={() => setPublishedUrl(null)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/10 text-white/40 cursor-pointer border-none bg-transparent"><X size={14} /></button>
                 </div>
                 <div className="p-5 space-y-3 flex-1">
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/5 border border-white/[0.06]">

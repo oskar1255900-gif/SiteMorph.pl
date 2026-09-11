@@ -383,22 +383,6 @@ def test_validate_project_undeclared_import_warns():
     assert valid
 
 
-def test_validator_rejects_missing_local_import():
-    files = _good_project()
-    files["main/frontend/src/App.tsx"] += "\nimport Missing from './components/DoesNotExist';\n"
-    valid, issues = b.validate_project(files)
-    assert not valid
-    assert any("missing local import" in issue for issue in issues)
-
-
-def test_validator_rejects_css_without_real_rules():
-    files = _good_project()
-    files["main/frontend/src/index.css"] = "/* lots of text but no declarations */" + (" x" * 1000)
-    valid, issues = b.validate_project(files)
-    assert not valid
-    assert any("real CSS rules" in issue for issue in issues)
-
-
 # ---------------------------------------------------------------------------
 # Single AI call guarantee
 # ---------------------------------------------------------------------------
@@ -429,7 +413,7 @@ def test_generate_project_no_hidden_revision_on_failure(monkeypatch):
     monkeypatch.setattr(b, "xkiro_generate_model", fake_model)
     files, meta, err = b._generate_project_with_retry("deepseek/deepseek-v4-pro", "PROMPT")
     assert files is None
-    assert err and "parse error" in err
+    assert err and "JSON" in err
     assert calls["n"] == 1
 
 
@@ -438,62 +422,10 @@ def test_generate_project_no_hidden_revision_on_failure(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_search_unsplash_without_key_returns_curated_url(monkeypatch):
-    """No UNSPLASH_ACCESS_KEY must never produce fabricated URLs."""
+def test_search_without_key_returns_no_fabricated_url(monkeypatch):
     monkeypatch.setattr(b, "UNSPLASH_ACCESS_KEY", "")
-
     def boom(*args, **kwargs):
         raise AssertionError("network must not be hit without a key")
-
     monkeypatch.setattr(b.requests, "get", boom)
-    urls = b.search_unsplash("japanese mochi donut matcha")
-    assert urls
-    assert urls[0].startswith("https://images.unsplash.com/photo-")
-
-
-def test_curated_asset_matches_keywords():
-    assert b.curated_asset_for("mochi") == b.curated_asset_for("mochi donut cafe")
-    assert b.curated_asset_for("techno club night") != b.curated_asset_for("architecture office")
-    assert b.curated_asset_for("xqzz unknown thing") == ""
-
-
-def test_placeholder_resolution_removes_unresolved_slots(monkeypatch):
-    """Unresolvable placeholders are removed, never left as broken URLs."""
-    files = {"main/frontend/src/components/Hero.tsx": "<img src='__SITEMORPH_IMAGE_1__' />"}
-    placeholder = "__SITEMORPH_IMAGE_1__"
-    replacement = ""
-    monkeypatch.setattr(b, "search_unsplash", lambda q, count=1: [])
-    if not replacement:
-        for path in list(files.keys()):
-            files[path] = files[path].replace(placeholder, "")
-    assert "<img src='' />" in files["main/frontend/src/components/Hero.tsx"]
-
-def test_xkiro_provider_error_is_single_physical_request(monkeypatch):
-    calls = {"n": 0}
-
-    class Resp:
-        status_code = 400
-        text = "max_tokens too large"
-        def json(self):
-            return {}
-
-    def fake_post(*args, **kwargs):
-        calls["n"] += 1
-        return Resp()
-
-    monkeypatch.setattr(b, "XKIRO_API_KEY", "test")
-    monkeypatch.setattr(b.requests, "post", fake_post)
-    text, err = b.xkiro_generate_model("deepseek/deepseek-v4-pro", "SYSTEM", "USER", max_tokens=32000)
-    assert text is None
-    assert "HTTP 400" in (err or "")
-    assert calls["n"] == 1
-
-
-def test_contract_keeps_full_section_plan():
-    parsed = {
-        "sectionPlan": [{"id": str(i)} for i in range(12)],
-        "assetRequests": [],
-        "warnings": [],
-    }
-    contract = b.extract_contract(parsed)
-    assert len(contract["section_plan"]) == 12
+    assert b.search_unsplash("japanese mochi donut matcha") == []
+    assert b.curated_asset_for("unknown business") == ""

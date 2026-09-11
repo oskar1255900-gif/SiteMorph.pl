@@ -1,87 +1,81 @@
-# SiteMorph — Builder contract & test report
+# SiteMorph — aktywny kontrakt generatora
 
-## Generation contract (v2, single request)
+Prompt: `sitemorph-spec-2`. Kompilator designu: `sitemorph-design-compiler-2`.
+Kompilator podglądu: `sitemorph-esbuild-3`.
+Baza zmian: archiwum repozytorium z commita `f81a8bf7f48ce9f4a72b110b6fbd69968050cb27`.
 
-`POST /api/builder/generate` executes exactly **one** DeepSeek V4 Pro request
-(`deepseek/deepseek-v4-pro`, ceiling `SITEMORPH_MAX_OUTPUT_TOKENS=32000`).
-There is no prompt-parser, brand-strategist, art-director, critic, revision,
-continuation or preview model call in the normal path. Transport-level retry
-(single, on 5xx/429/timeout) resends the *same* generation and never adds a
-design stage.
+## Przepływ
 
-### Request → response flow
+`prompt + jawne preferencje + zdjęcia → jeden request DeepSeek → SiteMorphSpecV2 → walidacja → równoległy dobór zdjęć → Design Compiler → komponenty React → esbuild-wasm → iframe → zapis → publikacja tego samego artefaktu`
 
-```
-user prompt + wizard answers (auto values dropped)
-  → one DeepSeek V4 Pro response (system prompt + raw prompt verbatim)
-  → extract_json → normalize_files (v1 dict or v2 list, path-safe)
-  → validate_project (required files, component structure, no placeholders,
-    import↔package coherence, slop heuristics)
-  → asset resolution (user assets → curated catalog → Unsplash API; never
-    fabricated URLs; unresolved slots removed + warning)
-  → response: files + meta + v2 contract fields
-```
+Model planuje markę, kompozycję, treść i interakcje. Kompilator tworzy React/CSS ze sprawdzonych komponentów. To świadoma zmiana względem pełnego codegen, wynikająca z ostatniego załącznika.
 
-### Model response shape
+Normalne `POST /api/builder/generate` wykonuje dokładnie jeden request HTTP do modelu, również w trybach ultra/ultra+. Nie uruchamia osobnego parsera AI, stratega, krytyka, revision, continuation ani AI preview. Nie ponawia automatycznie 429/5xx/timeout i nie zwraca zastępczej strony jako sukcesu.
 
-```json
-{
-  "schemaVersion": 2,
-  "projectName": "...",
-  "designBrief": { "businessFacts": "...", "goal": "...", "audience": "...",
-                   "brandCharacter": "...", "creativeConcept": "...",
-                   "paletteDirection": "...", "typographyDirection": "...",
-                   "shapeLanguage": "...", "composition": "...",
-                   "photoStyle": "...", "motion": "...",
-                   "userConstraints": "...", "avoidPatterns": "..." },
-  "designTokens": { "background": "#...", "surface": "#...", "text": "#...",
-                    "mutedText": "#...", "primary": "#...", "secondary": "#...",
-                    "accent": "#...", "border": "#...", "displayFont": "...",
-                    "bodyFont": "...", "radiusSystem": "...", "motionDurations": "..." },
-  "sectionPlan": [ { "id": "...", "purpose": "...", "message": "...",
-                     "content": "...", "imageRole": "...", "composition": "...",
-                     "cta": "...", "mobile": "..." } ],
-  "assetRequests": [ { "id": "...", "placeholder": "__SITEMORPH_IMAGE_1__",
-                       "role": "...", "subject": "...", "orientation": "...",
-                       "aspect": "...", "lighting": "...", "color": "...",
-                       "mood": "...", "query": "English search string" } ],
-  "files": { "main/frontend/package.json": "...", "main/frontend/src/App.tsx": "...",
-             "main/frontend/src/components/*.tsx": "...", "...": "..." },
-  "warnings": ["missing facts to complete"],
-  "meta": { "title": "...", "businessName": "...", "niche": "...",
-            "headline": "...", "subheadline": "...", "ctaText": "...",
-            "designConcept": "...", "palette": ["#..."] }
-}
-```
+Model: `deepseek/deepseek-v4-pro`. Sufit: 32000 tokenów, bez obniżenia do 16k w normalnej ścieżce. Prompt prosi o zwięzły plan, zwykle 2500–5000 tokenów, nie o wypełnienie limitu. Koszty trybów istniejącego interfejsu pozostały bez zmian; wyższy tryb obecnie nie uruchamia dodatkowego procesu AI.
 
-The backend keeps the legacy `{files, meta}` keys and adds `schema_version`,
-`design_brief`, `design_tokens`, `section_plan`, `asset_requests`,
-`generator_warnings` so stored projects stay compatible.
+## Kanoniczny kontrakt
 
-### Preview = publish
+| Plik w backend/app/design | Odpowiedzialność |
+| --- | --- |
+| schema.py | Pydantic 2; odrzucanie nieznanych pól |
+| props.py | Dokładne typy danych każdego komponentu |
+| validation.py | Fonty, media, odwołania, sekcje, interakcje i podstawowe powtórzenia |
+| prompt.py | Instrukcje semantycznego projektowania |
+| fonts.py | 24 rodziny; maksymalnie dwie na stronę |
+| tokens.py | Rzeczywiste zmienne CSS, kontrast, skala, odstępy i motion |
+| assets.py | Dobór zdjęć i fallback kompozycji |
+| compiler.py | Tworzenie pełnego projektu React |
 
-Both the in-panel preview and `/api/publish` use the *same* immutable artifact:
-the browser-compiled bundle (`esbuild-wasm` → JS + CSS → iframe `srcDoc`).
-Publish never re-invokes AI, never recompiles, and never swaps fonts/assets.
-The preview iframe is sandboxed with `allow-scripts` only (no same-origin) and
-reports mount/runtime state back to the panel via `postMessage`.
+Główne pola: `meta`, `businessBrief`, `creative`, `semanticProfile`, `tokens`, `assetPlan`, `pagePlan`, `interactions`, `mobile`, `validationHints`. `meta.schemaVersion` to `"2.0"`. To inny kontrakt niż historyczny JSON zawierający kod `files`. Stare projekty z zapisanymi plikami pozostają obsługiwane.
 
-## Offline test report
+## Design i runtime
 
-`backend/tests/test_builder_contract.py` — 20 tests, no network, no credits.
+Plan ma 3–12 sekcji; nie ma stałej listy dla każdej branży. Nawigacja i footer są dodawane przez runtime.
 
-| Area | Result |
-|---|---|
-| normalize_files v1 dict + v2 list, path traversal/absolute rejection | ✅ |
-| preview.html never from model (dropped in generate path) | ✅ |
-| extract_contract (brief/tokens/sections/assets/warnings), garbage-tolerant | ✅ |
-| extract_json: plain / fenced / surrounded text / truncated raises | ✅ |
-| validate: good multi-component project passes | ✅ |
-| validate: monolithic App.tsx (no components) fails | ✅ |
-| validate: lorem-ipsum placeholder blocks | ✅ |
-| validate: missing required files blocks | ✅ |
-| single model call on success (exactly 1) | ✅ |
-| truncated JSON → parse error, no hidden second call | ✅ |
-| asset fallback: no key → curated known-good Unsplash CDN URL, no fabricated URLs | ✅ |
+15 komponentów w `backend/app/design_runtime/`: ImmersiveHero, EditorialHero, TypeDrivenHero, ProductStage, EditorialSplit, ImageBreak, ProductRail, StorySpread, StickyNarrative, HorizontalGallery, EditorialMenu, LocationCanvas, CTASection, FAQSection i ContactSection.
 
-Run: `cd backend && python -m pytest tests/ -q`
+14 nazw rodzin hero mapuje się na cztery komponenty hero i ich warianty: asymetria, plakat, editorial, warstwowe zdjęcie/tekst, ekspozycja produktu i immersyjne zdjęcie. Nie jest to 14 osobnych szablonów biznesowych.
+
+Fonty, skala, casing, tła, przyciski, radii, kadrowanie, szerokość, gęstość, kompozycja i motion są rzeczywiście używane w kodzie. `design_bindings` pokazuje zastosowane wartości. Koncept i uzasadnienia pozostają metadanymi, nie dowodem oceny wizualnej.
+
+CSS ma warstwy reset/base/layout/components/responsive. Zawartość jest domyślnie widoczna. Jeden IntersectionObserver obsługuje wybrane reveal; parallax ma jeden listener/requestAnimationFrame, maksymalnie dwa zdjęcia i małe przesunięcie. Zmiana prefers-reduced-motion anuluje animacje. Mobile zmienia kolejność, grid i kadrowanie.
+
+Google Fonts ładuje najwyżej dwie rodziny, po najwyżej dwie wagi, z display=swap. Biblioteka zawiera serif, sans, condensed i monospace; font wyłącznie nagłówkowy nie może trafić do akapitów. W razie braku sieci pozostaje właściwa rodzina zastępcza.
+
+## Fakty, zdjęcia i zachowanie
+
+Prompt zakazuje wymyślania ocen, opinii, cen, nagród, adresów, telefonów, godzin i integracji. Nie oznacza to automatycznej weryfikacji faktów w internecie. Model zapisuje założenia i brakujące dane; właściciel sprawdza treść przed publikacją.
+
+Każde CTA ma poprawne odwołanie do sekcji albo HTTPS/tel/mailto. Zakładki działają klawiaturą, galeria obsługuje Escape i powrót fokusu, FAQ używa details, karuzela przewija. Formularz mailto wymaga podanego adresu i otwiera program pocztowy odwiedzającego. Nie udaje serwerowej wysyłki, rezerwacji ani płatności.
+
+Model dostaje adresy i nazwy przesłanych zdjęć; nie jest to multimodalna analiza ich zawartości. Pozostałe zdjęcia używają `asset:id`. Maksymalnie osiem wyszukiwań Unsplash wykonuje się równolegle; cache metadanych ma TTL 30 minut. Wyniki są deduplikowane, filtrowane negatywnymi słowami i wymaganiami produktu. Dla mochi/matcha/sakura wymagana jest obecność odpowiedniego słowa w metadanych. Nie ma katalogu przypadkowych deserów.
+
+Brak zdjęcia głównego zmienia kompozycję na TypeDrivenHero. Uszkodzone zdjęcie w EditorialHero/ImmersiveHero uruchamia fallback również w przeglądarce. Pozostałe brakujące media są pomijane. Brakującego produktu nie zastępuje dekoracyjny blob.
+
+Raport zdjęć bazuje na dostarczonych plikach i metadanych wyszukiwania, nie na modelu vision. Unsplash zachowuje hotlink, autorstwo, responsywne rozmiary i tracking pobrania w tle. Media poza hero ładują się leniwie.
+
+## Pliki, preview i publish
+
+Projekt zawiera wymagane `package.json`, `index.html`, `src/main.tsx`, `src/index.css`, `src/App.tsx` pod `main/frontend/`, a także `src/data/site.json`, osobne `src/sections/`, `src/runtime/` i tsconfig. App składa sekcje. Projekt działa też samodzielnie z Vite przez npm install i npm run dev/build.
+
+esbuild-wasm buduje prawdziwy graf importów wraz z CSS, CSS Modules, JSON i lokalnymi SVG. Zachowuje fonty, język, tytuł i metadane index.html. Nie używa Sandpack, CodeSandbox, Nodebox ani AI preview.html. Import map ma przypięte wersje bibliotek. Preview nadal potrzebuje sieci do esm.sh, Google Fonts i zewnętrznych zdjęć.
+
+Artefakt zawiera HTML, hash źródeł, buildId, wersję i czas bundlowania. POST/PATCH zapisuje pełne pliki, spec i artefakt. Serwer odrzuca niezgodny hash oraz publikację cudzego projektu. Publikacja podaje identyfikator i hashe zapisanej wersji; backend zwraca dokładnie zapisane bajty HTML bez AI i bez ponownej kompilacji. Zewnętrzne zasoby pozostają sieciowe.
+
+Iframe i publikacja mają sandbox bez allow-same-origin. Wiadomości podglądu sprawdzają źródłowe okno i buildId. Gotowość wynika z montażu React i oczekiwania na fonty. Błąd kompilacji lub montażu zachowuje poprzednią stronę. Identyczny wynik z cache również dostaje nowy montaż iframe.
+
+## Testy i ograniczenia
+
+Backend sprawdza kontrakt, pięć branż, transport bez retry, kontrast, zdjęcia, autoryzację, upload, własność, zapis, odrzucenie starego artefaktu i publikację tych samych bajtów.
+
+Przeglądarka sprawdza realny esbuild/React, CSS/importy/fonty, desktop/mobile, CTA, menu, tabs, galerię, FAQ, przewijanie, formularz, reduced motion, awarię zdjęcia, ponowne otwarcie projektu i błędy. Odpowiedzi AI są kontrolowane. Obrazy oznaczone PHOTO FIXTURE służą do regresji, nie są przykładem doboru zdjęć przez AI.
+
+P50/P95 z pięciu przypadków to mała próba regresyjna, nie SLA. `designCompileMs` obejmuje walidację i kompilator, `bundleMs` — esbuild. Produkcyjne `model_ms`/`model_and_spec_ms` obejmuje request i walidację spec; `client_total_ms` — od kliknięcia do montażu. Bez żywego XKIRO nie potwierdzono pełnej generacji poniżej 60 sekund.
+
+Nie dodano katalogu setek referencji, wyszukiwarki wzorców, automatycznego krytyka vision, CMS ani płatności klientów. Załącznik opisuje je jako oddzielne etapy. quality_review zawiera wejście do ręcznego/przyszłego review i jawne `visual_review_performed:false`, bez fikcyjnej oceny 9/10. Nie twierdzimy, że znamy wewnętrzną architekturę Emergent.
+
+Dokumentacja użyta przy naprawach:
+[esbuild w przeglądarce](https://esbuild.github.io/api/#browser),
+[CSS w esbuild](https://esbuild.github.io/content-types/#css),
+[Unsplash API](https://unsplash.com/documentation).

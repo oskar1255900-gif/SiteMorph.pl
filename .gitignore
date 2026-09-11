@@ -28,3 +28,5 @@ backend/*.log
 
 # Lokalne buildy wygenerowanych projektow React (preview)
 backend/.sitemorph_builds/
+frontend/test-results/
+.pytest_cache/
