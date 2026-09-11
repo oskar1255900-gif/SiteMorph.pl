@@ -206,35 +206,58 @@ def xkiro_generate_model(
     model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
     max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Exactly one HTTP attempt; no hidden retries or output-budget downgrade."""
+    """One HTTP attempt with a single retry on transient 429/5xx errors.
+
+    Rate-limit (429) and gateway (5xx) errors are transient — a single retry
+    after a short backoff is transport resilience, not a second design call.
+    All other errors surface immediately without retry.
+    """
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
-    try:
-        response = requests.post(
-            f"{XKIRO_BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {XKIRO_API_KEY}", "Content-Type": "application/json"},
-            json={"model": model, "temperature": temperature,
-                  "max_tokens": min(int(max_tokens), 32000),
-                  "messages": [{"role": "system", "content": system_prompt},
-                               {"role": "user", "content": user_prompt}]},
-            timeout=(10, timeout or AI_TIMEOUT),
-        )
-        if response.status_code != 200:
-            return None, f"Provider HTTP {response.status_code}; nie ponowiono zapytania."
-        body = response.json()
-        choices = body.get("choices") or []
-        if not choices:
-            return None, "Provider zwrócił pustą odpowiedź."
-        if choices[0].get("finish_reason") == "length":
-            return None, "Odpowiedź została ucięta przez limit modelu; projekt nie jest kompletny."
-        content = choices[0].get("message", {}).get("content", "")
-        if isinstance(content, list):
-            content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
-        return (content, None) if isinstance(content, str) and content.strip() else (None, "Pusta odpowiedź modelu.")
-    except requests.Timeout:
-        return None, "Model przekroczył czas odpowiedzi. Zapytanie nie zostało automatycznie ponowione."
-    except (requests.RequestException, ValueError, TypeError, AttributeError):
-        return None, "Nie udało się odebrać kompletnej odpowiedzi modelu."
+    payload = {"model": model, "temperature": temperature,
+               "max_tokens": min(int(max_tokens), 32000),
+               "messages": [{"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}]}
+    headers = {"Authorization": f"Bearer {XKIRO_API_KEY}", "Content-Type": "application/json"}
+    effective_timeout = (10, timeout or AI_TIMEOUT)
+    _RETRYABLE = {429, 500, 502, 503, 504}
+    last_err = None
+    for attempt in range(2):  # attempt 0 = first try, attempt 1 = single retry
+        try:
+            response = requests.post(
+                f"{XKIRO_BASE_URL}/chat/completions",
+                headers=headers, json=payload, timeout=effective_timeout,
+            )
+            if response.status_code in _RETRYABLE and attempt == 0:
+                import time as _time
+                wait = 15 if response.status_code == 429 else 8
+                print(f"[SiteMorph] HTTP {response.status_code} — retrying in {wait}s (attempt {attempt+1}/2)")
+                _time.sleep(wait)
+                last_err = f"Provider HTTP {response.status_code} (pierwsza próba)"
+                continue
+            if response.status_code != 200:
+                return None, f"Provider HTTP {response.status_code}."
+            body = response.json()
+            choices = body.get("choices") or []
+            if not choices:
+                return None, "Provider zwrócił pustą odpowiedź."
+            if choices[0].get("finish_reason") == "length":
+                return None, "Odpowiedź została ucięta przez limit modelu; projekt nie jest kompletny."
+            content = choices[0].get("message", {}).get("content", "")
+            if isinstance(content, list):
+                content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+            return (content, None) if isinstance(content, str) and content.strip() else (None, "Pusta odpowiedź modelu.")
+        except requests.Timeout:
+            if attempt == 0:
+                import time as _time
+                print("[SiteMorph] Timeout — retrying in 15s (attempt 1/2)")
+                _time.sleep(15)
+                last_err = "Model przekroczył czas odpowiedzi (pierwsza próba)"
+                continue
+            return None, "Model przekroczył czas odpowiedzi."
+        except (requests.RequestException, ValueError, TypeError, AttributeError) as exc:
+            return None, f"Nie udało się odebrać odpowiedzi: {exc}"
+    return None, last_err or "Wyczerpano próby transportowe."
 
 
 # =============================================================================
