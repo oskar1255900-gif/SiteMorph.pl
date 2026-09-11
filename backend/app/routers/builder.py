@@ -10,6 +10,7 @@ import subprocess
 import time
 import uuid
 import requests
+from openai import OpenAI
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -61,11 +62,12 @@ DEEPSEEK_MODEL = os.getenv(
     "SITEMORPH_DEEPSEEK_MODEL",
     "deepseek/deepseek-v4-pro",
 )
+FABLE_MODEL = "anthropic/claude-fable-5"
 
 MODEL_MAP = {
     "normal": DEEPSEEK_MODEL,
     "ultra": DEEPSEEK_MODEL,
-    "ultra+": DEEPSEEK_MODEL,
+    "ultra+": FABLE_MODEL,
 }
 
 PROMPT_PARSER_MODEL = DEEPSEEK_MODEL
@@ -206,57 +208,49 @@ def xkiro_generate_model(
     model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
     max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """One HTTP attempt with a single retry on transient 429/5xx errors.
-
-    Rate-limit (429) and gateway (5xx) errors are transient — a single retry
-    after a short backoff is transport resilience, not a second design call.
-    All other errors surface immediately without retry.
-    """
+    """Call XKIRO via OpenAI-compatible client with single retry on 429/5xx."""
     if not XKIRO_API_KEY:
         return None, "Brak XKIRO_API_KEY"
-    payload = {"model": model, "temperature": temperature,
-               "max_tokens": min(int(max_tokens), 32000),
-               "messages": [{"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}]}
-    headers = {"Authorization": f"Bearer {XKIRO_API_KEY}", "Content-Type": "application/json"}
-    effective_timeout = (10, timeout or AI_TIMEOUT)
+    client = OpenAI(base_url=XKIRO_BASE_URL, api_key=XKIRO_API_KEY)
+    effective_timeout = timeout or AI_TIMEOUT
     _RETRYABLE = {429, 500, 502, 503, 504}
     last_err = None
     for attempt in range(2):  # attempt 0 = first try, attempt 1 = single retry
         try:
-            response = requests.post(
-                f"{XKIRO_BASE_URL}/chat/completions",
-                headers=headers, json=payload, timeout=effective_timeout,
+            response = client.chat.completions.create(
+                model=model,
+                temperature=temperature,
+                max_tokens=min(int(max_tokens), 32000),
+                timeout=effective_timeout,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
             )
-            if response.status_code in _RETRYABLE and attempt == 0:
+            if response.choices:
+                finish = response.choices[0].finish_reason
+                if finish == "length":
+                    return None, "Odpowiedź ucięta przez limit modelu."
+                content = response.choices[0].message.content or ""
+                if isinstance(content, list):
+                    content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+                return (content, None) if isinstance(content, str) and content.strip() else (None, "Pusta odpowiedź modelu.")
+            return None, "Provider zwrócił pustą odpowiedź."
+        except Exception as exc:
+            err_str = str(exc).lower()
+            status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+            is_retryable = (
+                status_code in _RETRYABLE
+                or any(kw in err_str for kw in ("429", "rate limit", "too many", "timeout", "timed out", "500", "502", "503", "504"))
+            )
+            if is_retryable and attempt == 0:
                 import time as _time
-                wait = 15 if response.status_code == 429 else 8
-                print(f"[SiteMorph] HTTP {response.status_code} — retrying in {wait}s (attempt {attempt+1}/2)")
+                wait = 15 if status_code == 429 or "429" in err_str or "rate limit" in err_str else 8
+                print(f"[SiteMorph] Retryable error ({status_code or err_str[:60]}) — retrying in {wait}s (attempt {attempt+1}/2)")
                 _time.sleep(wait)
-                last_err = f"Provider HTTP {response.status_code} (pierwsza próba)"
+                last_err = f"Provider: {exc}"
                 continue
-            if response.status_code != 200:
-                return None, f"Provider HTTP {response.status_code}."
-            body = response.json()
-            choices = body.get("choices") or []
-            if not choices:
-                return None, "Provider zwrócił pustą odpowiedź."
-            if choices[0].get("finish_reason") == "length":
-                return None, "Odpowiedź została ucięta przez limit modelu; projekt nie jest kompletny."
-            content = choices[0].get("message", {}).get("content", "")
-            if isinstance(content, list):
-                content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
-            return (content, None) if isinstance(content, str) and content.strip() else (None, "Pusta odpowiedź modelu.")
-        except requests.Timeout:
-            if attempt == 0:
-                import time as _time
-                print("[SiteMorph] Timeout — retrying in 15s (attempt 1/2)")
-                _time.sleep(15)
-                last_err = "Model przekroczył czas odpowiedzi (pierwsza próba)"
-                continue
-            return None, "Model przekroczył czas odpowiedzi."
-        except (requests.RequestException, ValueError, TypeError, AttributeError) as exc:
-            return None, f"Nie udało się odebrać odpowiedzi: {exc}"
+            return None, f"Provider: {exc}"
     return None, last_err or "Wyczerpano próby transportowe."
 
 
@@ -2108,7 +2102,8 @@ def _generate_design_spec(data: BuilderInput, supplied):
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     request = json.dumps({"original_user_prompt": raw_prompt, "preferences": _explicit_preferences(data),
                           "provided_images": supplied}, ensure_ascii=False, separators=(",", ":"))
-    text, error = xkiro_generate_model(DEEPSEEK_MODEL, spec_prompt, request,
+    selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
+    text, error = xkiro_generate_model(selected_model, spec_prompt, request,
         temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
     if not text:
         return None, [], error or "Pusta odpowiedź modelu."
@@ -2157,8 +2152,10 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
             "subheadline": hero.get("supportingText") or hero.get("lead") or hero.get("subheadline") or "",
             "ctaText": ctas[0]["label"] if ctas else "", "schemaVersion": "2.0"}
     brief = spec.businessBrief.model_dump()
+    selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
+    provider_label = "claude-fable-5" if "fable" in selected_model else "deepseek-v4-pro"
     return {
-        "status": "success", "provider": "deepseek-v4-pro", "model": DEEPSEEK_MODEL,
+        "status": "success", "provider": provider_label, "model": selected_model,
         "ai_calls": 1, "prompt_version": spec_prompt_version,
         "pipeline": "single-deepseek-spec-design-compiler-react",
         "design_compiler_version": design_version,
