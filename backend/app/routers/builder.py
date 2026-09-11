@@ -70,6 +70,29 @@ MODEL_MAP = {
     "ultra+": FABLE_MODEL,
 }
 
+# Ordered fallback chain: first model that responds wins.
+FALLBACK_CHAIN = [
+    "mistralai/mistral-large-2512",
+    "minimax/minimax-m3:free",
+    "deepseek/deepseek-v4-flash",
+    DEEPSEEK_MODEL,
+    "sensenova/sensenova-6.8-flash-lite",
+    "qwen/qwen3.7-max:free",
+    "qwen/qwen3.7-plus:free",
+    "qwen/qwen3.6-max-preview:free",
+    "qwen/qwen3.6-27b:free",
+]
+
+def _is_model_unavailable(error: Optional[str]) -> bool:
+    """True when the error indicates the model is overloaded or unavailable."""
+    if not error:
+        return False
+    low = error.lower()
+    return any(kw in low for kw in (
+        "capacity", "internal_error", "temporarily", "overloaded",
+        "rate limit", "too many", "429", "503", "529",
+    ))
+
 PROMPT_PARSER_MODEL = DEEPSEEK_MODEL
 BRAND_STRATEGIST_MODEL = DEEPSEEK_MODEL
 ART_DIRECTOR_MODEL = DEEPSEEK_MODEL
@@ -2161,14 +2184,19 @@ def _generate_design_spec(data: BuilderInput, supplied):
     selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
     text, error = xkiro_generate_model(selected_model, spec_prompt, request,
         temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
-    # Fallback: if the selected model is unavailable, try deepseek
-    if not text and selected_model != DEEPSEEK_MODEL and error and (
-        "capacity" in str(error).lower() or "internal_error" in str(error).lower()
-        or "temporarily" in str(error).lower()
-    ):
-        print(f"[SiteMorph] Model {selected_model} niedostępny, fallback → {DEEPSEEK_MODEL}")
-        text, error = xkiro_generate_model(DEEPSEEK_MODEL, spec_prompt, request,
-            temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
+    # Fallback chain: try each model in order until one works
+    if not text and _is_model_unavailable(error):
+        tried = [selected_model]
+        for fallback_model in FALLBACK_CHAIN:
+            if fallback_model in tried:
+                continue
+            print(f"[SiteMorph] {tried[-1]} niedostępny, próbuję {fallback_model}")
+            text, error = xkiro_generate_model(fallback_model, spec_prompt, request,
+                temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
+            tried.append(fallback_model)
+            if text:
+                print(f"[SiteMorph] ✓ {fallback_model} odpowiedział")
+                break
     if not text:
         return None, [], error or "Pusta odpowiedź modelu."
     try:
