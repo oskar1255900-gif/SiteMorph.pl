@@ -255,6 +255,7 @@ def xkiro_generate_model(
         parts: List[str] = []
         finish_reason = None
         done = False
+        saw_error = None
         for raw_line in response.iter_lines(decode_unicode=True):
             if not raw_line:
                 continue
@@ -270,7 +271,8 @@ def xkiro_generate_model(
             except json.JSONDecodeError:
                 return None, "XKIRO zwróciło uszkodzony fragment odpowiedzi strumieniowej."
             if event.get("error"):
-                return None, _xkiro_error_message(event["error"], 200, response.headers)
+                saw_error = event["error"]
+                break
             choices = event.get("choices") or []
             if not choices:
                 continue
@@ -283,6 +285,8 @@ def xkiro_generate_model(
             elif isinstance(delta, list):
                 parts.extend(str(item.get("text", "")) for item in delta if isinstance(item, dict))
 
+        if saw_error:
+            return None, _xkiro_error_message(saw_error, 200, response.headers)
         if not done:
             return None, "Połączenie z XKIRO zostało przerwane przed zakończeniem odpowiedzi."
         if finish_reason == "length":
@@ -2157,6 +2161,14 @@ def _generate_design_spec(data: BuilderInput, supplied):
     selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
     text, error = xkiro_generate_model(selected_model, spec_prompt, request,
         temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
+    # Fallback: if the selected model is unavailable, try deepseek
+    if not text and selected_model != DEEPSEEK_MODEL and error and (
+        "capacity" in str(error).lower() or "internal_error" in str(error).lower()
+        or "temporarily" in str(error).lower()
+    ):
+        print(f"[SiteMorph] Model {selected_model} niedostępny, fallback → {DEEPSEEK_MODEL}")
+        text, error = xkiro_generate_model(DEEPSEEK_MODEL, spec_prompt, request,
+            temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
     if not text:
         return None, [], error or "Pusta odpowiedź modelu."
     try:
