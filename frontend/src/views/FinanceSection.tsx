@@ -158,7 +158,7 @@ export const FinanceSection = () => {
 
   const totalRevenue = invoices.reduce((s, i) => s + (i.total || 0), 0);
 
-  const inputClasses = "w-full rounded-xl px-3.5 py-2 text-xs font-bold outline-none border text-[#2563eb] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800";
+  const inputClasses = "sm-input text-[15px]";
 
   const enabledMethods = [
     usePrzelew && 'przelew',
@@ -175,8 +175,8 @@ export const FinanceSection = () => {
     >
       <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
         <div>
-          <h2 className="text-xl font-black">Finanse i Księgowość</h2>
-          <p className="text-xs font-bold opacity-80">
+          <h2 className="text-xl font-semibold">Finanse i Księgowość</h2>
+          <p className="text-[13px] font-bold opacity-80">
             {isProfileSet ? `Firma: ${businessName}` : 'Rejestracja profilu płatniczego i firmy'}
           </p>
         </div>
@@ -190,11 +190,11 @@ export const FinanceSection = () => {
       {!isProfileSet ? (
         <motion.div variants={itemVariants} className="max-w-xl mx-auto space-y-6 pt-4 text-center">
           <div>
-            <h3 className="text-2xl font-black">Załóż profil firmy</h3>
-            <p className="text-xs font-bold mt-1 opacity-80">Wprowadź dane swojej działalności, aby wystawiać faktury.</p>
+            <h3 className="text-2xl font-semibold">Załóż profil firmy</h3>
+            <p className="text-[13px] font-bold mt-1 opacity-80">Wprowadź dane swojej działalności, aby wystawiać faktury.</p>
           </div>
 
-          <div className="flex items-center justify-center gap-6 text-xs font-bold py-2">
+          <div className="flex items-center justify-center gap-6 text-[13px] font-bold py-2">
             {[
               { n: 1, label: 'Dane firmy' },
               { n: 2, label: 'Metody płatności' },
@@ -202,8 +202,8 @@ export const FinanceSection = () => {
             ].map((step, idx) => (
               <React.Fragment key={step.n}>
                 {idx > 0 && <span className="w-8 h-px bg-blue-200 dark:bg-neutral-800" />}
-                <span className={`flex items-center gap-2 ${setupStep >= step.n ? 'text-emerald-500 font-black' : 'opacity-70'}`}>
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] ${
+                <span className={`flex items-center gap-2 ${setupStep >= step.n ? 'text-emerald-500 font-semibold' : 'opacity-70'}`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center font-semibold text-[13px] ${
                     setupStep >= step.n ? 'bg-[#2563eb] text-white shadow-[0_8px_32px_rgba(37,99,235,0.18)]' : 'bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white'
                   }`}>{step.n}</span>
                   {step.label}
@@ -218,27 +218,27 @@ export const FinanceSection = () => {
           >
             {setupStep === 1 && (
               <div className="space-y-3">
-                <h4 className="font-black text-sm">Krok 1: Wprowadź dane firmy</h4>
+                <h4 className="font-semibold text-sm">Krok 1: Wprowadź dane firmy</h4>
                 <div>
-                  <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Nazwa firmy *</label>
+                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Nazwa firmy *</label>
                   <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="np. Studio Projektowe" className={inputClasses} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Imię i nazwisko właściciela</label>
+                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Imię i nazwisko właściciela</label>
                   <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="np. Jan Kowalski" className={inputClasses} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Email firmowy do faktur *</label>
+                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Email firmowy do faktur *</label>
                   <input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} placeholder="jan@studio.pl" className={inputClasses} />
-                  <p className="text-[10px] font-bold opacity-60 mt-1">Ten adres pojawi się na fakturach jako wystawca - odpowiedzi klientów trafią prosto do Ciebie.</p>
+                  <p className="text-[13px] font-bold opacity-60 mt-1">Ten adres pojawi się na fakturach jako wystawca - odpowiedzi klientów trafią prosto do Ciebie.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Adres firmy</label>
+                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Adres firmy</label>
                     <input type="text" value={sellerAddress} onChange={(e) => setSellerAddress(e.target.value)} placeholder="ul. Prosta 1, 00-001 Warszawa" className={inputClasses} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black block mb-1 uppercase opacity-75">NIP (opcjonalnie)</label>
+                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">NIP (opcjonalnie)</label>
                     <input type="text" value={sellerNip} onChange={(e) => setSellerNip(e.target.value)} placeholder="0000000000" className={inputClasses} />
                   </div>
                 </div>
@@ -247,22 +247,22 @@ export const FinanceSection = () => {
 
             {setupStep === 2 && (
               <div className="space-y-4">
-                <h4 className="font-black text-sm">Krok 2: Metody rozliczeń</h4>
-                <p className="text-xs font-bold opacity-80">Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
+                <h4 className="font-semibold text-sm">Krok 2: Metody rozliczeń</h4>
+                <p className="text-[13px] font-bold opacity-80">Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
 
                 <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
-                  <span className="text-xs font-black">Przelew bankowy (IBAN)</span>
+                  <span className="text-[13px] font-semibold">Przelew bankowy (IBAN)</span>
                   <input type="checkbox" className="sm-check" checked={usePrzelew} onChange={(e) => setUsePrzelew(e.target.checked)} />
                 </label>
                 {usePrzelew && (
                   <div>
                     <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} placeholder="PL00 0000 0000 0000 0000 0000 0000" className={inputClasses} />
-                    <p className="text-[10px] font-bold opacity-60 mt-1">Numer IBAN jest bezpieczny - służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
+                    <p className="text-[13px] font-bold opacity-60 mt-1">Numer IBAN jest bezpieczny - służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
                   </div>
                 )}
 
                 <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
-                  <span className="text-xs font-black">BLIK na telefon</span>
+                  <span className="text-[13px] font-semibold">BLIK na telefon</span>
                   <input type="checkbox" className="sm-check" checked={useBlik} onChange={(e) => setUseBlik(e.target.checked)} />
                 </label>
                 {useBlik && (
@@ -270,7 +270,7 @@ export const FinanceSection = () => {
                 )}
 
                 <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
-                  <span className="text-xs font-black">PayPal</span>
+                  <span className="text-[13px] font-semibold">PayPal</span>
                   <input type="checkbox" className="sm-check" checked={usePaypal} onChange={(e) => setUsePaypal(e.target.checked)} />
                 </label>
                 {usePaypal && (
@@ -280,8 +280,8 @@ export const FinanceSection = () => {
             )}
 
             {setupStep === 3 && (
-              <div className="space-y-3 text-xs">
-                <h4 className="font-black text-sm">Krok 3: Podsumowanie danych</h4>
+              <div className="space-y-3 text-[13px]">
+                <h4 className="font-semibold text-sm">Krok 3: Podsumowanie danych</h4>
                 {[
                   ['Nazwa firmy', businessName || '-'],
                   ['Właściciel', userName || '-'],
@@ -292,7 +292,7 @@ export const FinanceSection = () => {
                 ].map(([label, value], i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-[#EAEAEA] dark:border-neutral-900 last:border-none">
                     <span className="font-bold opacity-75">{label}:</span>
-                    <span className="font-black truncate max-w-[60%]">{value}</span>
+                    <span className="font-semibold truncate max-w-[60%]">{value}</span>
                   </div>
                 ))}
               </div>
@@ -325,7 +325,7 @@ export const FinanceSection = () => {
                   Dalej →
                 </Button>
               ) : (
-                <Button variant="primary" size="sm" onClick={handleCompleteSetup} className="font-black shadow-md">
+                <Button variant="primary" size="sm" onClick={handleCompleteSetup} className="font-semibold shadow-md">
                   Zapisz profil firmy ✓
                 </Button>
               )}
@@ -345,16 +345,16 @@ export const FinanceSection = () => {
                 key={i}
                 className="p-4 rounded-2xl border shadow-lg bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
               >
-                <span className="text-[10px] font-black uppercase tracking-wider block mb-1 opacity-70">{stat.title}</span>
-                <span className={`text-xl font-black ${stat.color}`}>{stat.value}</span>
+                <span className="text-[13px] font-semibold uppercase tracking-wider block mb-1 opacity-70">{stat.title}</span>
+                <span className={`text-xl font-semibold ${stat.color}`}>{stat.value}</span>
               </motion.div>
             ))}
           </div>
 
           <div className="p-6 rounded-2xl border shadow-xl space-y-4 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-black">Rejestr faktur</span>
-              <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-xs font-black">
+              <span className="text-sm font-semibold">Rejestr faktur</span>
+              <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-[13px] font-semibold">
                 <Plus size={14} /> Stwórz nową fakturę
               </Button>
             </div>
@@ -364,14 +364,14 @@ export const FinanceSection = () => {
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2 border shadow-sm bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
                   <Receipt size={24} />
                 </div>
-                <h4 className="text-xs font-black">Brak wystawionych faktur</h4>
-                <p className="text-xs font-bold opacity-80">Kliknij przycisk powyżej, aby wystawić pierwszą fakturę dla klienta.</p>
+                <h4 className="text-[13px] font-semibold">Brak wystawionych faktur</h4>
+                <p className="text-[13px] font-bold opacity-80">Kliknij przycisk powyżej, aby wystawić pierwszą fakturę dla klienta.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full text-left text-[13px] border-collapse">
                   <thead>
-                    <tr className="border-b border-[#EAEAEA] dark:border-neutral-900 font-black">
+                    <tr className="border-b border-[#EAEAEA] dark:border-neutral-900 font-semibold">
                       <th className="py-2.5">Numer</th>
                       <th className="py-2.5">Klient</th>
                       <th className="py-2.5">Kwota</th>
@@ -383,14 +383,14 @@ export const FinanceSection = () => {
                   <tbody className="divide-y divide-blue-50 dark:divide-neutral-900 font-bold">
                     {invoices.map((inv) => (
                       <tr key={inv.id} className="hover:bg-[#F7F6F3]/50 dark:hover:bg-neutral-900/40">
-                        <td className="py-3 font-black font-mono">{inv.number}</td>
+                        <td className="py-3 font-semibold font-mono">{inv.number}</td>
                         <td className="py-3">{inv.buyer}</td>
-                        <td className="py-3 font-black text-emerald-500">{(inv.total || 0).toFixed(2)} zł</td>
+                        <td className="py-3 font-semibold text-emerald-500">{(inv.total || 0).toFixed(2)} zł</td>
                         <td className="py-3">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
                         <td className="py-3">
                           {inv.sent_to
-                            ? <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-lime-50 text-lime-700 dark:bg-neutral-900 dark:text-lime-300 border border-lime-400">Wysłana</span>
-                            : <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-neutral-900 dark:text-amber-300 border border-amber-400">Oczekująca</span>}
+                            ? <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-lime-50 text-lime-700 dark:bg-neutral-900 dark:text-lime-300 border border-lime-400">Wysłana</span>
+                            : <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-amber-100 text-amber-800 dark:bg-neutral-900 dark:text-amber-300 border border-amber-400">Oczekująca</span>}
                         </td>
                         <td className="py-3 text-right">
                           <a
@@ -404,7 +404,7 @@ export const FinanceSection = () => {
                                 if (w) w.document.write(html);
                               }
                             }}
-                            className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-500 hover:underline"
+                            className="inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-500 hover:underline"
                           >
                             Otwórz <ExternalLink size={10} />
                           </a>
@@ -438,32 +438,32 @@ export const FinanceSection = () => {
                 <X size={16} />
               </motion.button>
 
-              <h3 className="font-black text-base">Nowa faktura</h3>
+              <h3 className="font-semibold text-base">Nowa faktura</h3>
 
               <form onSubmit={handleCreateInvoice} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
                   <div>
-                    <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Nazwa klienta *</label>
+                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Nazwa klienta *</label>
                     <input type="text" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Jan Kowalski" required className={inputClasses} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Email klienta *</label>
+                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Email klienta *</label>
                     <input type="email" value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="jan@firma.pl" required className={inputClasses} />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Nazwa usługi</label>
+                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Nazwa usługi</label>
                   <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className={inputClasses} />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
                   <div>
-                    <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Kwota brutto (PLN) *</label>
+                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Kwota brutto (PLN) *</label>
                     <input type="number" min="1" step="0.01" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="4500" required className={inputClasses} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black block mb-1 uppercase opacity-75">Metoda płatności</label>
+                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Metoda płatności</label>
                     <select value={newMethod} onChange={(e) => setNewMethod(e.target.value)} className={inputClasses + ' cursor-pointer'}>
                       {(enabledMethods.length ? enabledMethods : ['przelew']).map((m) => (
                         <option key={m} value={m}>{METHOD_LABEL[m]}</option>
@@ -473,25 +473,25 @@ export const FinanceSection = () => {
                 </div>
 
                 {newMethod === 'przelew' && (
-                  <p className="text-[10px] font-bold opacity-60">Na fakturze pojawi się Twój numer IBAN: <span className="font-black">{iban || '-'}</span>. Numer IBAN jest bezpieczny - służy wyłącznie do przelewu.</p>
+                  <p className="text-[13px] font-bold opacity-60">Na fakturze pojawi się Twój numer IBAN: <span className="font-semibold">{iban || '-'}</span>. Numer IBAN jest bezpieczny - służy wyłącznie do przelewu.</p>
                 )}
                 {newMethod === 'blik' && (
-                  <p className="text-[10px] font-bold opacity-60">BLIK na telefon: <span className="font-black">{blikPhone || '-'}</span></p>
+                  <p className="text-[13px] font-bold opacity-60">BLIK na telefon: <span className="font-semibold">{blikPhone || '-'}</span></p>
                 )}
                 {newMethod === 'paypal' && (
-                  <p className="text-[10px] font-bold opacity-60">Link PayPal: <span className="font-black">{paypalLink || '-'}</span></p>
+                  <p className="text-[13px] font-bold opacity-60">Link PayPal: <span className="font-semibold">{paypalLink || '-'}</span></p>
                 )}
 
-                {formErr && <p className="text-xs font-black text-rose-500">{formErr}</p>}
-                {formMsg && <p className="text-xs font-black text-emerald-500">{formMsg}</p>}
+                {formErr && <p className="text-[13px] font-semibold text-rose-500">{formErr}</p>}
+                {formMsg && <p className="text-[13px] font-semibold text-emerald-500">{formMsg}</p>}
 
                 <div className="flex items-center justify-between pt-4 border-t border-[#EAEAEA] dark:border-neutral-900">
-                  <span className="font-black text-sm">Suma: {newAmount || '0'} zł</span>
+                  <span className="font-semibold text-sm">Suma: {newAmount || '0'} zł</span>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
                       Anuluj
                     </Button>
-                    <Button variant="primary" size="sm" type="submit" disabled={sending} className="gap-1 text-xs font-black shadow-md">
+                    <Button variant="primary" size="sm" type="submit" disabled={sending} className="gap-1 text-[13px] font-semibold shadow-md">
                       {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Wystaw i wyślij
                     </Button>
                   </div>

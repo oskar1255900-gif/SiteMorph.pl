@@ -10,7 +10,7 @@ const VIDEO_URL =
  * Brama "Strona w budowie" - premium cinematic landing.
  * - Password verified server-side via SHA-256 hash
  * - Background: Palomar lake landscape video with blur + tint
- * - Headline: animated gradient text (pink → green → blue)
+ * - Headline: subtelny gradient w akcencie SiteMorph (turkus → limonka)
  * - Font: SF Pro Display (Apple system font fallback)
  */
 export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
@@ -67,14 +67,12 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
         .gradient-word {
           background: linear-gradient(
             135deg,
-            #c9b8a8 0%,
-            #e8ddd3 25%,
-            #f5f0eb 50%,
-            #d4c5b5 75%,
-            #c9b8a8 100%
+            var(--sm-accent) 0%,
+            #7FE3C4 45%,
+            var(--sm-accent-2) 100%
           );
           background-size: 200% 200%;
-          animation: gradient-shift 8s ease infinite;
+          animation: gradient-shift 10s ease infinite;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -100,11 +98,13 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
         }} />
       </div>
 
-      {/* Panel button - top right, nearly invisible */}
-      <div className="absolute top-5 right-6 z-20">
+      {/* Wejście do panelu — celowo dyskretne, ale z pełnym obszarem dotyku 44px */}
+      <div className="absolute right-4 top-3 z-20">
         <button
+          type="button"
           onClick={() => setPanelOpen(true)}
-          className="text-[10px] font-medium tracking-[0.2em] uppercase text-white/15 hover:text-white/40 transition-colors duration-500 cursor-pointer bg-transparent border-none"
+          aria-label="Dostęp do panelu"
+          className="inline-flex min-h-[44px] cursor-pointer items-center border-none bg-transparent px-3 text-[13px] font-medium uppercase tracking-[0.2em] text-white/20 transition-colors duration-500 hover:text-white/60"
         >
           Panel
         </button>
@@ -164,8 +164,8 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
                   <Lock size={16} className="text-white/80" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold">Dostęp do panelu</h3>
-                  <p className="text-[11px] text-white/40">Wprowadź hasło, aby kontynuować</p>
+                  <h3 className="text-base font-semibold">Dostęp do panelu</h3>
+                  <p className="text-[13px] text-white/50">Wprowadź hasło, aby kontynuować</p>
                 </div>
               </div>
               <input
@@ -175,17 +175,17 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
                 onChange={(e) => setPass(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submit()}
                 placeholder="Hasło"
-                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition-colors focus:border-cyan-300/50"
+                className="min-h-[48px] w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white outline-none transition-colors placeholder:text-white/40 focus:border-cyan-300/60"
               />
               {err && (
-                <p className="mt-3 flex items-center gap-1.5 text-xs text-red-400">
+                <p className="mt-3 flex items-center gap-1.5 text-[13px] text-red-400">
                   <AlertTriangle size={12} /> {err}
                 </p>
               )}
               <button
                 onClick={submit}
                 disabled={busy || !pass.trim()}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition-all hover:bg-white/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-white px-5 text-base font-semibold text-black transition-all hover:bg-white/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
                 Wejdź

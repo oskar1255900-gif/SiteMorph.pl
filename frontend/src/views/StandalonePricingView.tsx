@@ -14,19 +14,14 @@ export const StandalonePricingView = () => {
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-6xl mx-auto py-6 lg:py-10 px-6 lg:px-4 space-y-10 pb-24 text-[#2563eb] dark:text-white"
-      style={{ perspective: 1600 }}
+      className="mx-auto max-w-6xl space-y-10 px-5 py-8 pb-24 text-[var(--sm-text)] lg:px-4 lg:py-12"
     >
-      <motion.div variants={cineSoft} className="text-center space-y-3 relative">
-        <div className="relative text-emerald-500 dark:text-emerald-400 font-black text-xs tracking-[0.2em] uppercase">Cennik i Plany</div>
-        <h2 className="relative text-5xl sm:text-6xl font-black tracking-tighter leading-[0.9]" style={{ fontFamily: "'Inter', sans-serif" }}>
-          Wybierz swój <span className="text-gradient-lime-soft font-story-script text-6xl sm:text-7xl px-1">Plan</span>
-        </h2>
-        <p className="relative text-sm font-bold max-w-xl mx-auto opacity-80 leading-relaxed">
-          Odblokuj pełne możliwości AI. Twórz strony, szukaj klientów i zarabiaj bez limitów.
+      <motion.div variants={cineSoft} className="space-y-3">
+        <h1 className="sm-h1">Cennik i plany</h1>
+        <p className="max-w-xl text-[16px] leading-[1.55] text-[var(--sm-text-2)]">
+          Odblokuj pełne możliwości AI — twórz strony, szukaj klientów i rozliczaj się bez prowizji.
         </p>
-
-        <p className="text-xs font-bold opacity-60">Płatność miesięczna - bez zobowiązań, anulujesz w każdej chwili</p>
+        <p className="text-[14px] text-[var(--sm-text-3)]">Płatność miesięczna, bez zobowiązań. Anulujesz w każdej chwili.</p>
       </motion.div>
 
       <motion.div
@@ -34,8 +29,7 @@ export const StandalonePricingView = () => {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-80px' }}
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 items-stretch"
-        style={{ perspective: 1600 }}
+        className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4 lg:gap-6"
       >
         {[
           { name: 'Starter', price: 50, credits: 100, features: ['100 kredytów AI / mies', 'Wyszukiwanie firm (5/mies)', 'Generowanie stron AI', 'Fakturowanie klientów'] },
@@ -51,52 +45,52 @@ export const StandalonePricingView = () => {
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
               key={idx}
-              className={`rounded-2xl p-7 lg:p-8 flex flex-col justify-between border transition-all relative shadow-xl ${
+              className={`relative flex flex-col justify-between rounded-[14px] border p-6 transition-colors lg:p-7 ${
                 plan.popular
-                  ? 'border-blue-600 dark:border-white ring-2 ring-blue-600/20 dark:ring-white/20'
-                  : 'bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900'
+                  ? 'border-[var(--sm-accent)] bg-[var(--sm-surface)]'
+                  : 'border-[var(--sm-border)] bg-[var(--sm-surface)]'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#111111] text-white dark:bg-white dark:text-black text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[var(--sm-accent)] bg-[var(--sm-surface)] px-3 py-1 text-[13px] font-medium text-[var(--sm-accent)] whitespace-nowrap">
                   Najpopularniejszy
                 </div>
               )}
 
               <div>
-                <h3 className="text-xl font-black mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>{plan.name}</h3>
+                <h3 className="text-[20px] font-semibold tracking-[-0.02em]">{plan.name}</h3>
 
-                <div className="flex items-baseline gap-1 my-4">
-                  <span className="text-4xl font-black tracking-tighter">{finalPrice} zł</span>
-                  <span className="text-sm font-bold opacity-60">/mies</span>
+                <div className="my-4 flex items-baseline gap-1">
+                  <span className="text-[34px] font-semibold leading-none tracking-[-0.03em]">{finalPrice} zł</span>
+                  <span className="text-[15px] text-[var(--sm-text-2)]">/mies</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 mb-6">
-                  <div className="p-3 rounded-xl text-center border bg-[#F7F6F3]/60 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
-                    <div className="text-base font-black text-emerald-500">{plan.credits}</div>
-                    <div className="text-[10px] uppercase font-black opacity-60 tracking-wide">Kredytów</div>
+                <div className="mb-6 grid grid-cols-2 gap-2.5">
+                  <div className="sm-card-quiet p-3 text-center">
+                    <div className="text-[18px] font-semibold">{plan.credits}</div>
+                    <div className="mt-0.5 text-[13px] text-[var(--sm-text-3)]">Kredytów</div>
                   </div>
-                  <div className="p-3 rounded-xl text-center border bg-[#F7F6F3]/60 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
-                    <div className="text-base font-black text-emerald-500">{plan.name === 'Agencja' ? '∞' : plan.name === 'Business' ? '100' : plan.name === 'Pro' ? '25' : '5'}</div>
-                    <div className="text-[10px] uppercase font-black opacity-60 tracking-wide">Projektów</div>
+                  <div className="sm-card-quiet p-3 text-center">
+                    <div className="text-[18px] font-semibold">{plan.name === 'Agencja' ? '∞' : plan.name === 'Business' ? '100' : plan.name === 'Pro' ? '25' : '5'}</div>
+                    <div className="mt-0.5 text-[13px] text-[var(--sm-text-3)]">Projektów</div>
                   </div>
                 </div>
 
-                <ul className="space-y-3 text-sm">
+                <ul className="space-y-3">
                   {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-center gap-2 font-bold">
-                      <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <li key={i} className="flex items-start gap-2.5 text-[15px] text-[var(--sm-text-2)]">
+                      <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-[var(--sm-accent)]" />
                       {f}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <Button 
-                variant={plan.popular ? 'primary' : 'outline'} 
-                size="md" 
+              <Button
+                variant={plan.popular ? 'primary' : 'outline'}
+                size="md"
                 onClick={() => { try { localStorage.setItem('sitemorph-plan', plan.name); } catch {} alert(`Zapisano pakiet ${plan.name} na tym urządzeniu. Płatności PayPal/BLIK/przelew obsłużysz w zakładce Finanse.`); }}
-                className="w-full mt-6 font-black"
+                className="mt-6 w-full"
               >
                 Wybierz {plan.name}
               </Button>
@@ -106,23 +100,26 @@ export const StandalonePricingView = () => {
       </motion.div>
 
       {/* Sklep kredytów - zakup pojedynczy bez pakietu */}
-      <motion.div variants={cineSoft} className="rounded-2xl border p-6 lg:p-8 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 space-y-4">
-        <div className="flex items-center gap-2">
-          <Coins size={18} className="text-emerald-500" />
-          <h3 className="text-lg font-black">Dokup kredyty jednorazowo</h3>
-          <span className="ml-auto text-[11px] font-bold opacity-60">bez pakietu - ważne 12 mies.</span>
+      <motion.div variants={cineSoft} className="sm-card space-y-4 p-6 lg:p-7">
+        <div className="flex flex-wrap items-center gap-2">
+          <Coins size={19} className="text-[var(--sm-accent)]" />
+          <h3 className="text-[19px] font-semibold tracking-[-0.02em]">Dokup kredyty jednorazowo</h3>
+          <span className="ml-auto text-[14px] text-[var(--sm-text-3)]">bez pakietu · ważne 12 miesięcy</span>
         </div>
-        <p className="text-xs font-bold opacity-70">Masz kredyty ≥5 = dostęp do Kreatora/Leadów/domen nawet bez pakietu. Poniżej 5 kredytów panel się blokuje.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <p className="text-[15px] leading-[1.55] text-[var(--sm-text-2)]">
+          Z kredytami ≥ 5 masz dostęp do kreatora, Lead Findera i domen nawet bez pakietu.
+          Poniżej 5 kredytów panel się blokuje.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { c: 50, price: 45 },
             { c: 100, price: 85 },
             { c: 250, price: 200 },
             { c: 500, price: 450 },
           ].map(p => (
-            <div key={p.c} className="rounded-2xl border p-4 flex flex-col gap-3 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
-              <div className="text-2xl font-black">{p.c} <span className="text-xs opacity-60">kredytów</span></div>
-              <div className="text-sm font-black">{p.price} zł <span className="text-[10px] opacity-60">jednorazowo</span></div>
+            <div key={p.c} className="sm-card-quiet flex flex-col gap-3 p-4">
+              <div className="text-[24px] font-semibold leading-none">{p.c} <span className="text-[14px] text-[var(--sm-text-2)]">kredytów</span></div>
+              <div className="text-[16px] font-medium">{p.price} zł <span className="text-[14px] text-[var(--sm-text-3)]">jednorazowo</span></div>
               <Button size="sm" onClick={async () => {
                 const ok = confirm(`Kupić ${p.c} kredytów za ${p.price} zł? (demo - doda kredyty lokalnie)`);
                 if (!ok) return;

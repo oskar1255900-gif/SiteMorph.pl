@@ -4,7 +4,6 @@ import {
   X,
   MessageSquare,
 } from 'lucide-react';
-import { springTransition } from '../lib/shared';
 
 export const FloatingChat = ({
   chatOpen,
@@ -13,57 +12,56 @@ export const FloatingChat = ({
   chatOpen: boolean;
   setChatOpen: (v: boolean) => void;
 }) => (
-  <div className="fixed bottom-6 right-6 z-50">
+  <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
     <AnimatePresence>
       {chatOpen && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.85, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.85, y: 20 }}
-          transition={springTransition}
-          className="rounded-2xl shadow-[0_16px_48px_rgba(37,99,235,0.12)] border w-80 p-4 mb-3 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          transition={{ duration: 0.18 }}
+          className="mb-3 w-[min(360px,calc(100vw-2.5rem))] rounded-[14px] border border-[var(--sm-border)] bg-[var(--sm-surface)] p-4 text-[var(--sm-text)] shadow-2xl"
+          role="dialog"
+          aria-label="Wsparcie SiteMorph"
         >
-          <div className="flex justify-between items-center border-b border-[#EAEAEA] dark:border-neutral-900 pb-3 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-black text-xs">Wsparcie SiteMorph</span>
+          <div className="mb-3 flex items-center justify-between gap-3 border-b border-[var(--sm-border)] pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--sm-success)]" />
+              <span className="text-[16px] font-semibold">Wsparcie SiteMorph</span>
             </div>
-            <motion.button 
-              whileHover={{ scale: 1.15 }}
-              onClick={() => setChatOpen(false)} 
-              className="hover:text-emerald-400 cursor-pointer bg-transparent border-none text-inherit"
-            >
-              <X size={14} />
-            </motion.button>
+            <button onClick={() => setChatOpen(false)} aria-label="Zamknij czat" className="sm-icon-btn">
+              <X size={18} />
+            </button>
           </div>
-          <div className="text-xs p-3 rounded-2xl mb-3 border font-bold bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-900">
+
+          <div className="sm-card-quiet mb-3 p-3.5 text-[15px] leading-[1.55] text-[var(--sm-text-2)]">
             Cześć! W czym możemy Ci dzisiaj pomóc?
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Wpisz wiadomość..."
-              className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold outline-none border text-[#2563eb] dark:text-white placeholder:text-blue-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800"
+              placeholder="Wpisz wiadomość…"
+              aria-label="Treść wiadomości"
+              className="sm-input flex-1 text-[15px]"
             />
-            <motion.button 
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="bg-[#111111] text-white dark:bg-white dark:text-black p-1.5 rounded-lg cursor-pointer border-none shadow-sm font-black"
-            >
-              <Send size={14} />
-            </motion.button>
+            <button aria-label="Wyślij wiadomość" className="sm-btn sm-btn-primary shrink-0 px-3.5">
+              <Send size={18} />
+            </button>
           </div>
         </motion.div>
       )}
     </AnimatePresence>
+
     <motion.button
-      whileHover={{ scale: 1.1, rotate: 5 }}
-      whileTap={{ scale: 0.9 }}
-      transition={springTransition}
+      whileTap={{ scale: 0.94 }}
+      transition={{ duration: 0.15 }}
       onClick={() => setChatOpen(!chatOpen)}
-      className="w-12 h-12 rounded-full flex items-center justify-center font-black shadow-[0_16px_48px_rgba(37,99,235,0.12)] cursor-pointer border-none bg-[#111111] text-white dark:bg-white dark:text-black"
+      aria-label={chatOpen ? 'Zamknij wsparcie' : 'Otwórz wsparcie'}
+      className="grid place-items-center rounded-full border border-transparent bg-[var(--sm-accent)] text-[var(--sm-accent-ink)] shadow-2xl cursor-pointer"
+      style={{ width: 52, height: 52 }}
     >
-      <MessageSquare size={20} />
+      <MessageSquare size={22} />
     </motion.button>
   </div>
 );

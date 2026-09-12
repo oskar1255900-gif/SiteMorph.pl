@@ -693,8 +693,8 @@ export const TutorialsView = () => {
           <GraduationCap size={22} />
         </div>
         <div>
-          <h1 className="text-2xl font-black" style={{ fontFamily: "'Inter', sans-serif" }}>Akademia SiteMorph</h1>
-          <p className="text-xs font-bold opacity-80">Poradniki tekstowe — czytaj, kopiuj szablony, wdrażaj od razu.</p>
+          <h1 className="text-2xl font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>Akademia SiteMorph</h1>
+          <p className="text-[13px] font-bold opacity-80">Poradniki tekstowe — czytaj, kopiuj szablony, wdrażaj od razu.</p>
         </div>
       </motion.div>
 
@@ -711,15 +711,15 @@ export const TutorialsView = () => {
           >
             <div>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800">{g.category}</span>
-                <span className="text-[10px] font-black flex items-center gap-1"><Clock size={12} /> {g.time}</span>
+                <span className="text-[13px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800">{g.category}</span>
+                <span className="text-[13px] font-semibold flex items-center gap-1"><Clock size={12} /> {g.time}</span>
               </div>
-              <h3 className="text-base font-black mb-1 leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{g.title}</h3>
-              <p className="text-xs font-bold opacity-70 leading-relaxed">{g.excerpt}</p>
+              <h3 className="text-base font-semibold mb-1 leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{g.title}</h3>
+              <p className="text-[13px] font-bold opacity-70 leading-relaxed">{g.excerpt}</p>
             </div>
             <div className="flex items-center justify-between pt-4 border-t border-[#EAEAEA] dark:border-neutral-900 mt-4">
-              <span className="text-[11px] font-bold opacity-80">Poziom: {g.level}</span>
-              <span className="text-xs font-black flex items-center gap-1 text-emerald-500">Czytaj poradnik <ArrowRight size={14} /></span>
+              <span className="text-[13px] font-bold opacity-80">Poziom: {g.level}</span>
+              <span className="text-[13px] font-semibold flex items-center gap-1 text-emerald-500">Czytaj poradnik <ArrowRight size={14} /></span>
             </div>
           </motion.div>
         ))}
@@ -746,8 +746,8 @@ export const TutorialsView = () => {
               <div className="pointer-events-none absolute -top-24 -right-24 w-[340px] h-[340px] bg-gradient-to-tr from-lime-200 via-emerald-200 to-lime-100 opacity-25 blur-2xl legal-blob" />
               <div className="relative flex items-center justify-between p-6 border-b border-[#EAEAEA] dark:border-neutral-900 bg-white/85 dark:bg-neutral-950/85 backdrop-blur sticky top-0">
                 <div className="pr-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} - {ACADEMY_GUIDES[activeGuide].time}</div>
-                  <h3 className="text-lg font-black tracking-tight mt-1.5 leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{ACADEMY_GUIDES[activeGuide].title}</h3>
+                  <div className="text-[13px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} - {ACADEMY_GUIDES[activeGuide].time}</div>
+                  <h3 className="text-lg font-semibold tracking-tight mt-1.5 leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>{ACADEMY_GUIDES[activeGuide].title}</h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.08, rotate: 90 }} whileTap={{ scale: 0.92 }} onClick={() => setActiveGuide(null)} className="w-8 h-8 rounded-full grid place-items-center bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 cursor-pointer shrink-0">
                   <X size={14} />
@@ -756,8 +756,8 @@ export const TutorialsView = () => {
               <div className="relative overflow-y-auto p-6 space-y-6 no-scrollbar text-left" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {ACADEMY_GUIDES[activeGuide].content.map((s) => (
                   <div key={s.h} className="space-y-2">
-                    <h4 className="text-sm font-black tracking-tight">{s.h}</h4>
-                    <p className="text-xs font-medium leading-relaxed opacity-85 whitespace-pre-wrap">{s.p}</p>
+                    <h4 className="text-sm font-semibold tracking-tight">{s.h}</h4>
+                    <p className="text-[13px] font-medium leading-relaxed opacity-85 whitespace-pre-wrap">{s.p}</p>
                   </div>
                 ))}
                 <div className="pt-4 flex justify-end border-t border-[#EAEAEA] dark:border-neutral-900">

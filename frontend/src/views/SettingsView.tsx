@@ -51,14 +51,14 @@ export const SettingsView = () => {
     }
   };
 
-  const inputClasses = "w-full rounded-xl px-4 py-3 text-sm font-medium outline-none border text-[#2563eb] dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 focus:border-[#2563eb] focus:ring-2 focus:ring-blue-500/10 transition-all";
+  const inputClasses = "sm-input text-[15px]";
 
   return (
     <motion.div
       variants={cineParent}
       initial="hidden"
       animate="visible"
-      className="max-w-3xl mx-auto py-8 px-6 pb-16 text-[#2563eb] dark:text-white"
+      className="mx-auto max-w-3xl px-5 py-8 pb-16 text-[var(--sm-text)]"
       style={{ perspective: 1200 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
@@ -66,24 +66,24 @@ export const SettingsView = () => {
           <Settings size={22} />
         </div>
         <div>
-          <h1 className="text-2xl font-black" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Ustawienia</h1>
-          <p className="text-xs font-bold opacity-80">Twoje dane firmy, płatności i faktury w jednym miejscu.</p>
+          <h1 className="sm-h1">Ustawienia</h1>
+          <p className="text-[13px] font-bold opacity-80">Twoje dane firmy, płatności i faktury w jednym miejscu.</p>
         </div>
       </motion.div>
 
       {needLogin ? (
         <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-center space-y-2">
-          <p className="text-sm font-black">Zaloguj się, aby zarządzać ustawieniami</p>
-          <p className="text-xs font-bold opacity-70">Ustawienia są przypisane do Twojego konta SiteMorph.</p>
+          <p className="text-sm font-semibold">Zaloguj się, aby zarządzać ustawieniami</p>
+          <p className="text-[13px] font-bold opacity-70">Ustawienia są przypisane do Twojego konta SiteMorph.</p>
         </motion.div>
       ) : loading ? (
-        <div className="py-16 text-center text-xs font-black opacity-60">Ładowanie…</div>
+        <div className="py-16 text-center text-[13px] font-semibold opacity-60">Ładowanie…</div>
       ) : (
-        <motion.div variants={itemVariants} className="rounded-2xl border p-8 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <motion.div variants={itemVariants} className="sm-card space-y-6 p-6 sm:p-7">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.hint ? 'sm:col-span-2' : ''}>
-                <label className="text-[10px] font-black block mb-1 uppercase opacity-75">{f.label}</label>
+                <label className="sm-label">{f.label}</label>
                 <input
                   type={f.type || 'text'}
                   value={data[f.key] || ''}
@@ -91,14 +91,14 @@ export const SettingsView = () => {
                   placeholder={f.placeholder}
                   className={inputClasses}
                 />
-                {f.hint && <p className="text-[10px] font-bold opacity-60 mt-1">{f.hint}</p>}
+                {f.hint && <p className="text-[13px] font-bold opacity-60 mt-1">{f.hint}</p>}
               </div>
             ))}
           </div>
-          {err && <p className="text-xs font-black text-rose-500">{err}</p>}
-          {msg && <p className="text-xs font-black text-emerald-500">{msg}</p>}
+          {err && <p className="text-[13px] font-semibold text-rose-500">{err}</p>}
+          {msg && <p className="text-[13px] font-semibold text-emerald-500">{msg}</p>}
           <div className="flex justify-end pt-2">
-            <Button variant="primary" size="sm" onClick={handleSave} disabled={saving} className="font-black gap-1.5">
+            <Button variant="primary" size="sm" onClick={handleSave} disabled={saving} className="font-semibold gap-1.5">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Zapisz ustawienia
             </Button>
           </div>

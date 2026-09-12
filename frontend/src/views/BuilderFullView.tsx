@@ -588,26 +588,40 @@ export const BuilderFullView = ({
         exit={{ opacity: 0 }}
         className={`h-screen flex flex-col overflow-hidden select-none ${theme === 'dark' ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-[#111827]'}`}
       >
-        {/* Header */}
-        <header className={`h-12 border-b px-4 flex items-center justify-between shrink-0 ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
-          <motion.button whileHover={{ x: -2 }} onClick={onBack} className={`flex items-center gap-2 font-semibold text-xs transition-colors cursor-pointer bg-transparent border-none ${theme === 'dark' ? 'text-white/70 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
-            <ArrowLeft size={14} />
-            <img src="/logo.svg" alt="SiteMorph" width="20" height="20" className="rounded-md" />
+        {/* Header — na telefonie dwa rzędy, na desktopie jeden */}
+        <header className="shrink-0 border-b border-[var(--sm-border)] bg-[var(--sm-surface)]">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
+          <motion.button
+            whileHover={{ x: -2 }}
+            onClick={onBack}
+            className="order-1 flex min-h-[44px] items-center gap-2 rounded-[10px] border-none bg-transparent px-1 text-[15px] font-medium text-[var(--sm-text-2)] transition-colors hover:text-[var(--sm-text)] cursor-pointer"
+          >
+            <ArrowLeft size={18} />
+            <img src="/logo.svg" alt="" width="22" height="22" className="rounded-[6px]" />
             Kreator
           </motion.button>
-          <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${theme === 'dark' ? 'bg-white/5 border-white/[0.06]' : 'bg-gray-100 border-gray-200'}`}>
-            {(['preview', 'code'] as const).map((mode) => (
-              <button key={mode} onClick={() => setActiveMode(mode)} className={`relative flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer border-none ${activeMode === mode ? (theme === 'dark' ? 'text-white' : 'text-gray-900') : (theme === 'dark' ? 'text-white/40 hover:text-white/60' : 'text-gray-400 hover:text-gray-600')}`}>
-                {activeMode === mode && <motion.div layoutId="builderMode" transition={springTransition} className={`absolute inset-0 rounded-md ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} />}
-                <span className="relative z-10 flex items-center gap-1.5">
-                  {mode === 'preview' ? <Monitor size={12} /> : <CodeIcon size={12} />}
-                  {mode === 'preview' ? 'Podgląd' : 'Kod'}
-                </span>
-              </button>
-            ))}
+
+          <div className="order-3 flex w-full items-center gap-2 lg:order-2 lg:ml-auto lg:w-auto">
+            <div className="flex items-center gap-1 rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] p-1">
+              {(['preview', 'code'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setActiveMode(mode)}
+                  aria-pressed={activeMode === mode}
+                  className={`relative flex min-h-[44px] items-center gap-2 rounded-[8px] px-3.5 text-[14px] font-medium transition-colors cursor-pointer border-none bg-transparent ${activeMode === mode ? 'text-[var(--sm-text)]' : 'text-[var(--sm-text-2)] hover:text-[var(--sm-text)]'}`}
+                >
+                  {activeMode === mode && <motion.div layoutId="builderMode" transition={springTransition} className="absolute inset-0 rounded-[8px] border border-[var(--sm-border)] bg-[var(--sm-surface)]" />}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {mode === 'preview' ? <Monitor size={16} /> : <CodeIcon size={16} />}
+                    {mode === 'preview' ? 'Podgląd' : 'Kod'}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <span className="sm-pill shrink-0">{credits} kr.</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>{credits} kr.</span>
+
+          <div className="order-2 ml-auto flex items-center gap-2 lg:order-3 lg:ml-0">
             <Button variant="primary" size="sm" disabled={isSaving || publishing || isGenerating || previewBuilding || !previewReady || Boolean(previewRuntimeErr) || !generatedSite || !compiledPreviewHtml} onClick={async () => {
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
@@ -622,65 +636,105 @@ export const BuilderFullView = ({
                 if (!res.ok) throw new Error(data?.detail || `Błąd ${res.status}`);
                 setPublishedUrl(new URL(data.url, API_BASE || window.location.origin).href);
               } catch (e: any) { setPublishErr(e.message); } finally { setPublishing(false) }
-            }} className="font-semibold text-[11px]">
-              {publishing ? '...' : 'Opublikuj'}
+            }} className="px-4">
+              {publishing ? 'Publikuję…' : 'Opublikuj'}
             </Button>
           </div>
+        </div>
         </header>
 
-        {generationErr && generatedSite && <div role="alert" className="px-4 py-2 text-xs bg-amber-500/10 text-amber-500">{generationErr}</div>}
-        {publishErr && <div role="alert" className="px-4 py-2 text-xs bg-red-500/10 text-red-500">{publishErr}</div>}
-        <div className="px-4 py-2 flex flex-wrap gap-2 text-xs border-b border-gray-500/20">
-          <button disabled={uploading || isGenerating || uploadedAssets.length >= 8} onClick={() => fileInput.current?.click()} className="disabled:opacity-40">{uploading ? 'Dodaję zdjęcia…' : 'Dodaj własne zdjęcia'}</button>
-          {uploadedAssets.map(asset => <button key={asset.url} disabled={isGenerating} onClick={() => setUploadedAssets(list => list.filter(a => a.url !== asset.url))} title="Usuń zdjęcie z następnej generacji" className="rounded bg-gray-500/10 px-2 py-1">{asset.name} ×</button>)}
+        {generationErr && generatedSite && (
+          <div role="alert" className="border-b border-[var(--sm-border)] bg-[color-mix(in_srgb,var(--sm-warning)_12%,transparent)] px-4 py-2.5 text-[14px] text-[var(--sm-warning)]">{generationErr}</div>
+        )}
+        {publishErr && (
+          <div role="alert" className="border-b border-[var(--sm-border)] bg-[color-mix(in_srgb,var(--sm-danger)_12%,transparent)] px-4 py-2.5 text-[14px] text-[var(--sm-danger)]">{publishErr}</div>
+        )}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--sm-border)] px-4 py-2.5">
+          <button
+            disabled={uploading || isGenerating || uploadedAssets.length >= 8}
+            onClick={() => fileInput.current?.click()}
+            className="sm-btn"
+          >
+            <Paperclip size={16} /> {uploading ? 'Dodaję zdjęcia…' : 'Dodaj własne zdjęcia'}
+          </button>
+          {uploadedAssets.map(asset => (
+            <button
+              key={asset.url}
+              disabled={isGenerating}
+              onClick={() => setUploadedAssets(list => list.filter(a => a.url !== asset.url))}
+              title="Usuń zdjęcie z następnej generacji"
+              className="sm-pill cursor-pointer disabled:opacity-50"
+            >
+              {asset.name} ×
+            </button>
+          ))}
         </div>
         {/* Main */}
         <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left Panel — Agent Chat */}
-          <div style={isDesktop ? { width: leftW } : undefined} className={`border-b md:border-b-0 md:border-r h-[45vh] md:h-auto flex flex-col overflow-hidden shrink-0 ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
+          <div
+            style={isDesktop ? { width: leftW } : undefined}
+            className="flex h-[52vh] shrink-0 flex-col overflow-hidden border-b border-[var(--sm-border)] bg-[var(--sm-surface)] md:h-auto md:border-b-0 md:border-r"
+          >
             {isGenerating ? (
               <ThinkingSteps mode={builderMode} phase={thinkingPhase} theme={theme} />
             ) : generatedSite ? (
-              <div className="flex-1 p-5 overflow-y-auto space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-green-500/20 border border-green-500/20 flex items-center justify-center">
-                    <CheckCircle2 size={14} className="text-green-400" />
-                  </div>
-                  <div>
-                    <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{previewRuntimeErr ? 'Podgląd wymaga poprawki' : previewReady ? 'Strona gotowa!' : 'Uruchamiam stronę…'}</div>
-                    <div className={`text-[10px] ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>{generatedSite.title}</div>
+              <div className="sm-scroll flex-1 space-y-5 overflow-y-auto p-5">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]">
+                    <CheckCircle2 size={19} className="text-[var(--sm-success)]" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[16px] font-semibold">
+                      {previewRuntimeErr ? 'Podgląd wymaga poprawki' : previewReady ? 'Strona gotowa!' : 'Uruchamiam stronę…'}
+                    </div>
+                    <div className="truncate text-[14px] text-[var(--sm-text-2)]">{generatedSite.title}</div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs" htmlFor="next-prompt">Opis kolejnej strony</label>
-                  <textarea id="next-prompt" value={builderPrompt} onChange={e => setBuilderPrompt(e.target.value)} className={`w-full rounded-lg p-3 text-xs border ${dk ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`} rows={3} />
-                  <button onClick={() => generateWithAnswers(answers)} disabled={!builderPrompt.trim() || isGenerating || previewBuilding || (!previewReady && !previewRuntimeErr) || publishing} className="w-full py-2 rounded-lg text-xs bg-green-600 text-white disabled:opacity-40">Wygeneruj nową stronę · {cost} kr.</button>
-                  <button onClick={handleSaveProject} disabled={isSaving || publishing || !previewReady} className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none disabled:opacity-40 ${theme === 'dark' ? 'bg-white text-black hover:bg-white/90' : 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'}`}>
-                    <Save size={12} className="inline mr-1.5" />
+                <div className="space-y-3">
+                  <label className="sm-label" htmlFor="next-prompt">Opis kolejnej strony</label>
+                  <textarea
+                    id="next-prompt"
+                    value={builderPrompt}
+                    onChange={e => setBuilderPrompt(e.target.value)}
+                    rows={3}
+                    className="sm-textarea text-[15px]"
+                  />
+                  <button
+                    onClick={() => generateWithAnswers(answers)}
+                    disabled={!builderPrompt.trim() || isGenerating || previewBuilding || (!previewReady && !previewRuntimeErr) || publishing}
+                    className="sm-btn sm-btn-primary w-full"
+                  >
+                    Wygeneruj nową stronę · {cost} kr.
+                  </button>
+                  <button onClick={handleSaveProject} disabled={isSaving || publishing || !previewReady} className="sm-btn w-full">
+                    <Save size={17} />
                     {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
                   </button>
 
-                  {saveMsg && <p className={`text-[10px] text-center ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>{saveMsg}</p>}
+                  {saveMsg && <p className="text-center text-[14px] text-[var(--sm-success)]" role="status">{saveMsg}</p>}
                 </div>
 
                 {generatorWarnings.length > 0 && (
-                  <div className={`rounded-lg border p-3 space-y-1.5 ${theme === 'dark' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
-                    <div className={`text-[10px] font-semibold ${theme === 'dark' ? 'text-amber-300/90' : 'text-amber-700'}`}>
-                      ⚠ Uwagi do uzupełnienia
-                    </div>
+                  <div className="space-y-2 rounded-[10px] border border-[color-mix(in_srgb,var(--sm-warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--sm-warning)_10%,transparent)] p-3.5">
+                    <div className="text-[14px] font-semibold text-[var(--sm-warning)]">⚠ Uwagi do uzupełnienia</div>
                     {generatorWarnings.map((w, i) => (
-                      <p key={i} className={`text-[10px] leading-relaxed ${theme === 'dark' ? 'text-amber-200/60' : 'text-amber-800/70'}`}>{w}</p>
+                      <p key={i} className="text-[14px] leading-[1.55] text-[var(--sm-text-2)]">{w}</p>
                     ))}
                   </div>
                 )}
 
-                <div className="pt-3 border-t border-white/[0.06]">
-                  <div className={`text-[10px] font-semibold mb-2 uppercase tracking-wider ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Projekty</div>
+                <div className="space-y-2 border-t border-[var(--sm-border)] pt-4">
+                  <div className="text-[13px] font-semibold uppercase tracking-wide text-[var(--sm-text-3)]">Projekty</div>
                   {savedProjects.length === 0 ? (
-                    <p className={`text-[10px] ${theme === 'dark' ? 'text-white/20' : 'text-gray-300'}`}>Brak zapisanych projektów</p>
+                    <p className="text-[14px] text-[var(--sm-text-3)]">Brak zapisanych projektów</p>
                   ) : savedProjects.slice(0, 5).map((p) => (
-                    <button key={p.id} onClick={() => openProject(p)} className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer border-none bg-transparent truncate ${theme === 'dark' ? 'text-white/50 hover:text-white/80 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                    <button
+                      key={p.id}
+                      onClick={() => openProject(p)}
+                      className="block min-h-[44px] w-full truncate rounded-[10px] border-none bg-transparent px-2 py-2.5 text-left text-[15px] text-[var(--sm-text-2)] transition-colors hover:bg-[var(--sm-surface-2)] hover:text-[var(--sm-text)] cursor-pointer"
+                    >
                       {p.name}
                     </button>
                   ))}
@@ -690,34 +744,52 @@ export const BuilderFullView = ({
               /* Empty State — Agent Chat */
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 p-5 overflow-y-auto space-y-5">
-                  {savedProjects.length > 0 && <div className="space-y-1">
-                    <p className="text-xs opacity-60">Wróć do projektu</p>
-                    {savedProjects.slice(0, 5).map(project => <button key={project.id} disabled={previewBuilding} onClick={() => openProject(project)} className="block w-full truncate rounded-lg border border-gray-500/20 px-3 py-2 text-left text-xs hover:bg-gray-500/10 disabled:opacity-40">{project.name}</button>)}
-                  </div>}
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${theme === 'dark' ? 'bg-gradient-to-br from-green-500/20 to-blue-500/20 border-white/10' : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'}`}>
+                  {savedProjects.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[14px] text-[var(--sm-text-2)]">Wróć do projektu</p>
+                      {savedProjects.slice(0, 5).map(project => (
+                        <button
+                          key={project.id}
+                          disabled={previewBuilding}
+                          onClick={() => openProject(project)}
+                          className="block min-h-[44px] w-full truncate rounded-[10px] border border-[var(--sm-border)] px-3.5 py-2.5 text-left text-[15px] hover:bg-[var(--sm-surface-2)] disabled:opacity-50"
+                        >
+                          {project.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 place-items-center rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]">
                       <svg fill="none" height="24" viewBox="0 0 48 48" width="24">
                         <path d="m6 24c11.4411 0 18-6.5589 18-18 0 11.4411 6.5589 18 18 18-11.4411 0-18 6.5589-18 18 0-11.4411-6.5589-18-18-18z" fill="url(#sm-grad)" fillRule="evenodd" />
                         <defs><linearGradient id="sm-grad" x1="24" x2="24" y1="6" y2="42" gradientUnits="userSpaceOnUse"><stop stopColor="#22c55e" stopOpacity=".8" /><stop offset="1" stopColor="#3b82f6" stopOpacity=".5" /></linearGradient></defs>
                       </svg>
                     </div>
                     <div>
-                      <h2 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white/80' : 'text-gray-600'}`}>Cześć! 👋</h2>
-                      <h3 className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Opisz stronę, a ją zbuduję.</h3>
+                      <h2 className="text-[22px] font-semibold tracking-[-0.02em]">Opisz stronę, a ja ją zbuduję.</h2>
                     </div>
                   </div>
 
-                  <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
-                    Wklej dane firmy prosto z Google Maps albo opisz własnymi słowami. Dobiorę układ, fonty i treści do Twojej marki. Możesz też dodać własne zdjęcia.
+                  <p className="text-[15px] leading-[1.6] text-[var(--sm-text-2)]">
+                    Wklej dane firmy prosto z Map Google albo opisz ją własnymi słowami. Dobiorę układ,
+                    typografię i treści do Twojej marki. Możesz też dodać własne zdjęcia.
                   </p>
 
-                  <div className="flex flex-wrap gap-1.5">
-                    {quickPrompts.map((qp) => (
-                      <button key={qp.label} onClick={() => setBuilderPrompt(qp.prompt)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${theme === 'dark' ? 'bg-white/5 border-white/[0.06] text-white/50 hover:text-white/80 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>
-                        <qp.icon size={11} className="text-white/40" />
-                        {qp.label}
-                      </button>
-                    ))}
+                  <div className="space-y-2">
+                    <p className="text-[14px] text-[var(--sm-text-3)]">Zacznij od przykładu</p>
+                    <div className="flex flex-wrap gap-2">
+                      {quickPrompts.map((qp) => (
+                        <button
+                          key={qp.label}
+                          onClick={() => setBuilderPrompt(qp.prompt)}
+                          className="sm-btn"
+                        >
+                          <qp.icon size={16} className="text-[var(--sm-text-3)]" />
+                          {qp.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -737,52 +809,64 @@ export const BuilderFullView = ({
                 )}
 
                 {/* Chat Input — Border Beam */}
-                <div className="p-3 border-t border-white/[0.06]">
-                  <div>
-                    <div className={`relative rounded-xl overflow-hidden ${theme === 'dark' ? 'bg-[#1a1d23] border border-white/[0.08]' : 'bg-gray-50 border border-gray-200'}`}>
-                      <textarea
-                        rows={3}
-                        value={builderPrompt}
-                        onChange={(e) => setBuilderPrompt(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
+                <div className="border-t border-[var(--sm-border)] p-3">
+                  <div className="rounded-[14px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] focus-within:border-[var(--sm-accent)]">
+                    <textarea
+                      rows={3}
+                      value={builderPrompt}
+                      onChange={(e) => setBuilderPrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          generateWithAnswers(answers, builderPrompt);
+                        }
+                      }}
+                      placeholder="Opisz stronę, którą chcesz zbudować…"
+                      aria-label="Opis strony do wygenerowania"
+                      className="min-h-[92px] w-full resize-none border-none bg-transparent px-4 pt-3.5 pb-2 text-[16px] leading-[1.5] text-[var(--sm-text)] outline-none placeholder:text-[var(--sm-text-3)]"
+                    />
+                    <div className="flex flex-wrap items-center gap-2 px-3 pb-3">
+                      <button
+                        aria-label="Dodaj zdjęcia"
+                        title="Dodaj zdjęcia"
+                        onClick={() => fileInput.current?.click()}
+                        disabled={uploading}
+                        className="sm-icon-btn text-[var(--sm-text-2)]"
+                      >
+                        <ImageIcon size={19} />
+                      </button>
+
+                      <div className="ml-auto flex flex-wrap items-center gap-2">
+                        <div className="flex gap-1 rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface)] p-1" role="radiogroup" aria-label="Tryb generowania">
+                          {([
+                            ['normal', 'S1', 'Szybki model — najtańsza opcja'],
+                            ['ultra', 'Ultra', 'Mocniejszy model — lepsza jakość'],
+                            ['ultra+', 'Ultra+', 'Najmocniejszy model — najwyższa jakość'],
+                          ] as const).map(([m, label, hint]) => (
+                            <button
+                              key={m}
+                              onClick={() => setBuilderMode(m)}
+                              role="radio"
+                              aria-checked={builderMode === m}
+                              title={`${label} — ${hint}`}
+                              className={`min-h-[44px] rounded-[8px] px-3.5 text-[14px] font-medium transition-colors cursor-pointer border-none bg-transparent ${builderMode === m ? 'bg-[var(--sm-surface-2)] text-[var(--sm-text)]' : 'text-[var(--sm-text-2)] hover:text-[var(--sm-text)]'}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-[13px] text-[var(--sm-text-3)]">{cost} kr.</span>
+                        <button
+                          onClick={() => {
+                            if (!builderPrompt.trim()) return;
                             generateWithAnswers(answers, builderPrompt);
-                          }
-                        }}
-                        placeholder="Opisz stronę, którą chcesz zbudować..."
-                        className={`w-full bg-transparent border-none outline-none text-sm resize-none px-4 pt-3 pb-2 min-h-[60px] ${theme === 'dark' ? 'text-white placeholder:text-white/25' : 'text-gray-900 placeholder:text-gray-400'}`}
-                      />
-                      <div className="flex items-center justify-between px-3 pb-3">
-                        <div className="flex items-center gap-1">
-                          <button aria-label="Dodaj zdjęcie" onClick={() => fileInput.current?.click()} disabled={uploading} className={`p-1.5 rounded-md transition-colors cursor-pointer border-none bg-transparent ${theme === 'dark' ? 'hover:bg-white/5 text-white/30 hover:text-white/60' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}>
-                            <Paperclip size={14} />
-                          </button>
-                          <button aria-label="Wybierz zdjęcia" onClick={() => fileInput.current?.click()} disabled={uploading} className="p-1.5 rounded-md hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors cursor-pointer border-none bg-transparent">
-                            <ImageIcon size={14} />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`flex gap-0.5 p-0.5 rounded-lg border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
-                            {(['normal', 'ultra', 'ultra+'] as const).map(m => (
-                              <button key={m} onClick={() => setBuilderMode(m)}
-                                className={`px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : m === 'ultra+' ? 'bg-amber-500/20 text-amber-300' : (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-[#2563eb] text-white')) : (theme === 'dark' ? 'text-white/30 hover:text-white/50 bg-transparent' : 'text-gray-400 hover:text-gray-600 bg-transparent')}`}>
-                                {m === 'normal' ? 'S1' : m === 'ultra' ? 'Ultra' : 'Ultra+'}
-                              </button>
-                            ))}
-                          </div>
-                          <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/20' : 'text-gray-400'}`}>{cost} kr.</span>
-                          <button
-                            onClick={() => {
-                              if (!builderPrompt.trim()) return;
-                              generateWithAnswers(answers, builderPrompt);
-                            }}
-                            disabled={!builderPrompt.trim()}
-                            className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
-                          >
-                            <Send size={14} className="text-white" />
-                          </button>
-                        </div>
+                          }}
+                          disabled={!builderPrompt.trim()}
+                          title={`Wygeneruj stronę (${cost} kredytów)`}
+                          className="sm-btn sm-btn-primary px-4"
+                        >
+                          <Send size={17} /> Generuj
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -803,56 +887,56 @@ export const BuilderFullView = ({
           <div className={`flex-1 min-h-0 overflow-hidden flex p-2 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-[#f8f9fa]'}`}>
             <AnimatePresence mode="wait">
               {isGenerating ? (
-                <motion.div key="loading" initial={{ opacity: 0, filter: 'blur(8px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} exit={{ opacity: 0 }} className={`flex-1 flex flex-col items-center justify-center rounded-xl border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-white/10 grid place-items-center mb-3">
-                    <Sparkles size={18} className="text-green-400" />
-                  </motion.div>
-                  <div className="text-xs font-medium text-white/60">Generuję stronę...</div>
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]">
+                    <Sparkles size={22} className="text-[var(--sm-accent)]" />
+                  </span>
+                  <div className="text-[15px] text-[var(--sm-text-2)]">Generuję stronę…</div>
                 </motion.div>
               ) : !generatedSite ? (
-                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex-1 flex items-center justify-center rounded-xl border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
-                  <div className="text-center space-y-2 p-8 max-w-lg">
-                    <div className={`w-14 h-14 rounded-xl border flex items-center justify-center mx-auto ${generationErr ? 'bg-red-500/10 border-red-500/20' : (theme === 'dark' ? 'bg-white/5 border-white/[0.06]' : 'bg-gray-50 border-gray-200')}`}>
-                      {generationErr ? <X size={24} className="text-red-400" /> : <Monitor size={24} className={theme === 'dark' ? 'text-white/20' : 'text-gray-300'} />}
-                    </div>
-                    <h3 className={`text-sm font-semibold ${generationErr ? 'text-red-400' : (theme === 'dark' ? 'text-white/40' : 'text-gray-400')}`}>
+                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-1 items-center justify-center rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface)]">
+                  <div className="max-w-xl space-y-4 p-8 text-center">
+                    <span className={`mx-auto grid h-14 w-14 place-items-center rounded-[12px] border ${generationErr ? 'border-[color-mix(in_srgb,var(--sm-danger)_40%,transparent)] bg-[color-mix(in_srgb,var(--sm-danger)_10%,transparent)]' : 'border-[var(--sm-border)] bg-[var(--sm-surface-2)]'}`}>
+                      {generationErr ? <X size={26} className="text-[var(--sm-danger)]" /> : <Monitor size={26} className="text-[var(--sm-text-3)]" />}
+                    </span>
+                    <h3 className={`text-[20px] font-semibold ${generationErr ? 'text-[var(--sm-danger)]' : ''}`}>
                       {generationErr ? 'Nie udało się uruchomić projektu' : 'Podgląd strony'}
                     </h3>
-                    <p className={`text-xs ${generationErr ? (theme === 'dark' ? 'text-white/50' : 'text-gray-500') : (theme === 'dark' ? 'text-white/20' : 'text-gray-300')}`}>
-                      {generationErr || 'Opisz stronę w panelu po lewej, aby wygenerować podgląd.'}
+                    <p className="text-[15px] leading-[1.6] text-[var(--sm-text-2)]">
+                      {generationErr || 'Opisz stronę w panelu po lewej, aby zobaczyć podgląd.'}
                     </p>
                   </div>
                 </motion.div>
               ) : activeMode === 'preview' ? (
-                <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex-1 flex flex-col min-h-0 rounded-xl overflow-hidden border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
-                  <div className={`h-8 border-b flex items-center justify-between px-3 shrink-0 ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'}`}>
-                    <span className={`text-[10px] font-medium truncate ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>{generatedSite.domain}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[9px] font-semibold">{previewReady ? 'LIVE' : 'Ładowanie…'}</span>
-                    </div>
+                <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface)]">
+                  <div className="flex h-11 shrink-0 items-center justify-between gap-3 border-b border-[var(--sm-border)] px-4">
+                    <span className="truncate text-[14px] text-[var(--sm-text-2)]">{generatedSite.domain}</span>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[13px] ${previewReady ? 'border-[color-mix(in_srgb,var(--sm-success)_40%,transparent)] text-[var(--sm-success)]' : 'border-[var(--sm-border)] text-[var(--sm-text-3)]'}`}>
+                      {previewReady ? 'Podgląd na żywo' : 'Ładowanie…'}
+                    </span>
                   </div>
                   {previewBuilding ? (
-                    <div className="flex-1 flex flex-col items-center justify-center bg-white text-gray-700 gap-3">
-                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} className="w-7 h-7 rounded-full border-2 border-gray-200 border-t-gray-700" />
-                      <span className="text-xs font-medium">Kompiluję prawdziwy projekt React…</span>
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[var(--sm-surface)]">
+                      <span className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--sm-border-strong)] border-t-[var(--sm-accent)]" />
+                      <span className="text-[15px] text-[var(--sm-text-2)]">Kompiluję projekt React…</span>
                     </div>
                   ) : previewBuildErr ? (
-                    <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
-                      <div className="max-w-lg text-center">
-                        <X size={28} className="mx-auto mb-3 text-red-400" />
-                        <h3 className="text-sm font-semibold text-white mb-2">Błąd kompilacji React</h3>
-                        <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewBuildErr}</p>
-                        <p className="text-[10px] text-white/30 mt-3">Kod DeepSeeka nadal jest dostępny w zakładce „Kod”.</p>
+                    <div className="flex flex-1 items-center justify-center bg-[var(--sm-surface)] p-8">
+                      <div className="max-w-xl text-center">
+                        <X size={30} className="mx-auto mb-4 text-[var(--sm-danger)]" />
+                        <h3 className="mb-2 text-[20px] font-semibold">Błąd kompilacji podglądu</h3>
+                        <p className="whitespace-pre-wrap text-[15px] leading-[1.6] text-[var(--sm-text-2)]">{previewBuildErr}</p>
+                        <p className="mt-4 text-[14px] text-[var(--sm-text-3)]">Wygenerowany kod nadal znajdziesz w zakładce „Kod”.</p>
                       </div>
                     </div>
                   ) : compiledPreviewHtml ? (
                     previewRuntimeErr ? (
-                      <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
-                        <div className="max-w-lg text-center">
-                          <X size={28} className="mx-auto mb-3 text-amber-400" />
-                          <h3 className="text-sm font-semibold text-white mb-2">Błąd podglądu</h3>
-                          <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewRuntimeErr}</p>
-                          <p className="text-[10px] text-white/30 mt-3">Kod DeepSeeka nadal jest dostępny w zakładce „Kod”.</p>
+                      <div className="flex flex-1 items-center justify-center bg-[var(--sm-surface)] p-8">
+                        <div className="max-w-xl text-center">
+                          <X size={30} className="mx-auto mb-4 text-[var(--sm-warning)]" />
+                          <h3 className="mb-2 text-[20px] font-semibold">Podgląd nie wystartował</h3>
+                          <p className="whitespace-pre-wrap text-[15px] leading-[1.6] text-[var(--sm-text-2)]">{previewRuntimeErr}</p>
+                          <p className="mt-4 text-[14px] text-[var(--sm-text-3)]">Wygenerowany kod nadal znajdziesz w zakładce „Kod”.</p>
                         </div>
                       </div>
                     ) : (
@@ -866,23 +950,28 @@ export const BuilderFullView = ({
                     />
                     )
                   ) : (
-                    <div className="flex-1 flex items-center justify-center bg-[#111111] text-white/40 text-xs">
+                    <div className="flex flex-1 items-center justify-center bg-[var(--sm-surface)] text-[15px] text-[var(--sm-text-2)]">
                       Brak skompilowanego podglądu.
                     </div>
                   )}
                 </motion.div>
               ) : (
-                <motion.div key="code" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex-1 flex rounded-xl overflow-hidden border ${theme === 'dark' ? 'bg-[#111111] border-white/[0.06]' : 'bg-white border-gray-200'}`}>
-                  <div className={`w-48 border-r p-2 space-y-0.5 overflow-y-auto ${theme === 'dark' ? 'bg-[#0d0d0d] border-white/[0.06]' : 'bg-gray-50 border-gray-200'}`}>
-                    <span className={`text-[9px] font-semibold block mb-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Pliki</span>
+                <motion.div key="code" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-1 overflow-hidden rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface)]">
+                  <div className="sm-scroll w-52 shrink-0 space-y-0.5 overflow-y-auto border-r border-[var(--sm-border)] bg-[var(--sm-surface-2)] p-2">
+                    <span className="mb-1 block px-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--sm-text-3)]">Pliki</span>
                     {Object.keys(generatedSite.files).map((fname) => (
-                      <button key={fname} onClick={() => setSelectedFile(fname)} className={`w-full text-left px-2 py-1 rounded text-[10px] font-medium truncate border-none cursor-pointer ${selectedFile === fname ? (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-blue-50 text-blue-600') : (theme === 'dark' ? 'bg-transparent text-white/40 hover:text-white/60 hover:bg-white/5' : 'bg-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100')}`}>
+                      <button
+                        key={fname}
+                        onClick={() => setSelectedFile(fname)}
+                        title={fname}
+                        className={`min-h-[40px] w-full truncate rounded-[8px] border-none px-2.5 py-2 text-left text-[14px] transition-colors cursor-pointer ${selectedFile === fname ? 'bg-[var(--sm-surface-3)] text-[var(--sm-text)]' : 'bg-transparent text-[var(--sm-text-2)] hover:bg-[var(--sm-surface-3)] hover:text-[var(--sm-text)]'}`}
+                      >
                         {fname.split('/').pop()}
                       </button>
                     ))}
                   </div>
-                  <div className={`flex-1 p-3 overflow-y-auto ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
-                    <pre className={`text-[10px] leading-relaxed whitespace-pre-wrap break-words ${theme === 'dark' ? 'text-green-300/80' : 'text-green-800/80'}`}>{generatedSite.files[selectedFile] || ''}</pre>
+                  <div className="sm-scroll flex-1 overflow-y-auto p-4">
+                    <pre className="whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-[var(--sm-text-2)]">{generatedSite.files[selectedFile] || ''}</pre>
                   </div>
                 </motion.div>
               )}
@@ -896,21 +985,24 @@ export const BuilderFullView = ({
             <>
               <motion.div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPublishedUrl(null)} />
               <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                className={`fixed right-0 top-0 bottom-0 w-[340px] max-w-[90vw] z-[61] shadow-2xl flex flex-col ${theme === 'dark' ? 'bg-[#111111] border-l border-white/[0.06]' : 'bg-white border-l border-gray-200'}`}>
-                <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
+                className="fixed right-0 top-0 bottom-0 z-[61] flex w-[360px] max-w-[92vw] flex-col border-l border-[var(--sm-border)] bg-[var(--sm-surface)] shadow-2xl">
+                <div className="flex items-center justify-between border-b border-[var(--sm-border)] p-5">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 size={18} className="text-green-400" />
-                    <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Opublikowano!</span>
+                    <CheckCircle2 size={20} className="text-[var(--sm-success)]" />
+                    <span className="text-[17px] font-semibold">Opublikowano</span>
                   </div>
-                  <button aria-label="Zamknij publikację" onClick={() => setPublishedUrl(null)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/10 text-white/40 cursor-pointer border-none bg-transparent"><X size={14} /></button>
+                  <button aria-label="Zamknij publikację" onClick={() => setPublishedUrl(null)} className="sm-icon-btn"><X size={19} /></button>
                 </div>
-                <div className="p-5 space-y-3 flex-1">
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/5 border border-white/[0.06]">
-                    <input readOnly value={publishedUrl} onFocus={(e) => e.currentTarget.select()} className={`flex-1 bg-transparent text-xs font-medium outline-none min-w-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`} />
-                    <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className={`px-2.5 py-1 rounded-md text-[10px] font-semibold shrink-0 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black' : 'bg-[#2563eb] text-white'}`}>Kopiuj</button>
+                <div className="flex-1 space-y-4 p-5">
+                  <div>
+                    <label className="sm-label" htmlFor="published-url">Adres strony</label>
+                    <div className="flex items-center gap-2">
+                      <input id="published-url" readOnly value={publishedUrl} onFocus={(e) => e.currentTarget.select()} className="sm-input flex-1 text-[14px]" />
+                      <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className="sm-btn shrink-0">Kopiuj</button>
+                    </div>
                   </div>
-                  {publishErr && <p className="text-xs text-red-400">{publishErr}</p>}
-                  <a href={publishedUrl} target="_blank" rel="noreferrer" className="block"><Button variant="primary" size="sm" className="w-full">Otwórz stronę</Button></a>
+                  {publishErr && <p className="text-[14px] text-[var(--sm-danger)]" role="alert">{publishErr}</p>}
+                  <a href={publishedUrl} target="_blank" rel="noreferrer" className="block"><Button variant="primary" size="md" className="w-full">Otwórz stronę</Button></a>
                 </div>
               </motion.div>
             </>

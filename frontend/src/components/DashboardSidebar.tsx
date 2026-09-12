@@ -1,4 +1,4 @@
-import { motion, LayoutGroup } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LogOut,
   Settings,
@@ -17,13 +17,22 @@ import { springTransition } from '../lib/shared';
 
 export const SIDEBAR_MENU = [
   { id: 'dashboard', label: 'Pulpit', icon: LayoutDashboard },
-  { id: 'builder', label: 'Kreator AI', icon: Wrench, badge: 'NOWOŚĆ' },
+  { id: 'builder', label: 'Kreator AI', icon: Wrench },
   { id: 'leadfinder', label: 'Lead Finder', icon: Search },
-  { id: 'pricing', label: 'Cennik & Plany', icon: DollarSign },
+  { id: 'pricing', label: 'Cennik i plany', icon: DollarSign },
   { id: 'finance', label: 'Finanse', icon: Receipt },
   { id: 'tutorials', label: 'Akademia', icon: GraduationCap },
   { id: 'help', label: 'Pomoc', icon: HelpCircle },
 ];
+
+const Logo = () => (
+  <div className="flex items-center gap-2.5">
+    <img src="/logo.svg" alt="" width="28" height="28" className="rounded-[8px]" />
+    <span className="text-[17px] font-semibold tracking-[-0.03em]">
+      Site<span className="sm-brand-gradient">Morph</span>
+    </span>
+  </div>
+);
 
 export const DashboardSidebar = ({
   activeTab,
@@ -42,144 +51,109 @@ export const DashboardSidebar = ({
   credits: number;
   session: any;
 }) => {
-  const menuItems = SIDEBAR_MENU;
-
   return (
     <motion.aside
       layout
-      className="hidden lg:flex w-[260px] border-r h-screen sticky top-0 flex-col justify-between z-30 shrink-0 select-none bg-[#FAFAF9] dark:bg-[#050505] border-[#EAEAEA] dark:border-neutral-900 text-[#2563eb] dark:text-white"
+      className="hidden lg:flex w-[264px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 border-r border-[var(--sm-border)] bg-[var(--sm-surface)] text-[var(--sm-text)]"
     >
       <div>
-        <div className="h-16 flex items-center justify-between px-6 border-b border-[#EAEAEA] dark:border-neutral-900">
-          <motion.button 
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onExit} 
-            className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none text-inherit"
+        <div className="h-16 flex items-center justify-between gap-2 border-b border-[var(--sm-border)] px-4">
+          <button
+            onClick={onExit}
+            className="flex min-h-[44px] items-center gap-2 rounded-[10px] border-none bg-transparent px-1.5 cursor-pointer text-[var(--sm-text)]"
+            aria-label="SiteMorph — strona główna"
           >
-            <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
-            <span className="font-black text-base tracking-tight text-[#2563eb] dark:text-white">
-              Site<span className="font-story-script text-xl px-0.5" style={{ background: 'linear-gradient(135deg,#06b6d4 0%,#22d3ee 50%,#a3e635 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Morph</span>
-            </span>
-          </motion.button>
-
+            <Logo />
+          </button>
           <motion.button
-            whileHover={{ rotate: 180, scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.94 }}
             transition={springTransition}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-1.5 rounded-lg hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 text-[#2563eb] dark:text-white cursor-pointer border-none bg-transparent"
+            className="sm-icon-btn"
+            title={theme === 'dark' ? 'Motyw jasny' : 'Motyw ciemny'}
+            aria-label="Zmień motyw"
           >
-            {theme === 'dark' ? <Sun size={15} className="text-white" /> : <Moon size={15} className="text-[#2563eb]" />}
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </motion.button>
         </div>
 
-        <LayoutGroup id="sidebar-nav">
-          <div className="p-3 space-y-1">
-            <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 text-[#2563eb] dark:text-white opacity-70">
-              MENU GŁÓWNE
-            </div>
-            {menuItems.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full relative flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
-                    isActive ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="sidebarActivePill"
-                      transition={springTransition}
-                      className="absolute inset-0 bg-[#111111] dark:bg-white rounded-2xl shadow-md"
-                    />
-                  )}
-                  <div className="flex items-center gap-2.5 relative z-10">
-                    <item.icon size={16} className={isActive ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white'} />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className={`relative z-10 text-[9px] font-black px-1.5 py-0.5 rounded-md ${
-                      isActive ? 'bg-white text-[#111111] dark:bg-black dark:text-white' : 'bg-blue-100 text-blue-800 dark:bg-neutral-800 dark:text-white'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </motion.button>
-              );
-            })}
+        <nav className="p-3 space-y-1" aria-label="Menu główne">
+          <div className="px-3 pb-2 pt-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
+            Menu główne
           </div>
-
-          <div className="p-3 pt-0">
-            <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 text-[#2563eb] dark:text-white opacity-70">
-              KONTO
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setActiveTab('settings')}
-              className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
-                activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
-              }`}
+          {SIDEBAR_MENU.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className="sm-nav-item"
+              aria-current={activeTab === item.id ? 'page' : undefined}
             >
-              {activeTab === 'settings' && (
-                <motion.div
-                  layoutId="sidebarActivePill"
-                  transition={springTransition}
-                  className="absolute inset-0 bg-[#111111] dark:bg-white rounded-2xl shadow-md"
-                />
-              )}
-              <Settings size={16} className={`relative z-10 ${activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white'}`} />
-              <span className="relative z-10">Ustawienia</span>
-            </motion.button>
+              <item.icon size={18} className="shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <nav className="px-3 space-y-1" aria-label="Konto">
+          <div className="px-3 pb-2 pt-3 text-[12px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
+            Konto
           </div>
-        </LayoutGroup>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className="sm-nav-item"
+            aria-current={activeTab === 'settings' ? 'page' : undefined}
+          >
+            <Settings size={18} className="shrink-0" />
+            <span className="truncate">Ustawienia</span>
+          </button>
+        </nav>
       </div>
 
-      <div className="p-3 space-y-2 border-t border-[#EAEAEA] dark:border-neutral-900">
-        <motion.div 
-          whileHover={{ scale: 1.02 }}
-          className="p-3 rounded-2xl border flex items-center justify-between bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-[#2563eb] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center font-black">
-              <Coins size={16} />
-            </div>
-            <div>
-              <div className="text-xs font-black">{credits} kredytów</div>
-              <div className="text-[10px] font-bold opacity-80">{credits > 0 ? 'Pakiet aktywny' : 'Darmowy pakiet'}</div>
+      <div className="space-y-3 border-t border-[var(--sm-border)] p-3">
+        <div className="sm-card-quiet flex items-center justify-between gap-2 p-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-3)]">
+              <Coins size={17} />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold">{credits} kredytów</div>
+              <div className="text-[12px] text-[var(--sm-text-3)]">
+                {credits > 0 ? 'Pakiet aktywny' : 'Darmowy pakiet'}
+              </div>
             </div>
           </div>
-          <button onClick={() => setActiveTab('pricing')} className="text-[11px] font-black text-emerald-500 dark:text-emerald-400 hover:underline cursor-pointer bg-transparent border-none">
+          <button
+            onClick={() => setActiveTab('pricing')}
+            className="shrink-0 min-h-[44px] rounded-[8px] px-3 text-[14px] font-medium text-[var(--sm-accent)] hover:bg-[var(--sm-surface-3)] cursor-pointer border-none bg-transparent"
+          >
             Doładuj
           </button>
-        </motion.div>
+        </div>
 
-        <div className="p-2 flex items-center justify-between rounded-2xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-blue-700 text-white font-bold text-xs flex items-center justify-center shadow-sm">
-              O
-            </div>
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-3)] text-[14px] font-semibold">
+              {(session?.user?.email?.[0] || 'U').toUpperCase()}
+            </span>
             <div className="min-w-0">
-              <div className="text-xs font-black truncate">{session?.user?.email?.split('@')[0] || 'Użytkownik'}</div>
-              <div className="text-[10px] font-bold opacity-80">{credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}</div>
+              <div className="truncate text-[14px] font-medium">
+                {session?.user?.email?.split('@')[0] || 'Użytkownik'}
+              </div>
+              <div className="text-[12px] text-[var(--sm-text-3)]">
+                {credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}
+              </div>
             </div>
           </div>
-          <motion.button 
-            whileHover={{ scale: 1.2, rotate: 10 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onExit} 
-            className="p-1 text-[#2563eb] dark:text-white hover:text-rose-500 cursor-pointer bg-transparent border-none" 
+          <button
+            onClick={onExit}
+            className="sm-icon-btn shrink-0 text-[var(--sm-text-2)] hover:text-[var(--sm-danger)]"
             title="Wyloguj"
+            aria-label="Wyloguj"
           >
-            <LogOut size={15} />
-          </motion.button>
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </motion.aside>
   );
 };
-
-// Pasek górny + szuflada nawigacji na telefonach (< lg)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut,
   Settings,
@@ -31,23 +31,50 @@ export const MobileNav = ({
 }) => {
   const [open, setOpen] = useState(false)
   useEffect(() => { setOpen(false) }, [activeTab])
+
+  // Blokada scrollu tła, gdy szuflada jest otwarta
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [open]);
+
   return (
     <>
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-3 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-[#EAEAEA]/50 dark:border-neutral-900/50 text-[#2563eb] dark:text-white">
-        <button onClick={onExit} className="flex items-center gap-2 cursor-pointer bg-transparent border-none text-inherit p-1.5 rounded-lg active:scale-95 transition-transform">
-            <img src="/logo.svg" alt="SiteMorph" width="28" height="28" className="rounded-lg shadow-md" />
-            <span className="font-black text-sm tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
+      {/* Górny pasek — logo, kredyty, motyw, menu (wszystko ≥ 44px) */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between gap-2 border-b border-[var(--sm-border)] bg-[var(--sm-bg)]/92 px-3 backdrop-blur-xl text-[var(--sm-text)]">
+        <button
+          onClick={onExit}
+          className="flex min-h-[44px] items-center gap-2 rounded-[10px] bg-transparent border-none px-1 cursor-pointer text-[var(--sm-text)]"
+        >
+          <img src="/logo.svg" alt="" width="26" height="26" className="rounded-[8px]" />
+          <span className="text-[16px] font-semibold tracking-[-0.03em]">
+            Site<span className="sm-brand-gradient">Morph</span>
+          </span>
         </button>
+
         <div className="flex items-center gap-1">
-          <span className="text-[10px] font-black px-2 py-1 rounded-full bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800">{credits} kr.</span>
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Motyw" className="p-2 rounded-lg hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 cursor-pointer border-none bg-transparent text-[#2563eb] dark:text-white">
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          <span className="hidden min-h-[32px] items-center gap-1.5 rounded-full border border-[var(--sm-border)] bg-[var(--sm-surface-2)] px-3 text-[13px] font-medium sm:inline-flex">
+            <Coins size={14} /> {credits} kr.
+          </span>
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label="Zmień motyw"
+            className="sm-icon-btn"
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <button onClick={() => setOpen(true)} aria-label="Menu" className="p-2 rounded-lg hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 cursor-pointer border-none bg-transparent text-[#2563eb] dark:text-white">
-            <Menu size={18} />
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Otwórz menu"
+            className="sm-icon-btn"
+          >
+            <Menu size={22} />
           </button>
         </div>
       </div>
+
       <AnimatePresence>
         {open && (
           <>
@@ -56,81 +83,97 @@ export const MobileNav = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="lg:hidden fixed inset-0 z-40 bg-black/40"
+              className="lg:hidden fixed inset-0 z-40 bg-black/50"
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring' as const, stiffness: 380, damping: 34 }}
-              className="lg:hidden fixed top-0 bottom-0 left-0 w-[280px] z-50 flex flex-col justify-between bg-[#FAFAF9] dark:bg-[#050505] border-r border-[#EAEAEA] dark:border-neutral-900 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] text-[#2563eb] dark:text-white select-none"
+              className="lg:hidden fixed top-0 bottom-0 left-0 z-50 flex w-[300px] max-w-[86vw] flex-col justify-between border-r border-[var(--sm-border)] bg-[var(--sm-surface)] text-[var(--sm-text)] select-none"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu nawigacji"
             >
-              <div>
-                <div className="h-14 flex items-center justify-between px-4 border-b border-[#EAEAEA] dark:border-neutral-900">
-                  <span className="font-black text-base tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Site<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: '#a3e635' }}>MORPH</span></span>
-                  <button onClick={() => setOpen(false)} aria-label="Zamknij" className="p-2 rounded-lg hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 cursor-pointer border-none bg-transparent"><X size={17} /></button>
+              <div className="min-h-0 flex-1 overflow-y-auto sm-scroll">
+                <div className="flex h-16 items-center justify-between gap-2 border-b border-[var(--sm-border)] px-4">
+                  <span className="text-[17px] font-semibold tracking-[-0.03em]">
+                    Site<span className="sm-brand-gradient">Morph</span>
+                  </span>
+                  <button onClick={() => setOpen(false)} aria-label="Zamknij menu" className="sm-icon-btn">
+                    <X size={20} />
+                  </button>
                 </div>
-                <LayoutGroup id="mobile-nav">
-                  <div className="p-3 space-y-1">
-                    <div className="text-[10px] font-black tracking-wider uppercase px-3 py-2 opacity-70">MENU GŁÓWNE</div>
-                    {SIDEBAR_MENU.map((item) => {
-                      const isActive = activeTab === item.id;
-                      return (
-                        <motion.button
-                          whileTap={{ scale: 0.97 }}
-                          key={item.id}
-                          onClick={() => setActiveTab(item.id)}
-                          className={`w-full relative flex items-center justify-between px-3 py-3 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
-                            isActive ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
-                          }`}
-                        >
-                          {isActive && (
-                            <motion.div layoutId="mobileActivePill" transition={springTransition} className="absolute inset-0 bg-[#111111] dark:bg-white rounded-2xl shadow-md" />
-                          )}
-                          <div className="flex items-center gap-2.5 relative z-10">
-                            <item.icon size={16} className={isActive ? 'text-white dark:text-black' : ''} />
-                            <span>{item.label}</span>
-                          </div>
-                          {item.badge && (
-                            <span className={`relative z-10 text-[9px] font-black px-1.5 py-0.5 rounded-md ${isActive ? 'bg-white text-[#111111] dark:bg-black dark:text-white' : 'bg-blue-100 text-blue-800 dark:bg-neutral-800 dark:text-white'}`}>{item.badge}</span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
+
+                <nav className="space-y-1 p-3" aria-label="Menu główne">
+                  <div className="px-3 pb-2 pt-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
+                    Menu główne
+                  </div>
+                  {SIDEBAR_MENU.map((item) => (
                     <button
-                      onClick={() => setActiveTab('settings')}
-                      className={`w-full relative flex items-center gap-2.5 px-3 py-3 mt-2 rounded-2xl text-xs font-black transition-colors cursor-pointer border-none ${
-                        activeTab === 'settings' ? 'text-white dark:text-black' : 'text-[#2563eb] dark:text-white hover:bg-[#F7F6F3]/60 dark:hover:bg-neutral-900/60'
-                      }`}
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className="sm-nav-item"
+                      aria-current={activeTab === item.id ? 'page' : undefined}
                     >
-                      <Settings size={16} className="relative z-10" />
-                      <span className="relative z-10">Ustawienia</span>
+                      <item.icon size={18} className="shrink-0" />
+                      <span className="truncate">{item.label}</span>
                     </button>
-                  </div>
-                </LayoutGroup>
+                  ))}
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    className="sm-nav-item"
+                    aria-current={activeTab === 'settings' ? 'page' : undefined}
+                  >
+                    <Settings size={18} className="shrink-0" />
+                    <span className="truncate">Ustawienia</span>
+                  </button>
+                </nav>
               </div>
-              <div className="p-3 space-y-2 border-t border-[#EAEAEA] dark:border-neutral-900">
-                <div className="p-3 rounded-2xl border flex items-center justify-between bg-[#F7F6F3]/50 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center font-black"><Coins size={16} /></div>
-                    <div>
-                      <div className="text-xs font-black">{credits} kredytów</div>
-                      <div className="text-[10px] font-bold opacity-80">{credits > 0 ? 'Pakiet aktywny' : 'Darmowy pakiet'}</div>
-                    </div>
-                  </div>
-                  <button onClick={() => setActiveTab('pricing')} className="text-[11px] font-black text-emerald-500 dark:text-emerald-400 hover:underline cursor-pointer bg-transparent border-none">Doładuj</button>
-                </div>
-                <div className="p-2 flex items-center justify-between rounded-2xl hover:bg-[#F7F6F3] dark:hover:bg-neutral-900 transition-colors">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center shadow-sm">O</div>
+
+              <div className="space-y-3 border-t border-[var(--sm-border)] p-3">
+                <div className="sm-card-quiet flex items-center justify-between gap-2 p-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-3)]">
+                      <Coins size={17} />
+                    </span>
                     <div className="min-w-0">
-                      <div className="text-xs font-black truncate">{session?.user?.email?.split('@')[0] || 'Użytkownik'}</div>
-                      <div className="text-[10px] font-bold opacity-80">{credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}</div>
+                      <div className="text-[14px] font-semibold">{credits} kredytów</div>
+                      <div className="text-[12px] text-[var(--sm-text-3)]">
+                        {credits > 0 ? 'Pakiet aktywny' : 'Darmowy pakiet'}
+                      </div>
                     </div>
                   </div>
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={onExit} className="p-1 text-[#2563eb] dark:text-white hover:text-rose-500 cursor-pointer bg-transparent border-none" title="Wyloguj">
-                    <LogOut size={15} />
-                  </motion.button>
+                  <button
+                    onClick={() => setActiveTab('pricing')}
+                    className="shrink-0 min-h-[44px] rounded-[8px] px-3 text-[14px] font-medium text-[var(--sm-accent)] hover:bg-[var(--sm-surface-3)] cursor-pointer border-none bg-transparent"
+                  >
+                    Doładuj
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-3)] text-[14px] font-semibold">
+                      {(session?.user?.email?.[0] || 'U').toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-[14px] font-medium">
+                        {session?.user?.email?.split('@')[0] || 'Użytkownik'}
+                      </div>
+                      <div className="text-[12px] text-[var(--sm-text-3)]">
+                        {credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onExit}
+                    className="sm-icon-btn shrink-0 text-[var(--sm-text-2)] hover:text-[var(--sm-danger)]"
+                    title="Wyloguj"
+                    aria-label="Wyloguj"
+                  >
+                    <LogOut size={18} />
+                  </button>
                 </div>
               </div>
             </motion.aside>
@@ -140,7 +183,3 @@ export const MobileNav = ({
     </>
   );
 };
-
-// ============================================================================
-// 8. WIDOK: DASHBOARD GŁÓWNY
-// ============================================================================

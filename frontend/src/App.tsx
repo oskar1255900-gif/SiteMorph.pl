@@ -20,7 +20,6 @@ import { CookieBanner } from './components/CookieBanner';
 import { HelpView } from './views/HelpView';
 import { SettingsView } from './views/SettingsView';
 import { AuthModal } from './components/AuthModal';
-import { GlobalNavbar } from './components/GlobalNavbar';
 import { FloatingChat } from './components/FloatingChat';
 import { apiFetch } from './lib/api';
 import { MaintenanceGateView } from './views/MaintenanceGateView';
@@ -180,15 +179,6 @@ export default function App() {
   return (
     <>
       <GlobalStyles />
-      {!showSplash && !(currentView === 'app' && activeTab === 'builder') && (
-        <GlobalNavbar
-          theme={theme} setTheme={setTheme} session={session}
-          onShowAuth={() => setShowAuth(true)}
-          onLogout={async () => { await supabase.auth.signOut(); setSession(null); }}
-          onEnterApp={handleEnterApp} setActiveTab={setActiveTab}
-          currentView={currentView} setCurrentView={setCurrentView}
-        />
-      )}
       <AnimatePresence mode="wait">
         {showSplash ? (
           <SplashScreen key="splash" onComplete={() => setShowSplash(false)} theme={theme} />
@@ -216,7 +206,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="min-h-screen flex bg-white dark:bg-black text-blue-600 dark:text-white transition-colors"
+            className="min-h-screen flex bg-[var(--sm-bg)] text-[var(--sm-text)] transition-colors"
           >
             <MobileNav
               activeTab={activeTab}
@@ -237,7 +227,7 @@ export default function App() {
               session={session}
             />
 
-            <main className="flex-1 h-screen overflow-y-auto no-scrollbar relative z-10 pt-14 lg:pt-0">
+            <main className="sm-scroll flex-1 h-screen overflow-y-auto relative z-10 pt-16 lg:pt-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -293,10 +283,10 @@ export default function App() {
             key="app-fallback"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="min-h-screen flex items-center justify-center bg-white dark:bg-black"
+            className="min-h-screen flex items-center justify-center bg-[var(--sm-bg)]"
           >
             <div className="text-center p-8">
-              <p className="font-black text-lg">Zaloguj się, aby kontynuować</p>
+              <p className="text-lg font-semibold">Zaloguj się, aby kontynuować</p>
               <Button variant="primary" onClick={() => setShowAuth(true)} className="mt-4">Zaloguj się</Button>
             </div>
           </motion.div>

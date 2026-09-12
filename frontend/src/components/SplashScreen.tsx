@@ -7,11 +7,11 @@ export const SplashScreen = ({ onComplete, theme }: { onComplete: () => void; th
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  const ink = theme === 'dark' ? '#ffffff' : '#2563eb';
+  const ink = 'var(--sm-text)';
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden select-none bg-white dark:bg-black transition-colors duration-200"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden select-none bg-[var(--sm-bg)] transition-colors duration-200"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.18, ease: 'easeOut' } }}
     >
@@ -35,8 +35,8 @@ export const SplashScreen = ({ onComplete, theme }: { onComplete: () => void; th
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.3, ease: 'easeOut' }}
-        className="mt-5 text-[10px] font-medium uppercase tracking-[0.3em]"
-        style={{ color: ink, fontFamily: "'SF Pro Display', sans-serif" }}
+        className="mt-5 text-[14px] font-normal uppercase tracking-[0.28em] text-[var(--sm-text-2)]"
+        style={{ fontFamily: "'SF Pro Display', sans-serif" }}
       >
         Buduj strony, które sprzedają.
       </motion.p>

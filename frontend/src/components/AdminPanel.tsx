@@ -135,10 +135,10 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
       <div className="relative max-w-6xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center font-black"><Settings size={18} /></div>
+            <div className="w-9 h-9 rounded-2xl bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center font-semibold"><Settings size={18} /></div>
             <div>
-              <h1 className="text-xl font-black tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Panel administratora</h1>
-              <p className="text-[11px] font-bold opacity-60">Tylko dla administratora · wszystkie dane o stronie w jednym miejscu</p>
+              <h1 className="text-xl font-semibold tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Panel administratora</h1>
+              <p className="text-[13px] font-bold opacity-60">Tylko dla administratora · wszystkie dane o stronie w jednym miejscu</p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onClose}><X size={14} /> Zamknij panel</Button>
@@ -148,20 +148,20 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           {liveStats.map((s) => (
             <motion.div key={s.label} whileHover={{ y: -4, scale: 1.02 }} className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{s.label}</span>
+                <span className="text-[13px] font-semibold uppercase tracking-widest opacity-60">{s.label}</span>
                 <s.icon size={14} className="opacity-60" />
               </div>
-              <div className="text-2xl font-black mt-1" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{s.value}</div>
-              <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">{s.delta}</div>
+              <div className="text-2xl font-semibold mt-1" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{s.value}</div>
+              <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">{s.delta}</div>
             </motion.div>
           ))}
         </div>
 
         <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 mb-6">
-          <h3 className="text-sm font-black mb-3">Zarządzanie kredytami</h3>
+          <h3 className="text-sm font-semibold mb-3">Zarządzanie kredytami</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input value={creditUser} onChange={(e) => setCreditUser(e.target.value)} placeholder="Nazwa użytkownika" className="px-3 py-2 rounded-2xl border text-xs font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
-            <select value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} className="px-3 py-2 rounded-2xl border text-xs font-black bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+            <input value={creditUser} onChange={(e) => setCreditUser(e.target.value)} placeholder="Nazwa użytkownika" className="px-3 py-2 rounded-2xl border text-[13px] font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
+            <select value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} className="px-3 py-2 rounded-2xl border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
               <option value="10">+10 kredytów</option>
               <option value="25">+25 kredytów</option>
               <option value="50">+50 kredytów</option>
@@ -179,38 +179,38 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
                 setCreditMsg(`Dodano ${amt} kredytów dla ${creditUser || '(brak nazwy)'} (demo)`);
                 setTimeout(() => setCreditMsg(''), 3000);
               }}
-              className="font-black"
+              className="font-semibold"
             >
               Dodaj kredyty
             </Button>
           </div>
-          <div className="text-xs font-bold mt-3 flex items-center gap-2">
+          <div className="text-[13px] font-bold mt-3 flex items-center gap-2">
             <span className="opacity-70">Twoje kredyty: {credits}</span>
             {creditMsg && <span className="text-emerald-600 dark:text-emerald-400">· {creditMsg}</span>}
           </div>
-          <p className="text-[10px] font-bold opacity-60 mt-1">Wszystko w panelu administratora - dodaj kredyty dowolnemu użytkownikowi (demo).</p>
+          <p className="text-[13px] font-bold opacity-60 mt-1">Wszystko w panelu administratora - dodaj kredyty dowolnemu użytkownikowi (demo).</p>
         </div>
 
         {/* Plan Management */}
         <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 mb-6">
-          <h3 className="text-sm font-black mb-3">Zarządzanie planami użytkowników</h3>
+          <h3 className="text-sm font-semibold mb-3">Zarządzanie planami użytkowników</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
-            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-2xl border text-xs font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
-            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-2xl border text-xs font-black bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-2xl border text-[13px] font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
+            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-2xl border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
               {(plans.length ? plans : [{name:'Starter',credits:10,price:49},{name:'Pro',credits:50,price:99},{name:'Business',credits:200,price:199},{name:'Agencja',credits:500,price:499}]).map((p: any) => (
                 <option key={(p.name||p).toLowerCase()} value={(p.name||p).toLowerCase()}>
                   {p.name} ({p.credits} kr/mies, {p.price} zł)
                 </option>
               ))}
             </select>
-            <Button variant="primary" size="sm" onClick={handleSetPlan} className="font-black">
+            <Button variant="primary" size="sm" onClick={handleSetPlan} className="font-semibold">
               Ustaw plan
             </Button>
           </div>
-          {planMsg && <p className="text-xs font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
+          {planMsg && <p className="text-[13px] font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
           <div className="mt-4 space-y-2">
             {(plans.length ? plans : [{name:'Starter',credits:10,price:49,features:['Builder podstawowy']},{name:'Pro',credits:50,price:99,features:['Galeria','Animacje']},{name:'Business',credits:200,price:199,features:['Team','FAQ']},{name:'Agencja',credits:500,price:499,features:['CMS','Multi-language']}]).map((p: any) => (
-              <div key={p.name} className="text-[10px] font-bold opacity-80 flex items-center gap-2">
+              <div key={p.name} className="text-[13px] font-bold opacity-80 flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 text-[#2563eb] dark:text-white">{p.name}</span>
                 <span className="opacity-60">{p.credits} kr/mies</span>
                 <span className="opacity-60">{p.price} zł/mies</span>
@@ -223,13 +223,13 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 rounded-2xl border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 overflow-hidden">
             <div className="p-4 border-b border-[#EAEAEA] dark:border-neutral-900 flex items-center justify-between">
-              <h3 className="text-sm font-black">Ostatni użytkownicy</h3>
+              <h3 className="text-sm font-semibold">Ostatni użytkownicy</h3>
               <Badge type="lime">{liveUsers.length} kont</Badge>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-[13px] border-collapse">
                 <thead className="bg-[#F7F6F3]/60 dark:bg-neutral-900">
-                  <tr className="font-black">
+                  <tr className="font-semibold">
                     <th className="px-4 py-2.5">Użytkownik</th><th className="px-4 py-2.5">Plan</th><th className="px-4 py-2.5">Stron</th><th className="px-4 py-2.5">Wydane</th><th className="px-4 py-2.5">Dołączył</th>
                   </tr>
                 </thead>
@@ -238,7 +238,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
                     <tr><td colSpan={5} className="px-4 py-10 text-center font-bold opacity-60">Brak danych - na razie 0 użytkowników</td></tr>
                   ) : liveUsers.map((u) => (
                     <tr key={u.user_id || u.name} className="font-bold hover:bg-[#F7F6F3]/40 dark:hover:bg-neutral-900/40">
-                      <td className="px-4 py-3 font-black truncate max-w-[180px]">{u.user_id || u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.credits ?? u.pages ?? 0}</td><td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>
+                      <td className="px-4 py-3 font-semibold truncate max-w-[180px]">{u.user_id || u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.credits ?? u.pages ?? 0}</td><td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -248,23 +248,23 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
 
           <div className="space-y-6">
             <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
-              <h3 className="text-sm font-black mb-3">Status usług</h3>
+              <h3 className="text-sm font-semibold mb-3">Status usług</h3>
               <div className="space-y-2.5">
                 {ADMIN_SERVICES.map((svc) => (
-                  <div key={svc.name} className="flex items-center justify-between text-xs">
+                  <div key={svc.name} className="flex items-center justify-between text-[13px]">
                     <div>
-                      <div className="font-black leading-none">{svc.name}</div>
-                      <div className="text-[10px] font-bold opacity-60">{svc.latency}</div>
+                      <div className="font-semibold leading-none">{svc.name}</div>
+                      <div className="text-[13px] font-bold opacity-60">{svc.latency}</div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-black ${svc.status === 'Operational' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'}`}>{svc.status}</span>
+                    <span className={`px-2 py-1 rounded-full text-[13px] font-semibold ${svc.status === 'Operational' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'}`}>{svc.status}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
-              <h3 className="text-sm font-black mb-2">Informacje o stronie</h3>
-              <div className="space-y-2 text-xs font-bold">
+              <h3 className="text-sm font-semibold mb-2">Informacje o stronie</h3>
+              <div className="space-y-2 text-[13px] font-bold">
                 <div className="flex justify-between"><span className="opacity-60">Wersja</span><span>SiteMorph 2.4.1</span></div>
                 <div className="flex justify-between"><span className="opacity-60">Build</span><span>2026.08.22</span></div>
                 <div className="flex justify-between"><span className="opacity-60">Środowisko</span><span>production</span></div>
@@ -274,8 +274,8 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-xs font-bold leading-relaxed">
-          <span className="font-black">Uwaga:</span> to jest panel demo w przeglądarce. Prawdziwa weryfikacja hasła powinna odbywać się na backendzie (<code className="px-1 py-0.5 rounded bg-white dark:bg-black border">POST /api/admin/verify</code>). Tutaj porównujemy jedynie SHA-256 hasha, więc hasło w jawnej postaci nie występuje w kodzie frontendu.
+        <div className="mt-8 rounded-2xl border p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-[13px] font-bold leading-relaxed">
+          <span className="font-semibold">Uwaga:</span> to jest panel demo w przeglądarce. Prawdziwa weryfikacja hasła powinna odbywać się na backendzie (<code className="px-1 py-0.5 rounded bg-white dark:bg-black border">POST /api/admin/verify</code>). Tutaj porównujemy jedynie SHA-256 hasha, więc hasło w jawnej postaci nie występuje w kodzie frontendu.
         </div>
       </div>
     </motion.div>

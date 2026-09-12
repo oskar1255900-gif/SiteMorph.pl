@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SF Pro Display — local font faces */
+/* ============================================================================
+   SF Pro Display — local font faces (panel typography)
+   ========================================================================== */
 @font-face {
   font-family: 'SF Pro Display';
   src: url('/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
@@ -25,30 +27,72 @@
   font-display: swap;
 }
 
-/* Design tokens per skill.txt — warm monochrome, SF Pro Display + Geist, 17px body */
+/* ============================================================================
+   DESIGN SYSTEM — SiteMorph
+   Jeden język wizualny dla całego panelu: paleta, promienie, rozmiary kontrolek.
+   Motyw jasny: białe tło + niebieski tekst (zgodnie z ustaleniem produktu).
+   Motyw ciemny: prawie czarne tło, ciepła biel tekstu, akcent turkus → limonka.
+   Czerwień tylko dla błędów, bursztyn tylko dla ostrzeżeń.
+   ========================================================================== */
 :root {
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --border: #EAEAEA;
-  --surface: #FFFFFF;
-  --surface-subtle: #F7F6F3;
-  --text: #2563eb;
-  --text-secondary: #787774;
+  /* surfaces */
+  --sm-bg: #FFFFFF;
+  --sm-surface: #FFFFFF;
+  --sm-surface-2: #F6F6F7;
+  --sm-surface-3: #EFEFF1;
+  /* text */
+  --sm-text: #2563EB;
+  --sm-text-strong: #111827;
+  --sm-text-2: #5B6472;
+  --sm-text-3: #8A93A1;
+  /* lines */
+  --sm-border: #E4E4E7;
+  --sm-border-strong: #D4D4D8;
+  /* brand accent: turkus przechodzący w limonkę */
+  --sm-accent: #14B8A6;
+  --sm-accent-2: #A3E635;
+  --sm-accent-ink: #FFFFFF;
+  /* semantics */
+  --sm-danger: #DC2626;
+  --sm-warning: #B45309;
+  --sm-success: #059669;
+  /* shape + motion (spójny system form) */
+  --sm-radius: 10px;
+  --sm-radius-lg: 14px;
+  --sm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --sm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* control sizes — 44/48px minimum touch targets */
+  --sm-control: 44px;
+  --sm-control-lg: 48px;
+}
+
+html.dark {
+  --sm-bg: #070809;
+  --sm-surface: #0F1114;
+  --sm-surface-2: #14171B;
+  --sm-surface-3: #1B1F24;
+  --sm-text: #F3F4F2;          /* ciepła biel */
+  --sm-text-strong: #FFFFFF;
+  --sm-text-2: #9BA1A0;        /* czytelna neutralna szarość */
+  --sm-text-3: #6E7473;
+  --sm-border: rgba(255, 255, 255, 0.08);
+  --sm-border-strong: rgba(255, 255, 255, 0.14);
+  --sm-accent: #2DD4BF;
+  --sm-accent-2: #A3E635;
+  --sm-accent-ink: #05201C;
+  --sm-danger: #F87171;
+  --sm-warning: #FBBF24;
+  --sm-success: #34D399;
 }
 
 body {
   font-family: 'SF Pro Display', 'Geist Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 17px;
+  font-size: 16px;              /* podstawa min. 16px */
   line-height: 1.5;
-  background-color: #FFFFFF;
-  color: #2563eb;
+  background-color: var(--sm-bg);
+  color: var(--sm-text);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-}
-
-.dark body {
-  background-color: #010102;
-  color: #f5f5f7;
 }
 
 @keyframes fadeIn {
@@ -57,48 +101,212 @@ body {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.6s var(--ease-out) forwards;
+  animation: fadeIn 0.6s var(--sm-ease-out) forwards;
 }
 
-/* Hairline borders per skill — 1px #EAEAEA, radius 8/12/9999 locked */
-.card-surface {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+/* ============================================================================
+   PRYMITYWY UI — używane na KAŻDYM ekranie (pulpit, kreator, leady, cennik...)
+   ========================================================================== */
+
+/* Karta: jedno tło, jedna obwódka, jeden promień. Bez kart w kartach. */
+.sm-card {
+  background: var(--sm-surface);
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
 }
+
+.sm-card-quiet {
+  background: var(--sm-surface-2);
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+}
+
+/* Pola formularzy: zawsze 48px wysokości i 16px tekstu (klawiatura iOS nie zoomuje) */
+.sm-input,
+.sm-select,
+.sm-textarea {
+  width: 100%;
+  min-height: var(--sm-control-lg);
+  padding: 12px 14px;
+  border-radius: var(--sm-radius);
+  border: 1px solid var(--sm-border);
+  background: var(--sm-surface);
+  color: var(--sm-text);
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sm-textarea { min-height: 112px; resize: vertical; }
+.sm-input::placeholder,
+.sm-textarea::placeholder { color: var(--sm-text-3); }
+.sm-input:hover:not(:disabled),
+.sm-select:hover:not(:disabled),
+.sm-textarea:hover:not(:disabled) { border-color: var(--sm-border-strong); }
+.sm-input:focus-visible,
+.sm-select:focus-visible,
+.sm-textarea:focus-visible {
+  border-color: var(--sm-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sm-accent) 22%, transparent);
+}
+.sm-input:disabled,
+.sm-select:disabled,
+.sm-textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Etykieta 12px, podpowiedź 13px */
+.sm-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--sm-text-2);
+  margin-bottom: 6px;
+}
+.sm-hint { font-size: 13px; line-height: 1.5; color: var(--sm-text-3); }
+
+/* Przyciski: 44px zwykły, 48px główne CTA */
+.sm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--sm-control);
+  padding: 0 16px;
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  background: var(--sm-surface);
+  color: var(--sm-text);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.sm-btn:hover:not(:disabled) { background: var(--sm-surface-2); border-color: var(--sm-border-strong); }
+.sm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sm-btn-lg { min-height: var(--sm-control-lg); padding: 0 22px; font-size: 16px; }
+.sm-btn-primary {
+  background: var(--sm-accent);
+  border-color: transparent;
+  color: var(--sm-accent-ink);
+}
+.sm-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--sm-accent) 88%, white); }
+.sm-btn-danger {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--sm-danger) 40%, transparent);
+  color: var(--sm-danger);
+}
+/* Przycisk z samą ikoną: min. 44×44 */
+.sm-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: var(--sm-control);
+  height: var(--sm-control);
+  border-radius: var(--sm-radius);
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.sm-icon-btn:hover { background: var(--sm-surface-2); }
+
+/* Focus widoczny z klawiatury — jeden styl w całej aplikacji */
+:focus-visible {
+  outline: 2px solid var(--sm-accent);
+  outline-offset: 2px;
+}
+.sm-btn:focus-visible,
+.sm-icon-btn:focus-visible { outline-offset: 2px; }
+
+/* Nawigacja: jeden styl aktywnej pozycji */
+.sm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--sm-control);
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--sm-radius);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sm-text-2);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.sm-nav-item:hover { background: var(--sm-surface-2); color: var(--sm-text); }
+.sm-nav-item[aria-current='page'] {
+  background: var(--sm-surface-2);
+  border-color: var(--sm-border);
+  color: var(--sm-text);
+  font-weight: 600;
+}
+
+/* Status / filtr / przełącznik — jedyne miejsce na pill */
+.sm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--sm-border);
+  background: var(--sm-surface-2);
+  color: var(--sm-text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Sekcja nagłówka widoku */
+.sm-h1 {
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--sm-text);
+}
+.sm-h2 { font-size: clamp(20px, 2vw, 26px); font-weight: 600; letter-spacing: -0.02em; }
+.sm-sub { font-size: 15px; line-height: 1.55; color: var(--sm-text-2); }
 
 /* Nowoczesne checkboxy (zamiast systemowych kwadratów) */
 input[type="checkbox"].sm-check {
   appearance: none;
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 7px;
-  border: 1.5px solid #c8d3e0;
-  background: #fff;
+  border: 1.5px solid var(--sm-border-strong);
+  background: var(--sm-surface);
   display: inline-grid;
   place-content: center;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
   flex-shrink: 0;
 }
-.dark input[type="checkbox"].sm-check {
-  border-color: #3f3f46;
-  background: #0a0a0a;
-}
-input[type="checkbox"].sm-check:hover { border-color: #a3e635; }
-input[type="checkbox"].sm-check:active { transform: scale(0.92); }
+input[type="checkbox"].sm-check:hover { border-color: var(--sm-accent); }
+input[type="checkbox"].sm-check:active { transform: scale(0.94); }
 input[type="checkbox"].sm-check::before {
   content: "";
-  width: 11px;
-  height: 11px;
+  width: 12px;
+  height: 12px;
   transform: scale(0);
   transition: transform 0.16s ease-in-out;
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 84% 4%, 39% 70%);
-  background: #131412;
+  background: var(--sm-accent-ink);
 }
 input[type="checkbox"].sm-check:checked {
-  background: #a3e635;
-  border-color: #a3e635;
+  background: var(--sm-accent);
+  border-color: var(--sm-accent);
 }
 input[type="checkbox"].sm-check:checked::before { transform: scale(1); }
+
+/* Subtelny scrollbar zamiast ukrytego — użytkownik wie, że treść się przewija */
+.sm-scroll { scrollbar-width: thin; scrollbar-color: var(--sm-border-strong) transparent; }
+.sm-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.sm-scroll::-webkit-scrollbar-thumb { background: var(--sm-border-strong); border-radius: 999px; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

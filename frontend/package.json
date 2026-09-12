@@ -6,6 +6,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:preview": "node tests/preview-browser.mjs",
+    "test:ui": "node tests/ui-audit.mjs",
+    "test:ui:selftest": "node tests/audit-selftest.mjs",
+    "test:layout": "node tests/dashboard-layout.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"

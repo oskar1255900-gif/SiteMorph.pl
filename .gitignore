@@ -30,3 +30,9 @@ backend/*.log
 backend/.sitemorph_builds/
 frontend/test-results/
 .pytest_cache/
+
+# Lokalne narzędzia Freebuff (logi, skrypty startowe)
+.freebuff/
+
+# Zrzuty z audytu UI (generowane przez npm run test:ui)
+frontend/tests/screens/
