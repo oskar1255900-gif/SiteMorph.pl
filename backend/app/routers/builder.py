@@ -35,6 +35,10 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 # Never hardcode API keys in source code.
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://sitemorph.pl").strip()
+OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph").strip()
 
 # The active pipeline is one compact design-spec response plus deterministic
 # validation/assets/React compilation. Hosting timeouts are configurable; they
@@ -49,6 +53,10 @@ _IS_VERCEL = os.getenv("VERCEL") == "1"
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
+MODEL_CONNECT_TIMEOUT = max(1.0, float(os.getenv("SITEMORPH_MODEL_CONNECT_TIMEOUT", "5")))
+MODEL_FIRST_TOKEN_TIMEOUT = max(3.0, float(os.getenv("SITEMORPH_MODEL_FIRST_TOKEN_TIMEOUT", "12")))
+MODEL_ROUTING_BUDGET = max(15.0, float(os.getenv("SITEMORPH_MODEL_ROUTING_BUDGET", "55")))
+MAX_MODEL_ATTEMPTS = max(1, min(8, int(os.getenv("SITEMORPH_MAX_MODEL_ATTEMPTS", "5"))))
 # Compatibility only: the AI standalone-preview path is disabled (GENERATE_STANDALONE_PREVIEW=False)
 # and never runs inside /generate.
 PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "16000"))
@@ -62,35 +70,81 @@ DEEPSEEK_MODEL = os.getenv(
     "deepseek/deepseek-v4-pro",
 )
 FABLE_MODEL = "anthropic/claude-fable-5"
-ULTRA_MODEL = "qwen/qwen3.8-max:free"
 
-MODEL_MAP = {
-    "normal": DEEPSEEK_MODEL,
-    "ultra": ULTRA_MODEL,
-    "ultra+": FABLE_MODEL,
+
+def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[str, str]]:
+    """Parse provider|model entries while preserving priority and removing duplicates."""
+    raw = os.getenv(name, "").strip()
+    entries = [item.strip() for item in raw.split(",") if item.strip()] if raw else []
+    candidates: List[Tuple[str, str]] = []
+    for entry in entries:
+        provider, separator, model = entry.partition("|")
+        if separator:
+            candidates.append((provider.strip().lower(), model.strip()))
+        else:
+            candidates.append(("xkiro", provider.strip()))
+    if not candidates:
+        candidates = defaults
+
+    targets: List[Dict[str, str]] = []
+    seen = set()
+    for provider, model in candidates:
+        if provider not in {"xkiro", "openrouter"} or not model:
+            continue
+        key = (provider, model)
+        if key not in seen:
+            seen.add(key)
+            targets.append({"provider": provider, "model": model})
+    return targets
+
+
+# Normal favours speed. Ultra starts with the strongest DeepSeek model. Every
+# entry is still only a design-spec request; React is compiled deterministically.
+NORMAL_MODEL_TARGETS = _model_targets_env("SITEMORPH_NORMAL_MODELS", [
+    ("xkiro", "deepseek/deepseek-v4-flash"),
+    ("openrouter", "inclusionai/ling-3.0-flash-vl:free"),
+    ("xkiro", "mistralai/mistral-large-2512"),
+    ("xkiro", "minimax/minimax-m2.7-highspeed:free"),
+    ("xkiro", DEEPSEEK_MODEL),
+])
+ULTRA_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_MODELS", [
+    ("xkiro", DEEPSEEK_MODEL),
+    ("openrouter", "inclusionai/ling-3.0-flash-vl:free"),
+    ("xkiro", "mistralai/mistral-large-2512"),
+    ("xkiro", "minimax/minimax-m3:free"),
+    ("openrouter", "thinkingmachines/inkling-small:free"),
+])
+ULTRA_PLUS_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_PLUS_MODELS", [
+    ("xkiro", DEEPSEEK_MODEL),
+    ("openrouter", "inclusionai/ling-3.0-flash-vl:free"),
+    ("openrouter", "nvidia/nemotron-3-ultra-550b-a55b:free"),
+    ("xkiro", "mistralai/mistral-large-2512"),
+    ("openrouter", "nex-agi/nex-n2.5-pro:free"),
+])
+MODEL_TARGETS = {
+    "normal": NORMAL_MODEL_TARGETS,
+    "ultra": ULTRA_MODEL_TARGETS,
+    "ultra+": ULTRA_PLUS_MODEL_TARGETS,
 }
 
-# Ordered fallback chain: first model that responds wins.
-FALLBACK_CHAIN = [
-    "mistralai/mistral-large-2512",
-    "minimax/minimax-m3:free",
-    "deepseek/deepseek-v4-flash",
-    DEEPSEEK_MODEL,
-    "sensenova/sensenova-6.8-flash-lite",
-    "qwen/qwen3.7-max:free",
-    "qwen/qwen3.7-plus:free",
-    "qwen/qwen3.6-max-preview:free",
-    "qwen/qwen3.6-27b:free",
-]
+# Compatibility names used by older helpers and offline tests.
+ULTRA_MODEL = ULTRA_MODEL_TARGETS[0]["model"] if ULTRA_MODEL_TARGETS else DEEPSEEK_MODEL
+MODEL_MAP = {mode: targets[0]["model"] if targets else DEEPSEEK_MODEL
+             for mode, targets in MODEL_TARGETS.items()}
+FALLBACK_CHAIN = [target["model"] for target in NORMAL_MODEL_TARGETS[1:]]
 
 def _is_model_unavailable(error: Optional[str]) -> bool:
-    """True when the error indicates the model is overloaded or unavailable."""
+    """True for provider/model failures where trying the next target can help."""
     if not error:
         return False
     low = error.lower()
     return any(kw in low for kw in (
         "capacity", "internal_error", "temporarily", "overloaded",
-        "rate limit", "too many", "429", "503", "529",
+        "rate limit", "too many", "timeout", "timed out", "przekroczyło czas", "przekroczył czas",
+        "connection", "połączyć", "przerwane", "reset", "empty response",
+        "pustą odpowiedź", "unsupported", "not supported", "model not found",
+        "http 408", "http 409", "conflict", "http 425", "http 429",
+        "http 500", "http 502", "http 503", "http 504", "http 524", "http 529",
     ))
 
 PROMPT_PARSER_MODEL = DEEPSEEK_MODEL
@@ -227,23 +281,33 @@ def extract_json_array(text: str) -> list:
     return json.loads(cleaned[start : end + 1])
 
 
-def xkiro_generate_model(
-    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
-    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
+def _compatible_generate_model(
+    provider: str, api_key: str, base_url: str, model: str,
+    system_prompt: str, user_prompt: str, temperature: float,
+    max_tokens: int, timeout: Optional[int],
 ) -> Tuple[Optional[str], Optional[str]]:
-    """One streamed XKIRO request, without SDK or application retries."""
-    if not XKIRO_API_KEY:
-        return None, "Brak XKIRO_API_KEY"
+    """Call one OpenAI-compatible stream with bounded idle and total time."""
+    provider_label = "OpenRouter" if provider == "openrouter" else "XKIRO"
+    if not api_key:
+        return None, f"Brak klucza {provider_label}"
+
+    total_timeout = max(3.0, float(timeout or AI_TIMEOUT))
+    deadline = time.monotonic() + total_timeout
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+        "User-Agent": "SiteMorph/2",
+    }
+    if provider == "openrouter":
+        headers["HTTP-Referer"] = OPENROUTER_SITE_URL
+        headers["X-Title"] = OPENROUTER_APP_NAME
+
     response = None
     try:
         response = requests.post(
-            f"{XKIRO_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {XKIRO_API_KEY}",
-                "Content-Type": "application/json",
-                "Accept": "text/event-stream",
-                "User-Agent": "SiteMorph/2",
-            },
+            f"{base_url}/chat/completions",
+            headers=headers,
             json={
                 "model": model,
                 "temperature": temperature,
@@ -256,30 +320,34 @@ def xkiro_generate_model(
                     {"role": "user", "content": user_prompt},
                 ],
             },
-            timeout=(10, timeout or AI_TIMEOUT),
+            timeout=(min(MODEL_CONNECT_TIMEOUT, total_timeout),
+                     min(MODEL_FIRST_TOKEN_TIMEOUT, total_timeout)),
             stream=True,
         )
         if response.status_code != 200:
-            return None, _xkiro_http_error(response)
+            return None, _provider_http_error(provider_label, response)
 
         content_type = str(response.headers.get("content-type", "")).lower()
         if "text/event-stream" not in content_type:
             body = response.json()
             if body.get("error"):
-                return None, _xkiro_error_message(body["error"], response.status_code, response.headers)
+                return None, _provider_error_message(provider_label, body["error"], response.status_code, response.headers)
             choices = body.get("choices") or []
             if not choices:
-                return None, "XKIRO zwróciło pustą odpowiedź."
+                return None, f"{provider_label} zwrócił pustą odpowiedź."
             if choices[0].get("finish_reason") == "length":
-                return None, "XKIRO ucięło odpowiedź przez limit modelu."
+                return None, f"{provider_label} uciął odpowiedź przez limit modelu."
             content = choices[0].get("message", {}).get("content", "")
-            return (content, None) if isinstance(content, str) and content.strip() else (None, "XKIRO zwróciło pustą odpowiedź.")
+            return ((content, None) if isinstance(content, str) and content.strip()
+                    else (None, f"{provider_label} zwrócił pustą odpowiedź."))
 
         parts: List[str] = []
         finish_reason = None
         done = False
         saw_error = None
         for raw_line in response.iter_lines(decode_unicode=True):
+            if time.monotonic() > deadline:
+                return None, f"{provider_label} przekroczył całkowity czas odpowiedzi."
             if not raw_line:
                 continue
             line = raw_line.decode("utf-8", "replace") if isinstance(raw_line, bytes) else str(raw_line)
@@ -292,7 +360,7 @@ def xkiro_generate_model(
             try:
                 event = json.loads(payload)
             except json.JSONDecodeError:
-                return None, "XKIRO zwróciło uszkodzony fragment odpowiedzi strumieniowej."
+                return None, f"{provider_label} zwrócił uszkodzony fragment odpowiedzi strumieniowej."
             if event.get("error"):
                 saw_error = event["error"]
                 break
@@ -309,48 +377,79 @@ def xkiro_generate_model(
                 parts.extend(str(item.get("text", "")) for item in delta if isinstance(item, dict))
 
         if saw_error:
-            return None, _xkiro_error_message(saw_error, 200, response.headers)
+            return None, _provider_error_message(provider_label, saw_error, 200, response.headers)
         if not done:
-            return None, "Połączenie z XKIRO zostało przerwane przed zakończeniem odpowiedzi."
+            return None, f"Połączenie z {provider_label} zostało przerwane przed zakończeniem odpowiedzi."
         if finish_reason == "length":
-            return None, "XKIRO ucięło odpowiedź przez limit modelu."
+            return None, f"{provider_label} uciął odpowiedź przez limit modelu."
         if finish_reason in {"content_filter", "error"}:
-            return None, f"XKIRO zakończyło odpowiedź: {finish_reason}."
+            return None, f"{provider_label} zakończył odpowiedź: {finish_reason}."
         content = "".join(parts).strip()
-        return (content, None) if content else (None, "XKIRO zwróciło pustą odpowiedź.")
+        return (content, None) if content else (None, f"{provider_label} zwrócił pustą odpowiedź.")
     except requests.Timeout:
-        return None, "XKIRO przekroczyło czas odpowiedzi. Spróbuj ponownie za chwilę."
+        return None, f"{provider_label} przekroczył czas odpowiedzi."
     except requests.RequestException as exc:
-        return None, "Nie udało się połączyć z XKIRO: " + exc.__class__.__name__
+        return None, f"Nie udało się połączyć z {provider_label}: {exc.__class__.__name__}"
     except (ValueError, TypeError, AttributeError):
-        return None, "Nie udało się odczytać kompletnej odpowiedzi XKIRO."
+        return None, f"Nie udało się odczytać kompletnej odpowiedzi {provider_label}."
     finally:
         if response is not None and callable(getattr(response, "close", None)):
             response.close()
 
 
-def _xkiro_error_message(error: Any, status: int, headers: Any) -> str:
+def xkiro_generate_model(
+    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
+    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
+) -> Tuple[Optional[str], Optional[str]]:
+    """One XKIRO request. Model routing happens above this function."""
+    return _compatible_generate_model(
+        "xkiro", XKIRO_API_KEY, XKIRO_BASE_URL, model, system_prompt,
+        user_prompt, temperature, max_tokens, timeout,
+    )
+
+
+def openrouter_generate_model(
+    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
+    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
+) -> Tuple[Optional[str], Optional[str]]:
+    """One OpenRouter request, used only when its key is configured."""
+    return _compatible_generate_model(
+        "openrouter", OPENROUTER_API_KEY, OPENROUTER_BASE_URL, model,
+        system_prompt, user_prompt, temperature, max_tokens, timeout,
+    )
+
+
+def _provider_error_message(provider: str, error: Any, status: int, headers: Any) -> str:
     data = error if isinstance(error, dict) else {}
     code = str(data.get("code") or data.get("type") or "unknown_error")[:80]
     message = re.sub(r"\s+", " ", str(data.get("message") or "Brak opisu błędu."))[:500]
     request_id = str(headers.get("x-request-id") or headers.get("request-id") or "")[:120]
     suffix = f" Request ID: {request_id}." if request_id else ""
     if status == 402:
-        return f"XKIRO: brak środków ({code}). {message}{suffix}"
+        return f"{provider}: brak środków ({code}). {message}{suffix}"
     if status == 403:
-        return f"XKIRO: konto nie ma dostępu do modelu ({code}). {message}{suffix}"
-    if status in {429, 500, 502, 503, 529}:
-        return f"XKIRO chwilowo nie może obsłużyć modelu, HTTP {status} ({code}). {message} Spróbuj ponownie za chwilę.{suffix}"
-    return f"XKIRO HTTP {status} ({code}). {message}{suffix}"
+        return f"{provider}: konto nie ma dostępu do modelu ({code}). {message}{suffix}"
+    if status in {408, 409, 425, 429, 500, 502, 503, 504, 524, 529}:
+        return f"{provider} chwilowo nie może obsłużyć modelu, HTTP {status} ({code}). {message}{suffix}"
+    return f"{provider} HTTP {status} ({code}). {message}{suffix}"
 
 
-def _xkiro_http_error(response: Any) -> str:
+def _provider_http_error(provider: str, response: Any) -> str:
     try:
         body = response.json()
         error = body.get("error") if isinstance(body, dict) else None
     except (ValueError, TypeError, AttributeError):
         error = None
-    return _xkiro_error_message(error, int(response.status_code), response.headers)
+    return _provider_error_message(provider, error, int(response.status_code), response.headers)
+
+
+def _xkiro_error_message(error: Any, status: int, headers: Any) -> str:
+    """Backward-compatible wrapper for older debug helpers/tests."""
+    return _provider_error_message("XKIRO", error, status, headers)
+
+
+def _xkiro_http_error(response: Any) -> str:
+    return _provider_http_error("XKIRO", response)
 
 
 # =============================================================================
@@ -2175,37 +2274,90 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
     )
 
 
+def _provider_configured(provider: str) -> bool:
+    if provider == "openrouter":
+        return bool(OPENROUTER_API_KEY)
+    return bool(XKIRO_API_KEY)
+
+
+def _call_model_target(
+    target: Dict[str, str], system_prompt: str, user_prompt: str, timeout: float,
+) -> Tuple[Optional[str], Optional[str]]:
+    generate = openrouter_generate_model if target["provider"] == "openrouter" else xkiro_generate_model
+    return generate(
+        target["model"], system_prompt, user_prompt,
+        temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=max(3, int(timeout)),
+    )
+
+
 def _generate_design_spec(data: BuilderInput, supplied):
     from app.design.prompt import SYSTEM_PROMPT as spec_prompt
     from app.design.validation import validate_spec
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     request = json.dumps({"original_user_prompt": raw_prompt, "preferences": _explicit_preferences(data),
                           "provided_images": supplied}, ensure_ascii=False, separators=(",", ":"))
-    selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
-    text, error = xkiro_generate_model(selected_model, spec_prompt, request,
-        temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
-    # Fallback chain: try each model in order until one works
-    if not text and _is_model_unavailable(error):
-        tried = [selected_model]
-        for fallback_model in FALLBACK_CHAIN:
-            if fallback_model in tried:
-                continue
-            print(f"[SiteMorph] {tried[-1]} niedostępny, próbuję {fallback_model}")
-            text, error = xkiro_generate_model(fallback_model, spec_prompt, request,
-                temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT)
-            tried.append(fallback_model)
-            if text:
-                print(f"[SiteMorph] ✓ {fallback_model} odpowiedział")
-                break
-    if not text:
-        return None, [], error or "Pusta odpowiedź modelu."
-    try:
-        spec, warnings = validate_spec(extract_json(text), [asset["url"] for asset in supplied])
-        return spec, warnings, None
-    except (ValueError, TypeError, AttributeError, KeyError) as exc:
-        # A concise contract error, no additional AI request and no substitute website.
-        detail = str(exc).split("\n")
-        return None, [], "Niepoprawny plan strony: " + " ".join(detail[:4])[:700]
+    mode = data.mode if data.mode in MODEL_TARGETS else "normal"
+    targets = MODEL_TARGETS.get(mode) or NORMAL_MODEL_TARGETS
+    routing: Dict[str, Any] = {
+        "requested_mode": mode,
+        "requested_model": targets[0]["model"] if targets else DEEPSEEK_MODEL,
+        "used_provider": None,
+        "used_model": None,
+        "attempts": [],
+    }
+    deadline = time.monotonic() + MODEL_ROUTING_BUDGET
+    blocked_providers = set()
+    errors: List[str] = []
+
+    for target in targets:
+        if len(routing["attempts"]) >= MAX_MODEL_ATTEMPTS:
+            break
+        provider = target["provider"]
+        if provider in blocked_providers or not _provider_configured(provider):
+            continue
+        remaining = deadline - time.monotonic()
+        if remaining < 3:
+            errors.append("Przekroczono wspólny limit czasu wyboru modelu.")
+            break
+
+        attempt_started = time.monotonic()
+        text, error = _call_model_target(target, spec_prompt, request, remaining)
+        attempt = {
+            "provider": provider,
+            "model": target["model"],
+            "status": "failed",
+            "duration_ms": round((time.monotonic() - attempt_started) * 1000),
+        }
+        routing["attempts"].append(attempt)
+
+        if not text:
+            error = error or "Pusta odpowiedź modelu."
+            errors.append(f"{target['model']}: {error}")
+            attempt["status"] = "unavailable" if _is_model_unavailable(error) else "failed"
+            low_error = error.lower()
+            if "http 401" in low_error or "brak środków" in low_error:
+                blocked_providers.add(provider)
+            continue
+
+        try:
+            spec, warnings = validate_spec(extract_json(text), [asset["url"] for asset in supplied])
+        except (ValueError, TypeError, AttributeError, KeyError) as exc:
+            detail = " ".join(str(exc).split("\n")[:4])[:500]
+            attempt["status"] = "invalid_spec"
+            errors.append(f"{target['model']}: niepoprawny plan strony ({detail})")
+            continue
+
+        attempt["status"] = "success"
+        routing["used_provider"] = provider
+        routing["used_model"] = target["model"]
+        return spec, warnings, None, routing
+
+    configured = [target for target in targets if _provider_configured(target["provider"])]
+    if not configured:
+        error = "Brak aktywnego klucza XKIRO lub OpenRouter dla skonfigurowanych modeli."
+    else:
+        error = " | ".join(errors[-3:]) or "Żaden skonfigurowany model nie odpowiedział."
+    return None, [], error[:1800], routing
 
 
 @router.post("/generate")
@@ -2215,15 +2367,15 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     from app.design.prompt import PROMPT_VERSION as spec_prompt_version
     if not current_user.get("id") or current_user.get("is_anon") or current_user["id"] == "anon":
         raise HTTPException(status_code=401, detail="Zaloguj się, aby wygenerować stronę.")
-    if not XKIRO_API_KEY:
-        raise HTTPException(status_code=503, detail="Brak konfiguracji modelu (XKIRO_API_KEY).")
+    if not XKIRO_API_KEY and not OPENROUTER_API_KEY:
+        raise HTTPException(status_code=503, detail="Brak konfiguracji modelu (XKIRO_API_KEY lub OPENROUTER_API_KEY).")
     started = time.perf_counter()
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     if not raw_prompt or len(raw_prompt) > 24000:
         raise HTTPException(status_code=400, detail="Prompt musi zawierać od 1 do 24000 znaków.")
     supplied = _user_uploaded_assets(data)
     llm_started = time.perf_counter()
-    spec, warnings, error = _generate_design_spec(data, supplied)
+    spec, warnings, error, routing = _generate_design_spec(data, supplied)
     llm_ms = round((time.perf_counter() - llm_started) * 1000)
     if spec is None:
         raise HTTPException(status_code=502, detail="Nie udało się wygenerować poprawnej strony. " + (error or ""))
@@ -2244,12 +2396,18 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
             "subheadline": hero.get("supportingText") or hero.get("lead") or hero.get("subheadline") or "",
             "ctaText": ctas[0]["label"] if ctas else "", "schemaVersion": "2.0"}
     brief = spec.businessBrief.model_dump()
-    selected_model = MODEL_MAP.get(data.mode or "normal", DEEPSEEK_MODEL)
-    provider_label = "claude-fable-5" if "fable" in selected_model else "qwen3.8-max" if "qwen" in selected_model else "deepseek-v4-pro"
+    used_model = routing["used_model"] or routing["requested_model"]
+    used_provider = routing["used_provider"] or "unknown"
+    if len(routing["attempts"]) > 1:
+        warnings.append(
+            f"Model główny był niedostępny; projekt wygenerował {used_model}."
+        )
     return {
-        "status": "success", "provider": provider_label, "model": selected_model,
-        "ai_calls": 1, "prompt_version": spec_prompt_version,
-        "pipeline": "single-deepseek-spec-design-compiler-react",
+        "status": "success", "provider": used_provider, "model": used_model,
+        "used_model": used_model, "requested_model": routing["requested_model"],
+        "model_attempts": routing["attempts"], "ai_calls": len(routing["attempts"]),
+        "prompt_version": spec_prompt_version,
+        "pipeline": "single-spec-design-compiler-react",
         "design_compiler_version": design_version,
         "files": files, "meta": meta, "schema_version": "2.0",
         "design_spec": spec.model_dump(), "resolved_design": resolved,

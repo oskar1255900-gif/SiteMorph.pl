@@ -80,20 +80,66 @@ def test_normal_endpoint_one_http_call_spec_to_complete_react(client, monkeypatc
     data = result.json()
     assert post.call_count == data['ai_calls'] == 1
     request = post.call_args.kwargs['json']
-    assert request['max_tokens'] == 32000 and request['model'] == 'deepseek/deepseek-v4-pro'
+    assert request['max_tokens'] == 32000 and request['model'] == 'deepseek/deepseek-v4-flash'
     assert 'Mad Mochi: mochi, matcha, sakura' in request['messages'][1]['content']
-    assert data['pipeline'] == 'single-deepseek-spec-design-compiler-react'
+    assert data['pipeline'] == 'single-spec-design-compiler-react'
+    assert data['provider'] == 'xkiro' and data['used_model'] == request['model']
+    assert data['model_attempts'] == [{
+        'provider': 'xkiro', 'model': request['model'], 'status': 'success',
+        'duration_ms': data['model_attempts'][0]['duration_ms'],
+    }]
     assert data['design_spec']['creative']['conceptTitle'] == payload['creative']['conceptTitle']
     assert data['quality_review']['visual_review_performed'] is False
     assert 'score' not in data['quality_review']
     assert validate_project(data['files'])[0]
 
 
-def test_invalid_spec_does_not_trigger_repair_request(client, monkeypatch):
+def test_invalid_spec_tries_next_configured_model_without_ai_repair(client, monkeypatch):
     monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-test-key')
+    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', '')
     response = Mock(status_code=200)
     response.json.return_value = {'choices': [{'message': {'content': '{"meta":{"schemaVersion":"2.0"}}'}}]}
     post = Mock(return_value=response)
     monkeypatch.setattr(b.requests, 'post', post)
     result = client.post('/api/builder/generate', json={'business_name': 'Mochi', 'niche': '', 'description': 'mochi'})
-    assert result.status_code == 502 and post.call_count == 1
+    assert result.status_code == 502
+    assert 1 < post.call_count <= b.MAX_MODEL_ATTEMPTS
+
+
+def test_409_falls_back_fast_and_reports_the_model_that_worked(client, monkeypatch):
+    payload = fixture('mochi')
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-test-key')
+    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', 'offline-openrouter-key')
+
+    unavailable = Mock(status_code=409, headers={})
+    unavailable.json.return_value = {'error': {'code': 'conflict', 'message': 'model busy'}}
+    success = Mock(status_code=200, headers={'content-type': 'application/json'})
+    success.json.return_value = {
+        'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps(payload)}}],
+    }
+    post = Mock(side_effect=[unavailable, success])
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    result = client.post('/api/builder/generate', json={
+        'business_name': '', 'niche': '', 'description': 'Mad Mochi',
+        'image_urls': supplied_urls(payload),
+    })
+    assert result.status_code == 200, result.text
+    data = result.json()
+    assert post.call_count == data['ai_calls'] == 2
+    assert data['requested_model'] == 'deepseek/deepseek-v4-flash'
+    assert data['used_model'] == 'inclusionai/ling-3.0-flash-vl:free'
+    assert data['model'] == data['used_model'] and data['provider'] == 'openrouter'
+    assert [attempt['status'] for attempt in data['model_attempts']] == ['unavailable', 'success']
+    assert post.call_args_list[1].args[0] == 'https://openrouter.ai/api/v1/chat/completions'
+    assert post.call_args_list[1].kwargs['headers']['X-Title'] == 'SiteMorph'
+
+
+@pytest.mark.parametrize('error', [
+    'XKIRO HTTP 409 (conflict)',
+    'XKIRO HTTP 500 (internal_error)',
+    'OpenRouter HTTP 504 (timeout)',
+    'Połączenie z XKIRO zostało przerwane',
+])
+def test_transient_provider_errors_allow_model_fallback(error):
+    assert b._is_model_unavailable(error)

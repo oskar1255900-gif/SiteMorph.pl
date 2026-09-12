@@ -150,7 +150,9 @@ def test_anonymous_generation_is_rejected_before_model(client, monkeypatch):
 
 def test_generation_failure_has_no_success_fallback(client, monkeypatch):
     monkeypatch.setattr(b, 'XKIRO_API_KEY', 'test')
-    generate = Mock(return_value=(None, {}, 'Provider HTTP 524'))
+    routing = {'requested_model': b.DEEPSEEK_MODEL, 'used_model': None,
+               'used_provider': None, 'attempts': []}
+    generate = Mock(return_value=(None, {}, 'Provider HTTP 524', routing))
     monkeypatch.setattr(b, '_generate_design_spec', generate)
     response = client.post('/api/builder/generate', json={'business_name': 'A', 'description': 'A', 'niche': ''})
     assert response.status_code == 502
