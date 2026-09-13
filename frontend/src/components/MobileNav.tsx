@@ -8,6 +8,7 @@ import {
   X,
   Coins,
   Menu,
+  Zap,
 } from 'lucide-react';
 import { springTransition } from '../lib/shared';
 import { SIDEBAR_MENU } from './DashboardSidebar';
@@ -85,7 +86,7 @@ export const MobileNav = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm lg:hidden"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -93,14 +94,14 @@ export const MobileNav = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] z-[61] flex flex-col lg:hidden"
-              style={{ background: 'var(--sm-sidebar)' }}
+              className="fixed left-0 top-0 bottom-0 w-[280px] z-[61] flex flex-col lg:hidden overflow-y-auto"
+              style={{ background: '#000000' }}
             >
               {/* Drawer header */}
               <div className="h-[72px] flex items-center justify-between px-6">
                 <div className="flex items-center gap-3">
-                  <img src="/logo.svg" alt="" width="32" height="32" className="rounded-[10px]" />
-                  <span className="text-[18px] font-semibold tracking-[-0.03em]">
+                  <img src="/logo.svg" alt="" width="32" height="32" className="rounded-[8px]" />
+                  <span className="text-[19px] font-semibold tracking-[-0.02em]">
                     Site<span className="sm-brand-gradient">Morph</span>
                   </span>
                 </div>
@@ -114,24 +115,44 @@ export const MobileNav = ({
               </div>
 
               {/* Nav items */}
-              <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label="Menu mobilne">
-                {SIDEBAR_MENU.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => { setActiveTab(item.id); setOpen(false); }}
-                    className="sm-nav-item"
-                    style={{ minHeight: '52px', fontSize: '16px', paddingLeft: '14px', gap: '14px' }}
-                    aria-current={activeTab === item.id ? 'page' : undefined}
-                  >
-                    <item.icon size={22} className="shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </button>
-                ))}
+              <nav className="flex-1 px-4 space-y-1" aria-label="Menu mobilne">
+                <div className="px-3 pb-2 pt-2 text-[12px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sm-text-quiet)' }}>
+                  Menu
+                </div>
+                {SIDEBAR_MENU.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActiveTab(item.id); setOpen(false); }}
+                      className="w-full flex items-center gap-3.5 rounded-[10px] border-none bg-transparent cursor-pointer transition-all"
+                      style={{
+                        minHeight: '52px',
+                        padding: '0 14px',
+                        fontSize: '16px',
+                        fontWeight: isActive ? 600 : 500,
+                        color: isActive ? 'var(--sm-text)' : 'var(--sm-text-secondary)',
+                        background: isActive ? 'var(--sm-surface)' : 'transparent',
+                      }}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <item.icon size={22} className="shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
                 <div className="pt-2" style={{ borderTop: '1px solid var(--sm-border-subtle)' }} />
                 <button
                   onClick={() => { setActiveTab('settings'); setOpen(false); }}
-                  className="sm-nav-item"
-                  style={{ minHeight: '52px', fontSize: '16px', paddingLeft: '14px', gap: '14px' }}
+                  className="w-full flex items-center gap-3.5 rounded-[10px] border-none bg-transparent cursor-pointer transition-all"
+                  style={{
+                    minHeight: '52px',
+                    padding: '0 14px',
+                    fontSize: '16px',
+                    fontWeight: activeTab === 'settings' ? 600 : 500,
+                    color: activeTab === 'settings' ? 'var(--sm-text)' : 'var(--sm-text-secondary)',
+                    background: activeTab === 'settings' ? 'var(--sm-surface)' : 'transparent',
+                  }}
                   aria-current={activeTab === 'settings' ? 'page' : undefined}
                 >
                   <Settings size={22} className="shrink-0" />
@@ -141,34 +162,39 @@ export const MobileNav = ({
 
               {/* Bottom */}
               <div className="px-4 pb-6 space-y-3">
-                <div className="flex items-center justify-between gap-3 rounded-[12px] bg-[var(--sm-surface)] p-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
-                      <Coins size={18} style={{ color: 'var(--sm-text-quiet)' }} />
+                {/* Credits card */}
+                <div className="rounded-[12px] p-4" style={{ background: '#0A0A0B' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px]" style={{ background: '#111113' }}>
+                      <Zap size={18} style={{ color: 'var(--sm-accent)' }} />
                     </span>
                     <div className="min-w-0">
-                      <div className="text-[15px] font-semibold leading-tight">{credits} kredytów</div>
-                      <div className="text-[13px]" style={{ color: 'var(--sm-text-quiet)' }}>
-                        {credits > 0 ? 'Aktywny pakiet' : 'Darmowy plan'}
-                      </div>
+                      <div className="text-[16px] font-semibold leading-tight">{credits} kredytów</div>
+                      <div className="text-[13px]" style={{ color: 'var(--sm-text-quiet)' }}>Pozostało</div>
                     </div>
                   </div>
                   <button
                     onClick={() => { setActiveTab('pricing'); setOpen(false); }}
-                    className="shrink-0 min-h-[40px] rounded-[10px] px-4 text-[14px] font-medium cursor-pointer border-none bg-transparent transition-colors"
-                    style={{ color: 'var(--sm-accent)' }}
+                    className="w-full min-h-[42px] rounded-[10px] text-[14px] font-medium cursor-pointer border-none transition-colors flex items-center justify-center gap-2"
+                    style={{ background: '#111113', color: 'var(--sm-text)' }}
                   >
-                    Doładuj
+                    <Coins size={15} /> Doładuj kredyty
                   </button>
                 </div>
 
+                {/* User */}
                 <div className="flex items-center justify-between gap-3 px-2">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-hover)] text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>
-                      {(session?.user?.email?.[0] || 'U').toUpperCase()}
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full" style={{ background: '#111113' }}>
+                      <span className="text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>
+                        {(session?.user?.email?.[0] || 'U').toUpperCase()}
+                      </span>
                     </span>
-                    <div className="truncate text-[14px] font-medium">
-                      {session?.user?.email?.split('@')[0] || 'Użytkownik'}
+                    <div className="min-w-0">
+                      <div className="truncate text-[14px] font-medium" style={{ color: 'var(--sm-text)' }}>
+                        {session?.user?.email?.split('@')[0] || 'Użytkownik'}
+                      </div>
+                      <div className="text-[12px]" style={{ color: 'var(--sm-text-quiet)' }}>Free Plan</div>
                     </div>
                   </div>
                   <button

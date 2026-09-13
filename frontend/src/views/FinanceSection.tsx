@@ -8,6 +8,9 @@ import {
   Receipt,
   ExternalLink,
   Loader2,
+  TrendingUp,
+  FileText,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { containerVariants, itemVariants, springTransition } from '../lib/shared';
@@ -29,6 +32,8 @@ const METHOD_LABEL: Record<string, string> = {
   blik: 'BLIK',
   paypal: 'PayPal',
 };
+
+const MONTHS = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
 
 export const FinanceSection = () => {
   const [isProfileSet, setIsProfileSet] = useState(false);
@@ -75,7 +80,7 @@ export const FinanceSection = () => {
         setUsePaypal(Boolean(settings.paypal_link));
         setIsProfileSet(true);
       }
-    } catch { /* offline - zostajemy w trybie lokalnym */ }
+    } catch { /* offline */ }
   }, []);
 
   const loadInvoices = useCallback(async () => {
@@ -110,7 +115,7 @@ export const FinanceSection = () => {
           },
         }),
       });
-    } catch { /* zapis lokalny wystarczy do demo */ }
+    } catch { /* offline */ }
     setIsProfileSet(true);
   };
 
@@ -157,8 +162,10 @@ export const FinanceSection = () => {
   };
 
   const totalRevenue = invoices.reduce((s, i) => s + (i.total || 0), 0);
+  const paidCount = invoices.filter(i => i.sent_to).length;
+  const pendingCount = invoices.filter(i => !i.sent_to).length;
 
-  const inputClasses = "sm-input text-[15px]";
+  const inputClasses = "sm-input text-[16px]";
 
   const enabledMethods = [
     usePrzelew && 'przelew',
@@ -166,259 +173,188 @@ export const FinanceSection = () => {
     usePaypal && 'paypal',
   ].filter(Boolean) as string[];
 
+  // Monthly data for chart
+  const monthlyData = React.useMemo(() => {
+    const now = new Date();
+    return MONTHS.map((m, i) => {
+      const monthInvoices = invoices.filter(inv => {
+        if (!inv.created_at) return false;
+        const d = new Date(inv.created_at);
+        return d.getMonth() === i && d.getFullYear() === now.getFullYear();
+      });
+      return { month: m, total: monthInvoices.reduce((s, inv) => s + (inv.total || 0), 0) };
+    });
+  }, [invoices]);
+  const maxMonthly = Math.max(1, ...monthlyData.map(d => d.total));
+
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[var(--sm-text)]"
+      className="max-w-[1100px] mx-auto py-10 px-6 space-y-8 pb-24 text-[var(--sm-text)]"
     >
-      <div className="flex items-center justify-between pb-4" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="sm-h1">Finanse</h2>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>
-            {isProfileSet ? `${businessName}` : 'Rejestracja profilu płatniczego i firmy'}
+          <h1 className="sm-h1">Finanse</h1>
+          <p className="text-[16px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>
+            {isProfileSet ? businessName : 'Rejestracja profilu płatniczego i firmy'}
           </p>
         </div>
-        {isProfileSet && (
-          <Button variant="outline" size="sm" onClick={() => setIsProfileSet(false)}>
-            Edytuj dane firmy
+        <div className="flex items-center gap-3">
+          {isProfileSet && (
+            <Button variant="ghost" size="md" onClick={() => setIsProfileSet(false)}>
+              Edytuj profil
+            </Button>
+          )}
+          <Button variant="primary" size="md" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }}>
+            <Plus size={18} /> Nowa faktura
           </Button>
-        )}
+        </div>
       </div>
 
-      {!isProfileSet ? (
-        <motion.div variants={itemVariants} className="max-w-xl mx-auto space-y-6 pt-4 text-center">
-          <div>
-            <h3 className="text-[28px] font-semibold">Załóż profil firmy</h3>
-            <p className="text-[15px] mt-2" style={{ color: 'var(--sm-text-secondary)' }}>Wprowadź dane swojej działalności, aby wystawiać faktury.</p>
-          </div>
-
-          <div className="flex items-center justify-center gap-6 text-[15px] font-medium py-2">
-            {[
-              { n: 1, label: 'Dane firmy' },
-              { n: 2, label: 'Metody płatności' },
-              { n: 3, label: 'Potwierdzenie' }
-            ].map((step, idx) => (
-              <React.Fragment key={step.n}>
-                {idx > 0 && <span className="w-8 h-px bg-blue-200 dark:bg-neutral-800" />}
-                <span className={`flex items-center gap-2 ${setupStep >= step.n ? 'text-emerald-500 font-semibold' : 'opacity-70'}`}>
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center font-semibold text-[13px] ${
-                    setupStep >= step.n ? 'bg-[#2563eb] text-white shadow-[0_8px_32px_rgba(37,99,235,0.18)]' : 'bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white'
-                  }`}>{step.n}</span>
-                  {step.label}
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-
+      {/* Stats row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: 'Łącznie wystawionych', value: `${totalRevenue.toFixed(2)} zł`, icon: TrendingUp },
+          { label: 'Opłacone', value: `${paidCount}`, icon: FileText },
+          { label: 'Oczekujące', value: `${pendingCount}`, icon: LinkIcon },
+        ].map((stat, i) => (
           <motion.div
-            layout
-            className="p-8 rounded-[16px] text-left space-y-5" style={{ background: 'var(--sm-surface)' }}
+            key={i}
+            whileHover={{ y: -2 }}
+            className="rounded-[14px] p-6 relative overflow-hidden"
+            style={{ background: 'var(--sm-surface)' }}
           >
-            {setupStep === 1 && (
-              <div className="space-y-3">
-                <h4 className="font-semibold text-[16px]">Krok 1: Wprowadź dane firmy</h4>
-                <div>
-                  <label className="sm-label">Nazwa firmy *</label>
-                  <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="np. Studio Projektowe" className={inputClasses} />
-                </div>
-                <div>
-                  <label className="sm-label">Imię i nazwisko właściciela</label>
-                  <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="np. Jan Kowalski" className={inputClasses} />
-                </div>
-                <div>
-                  <label className="sm-label">Email firmowy do faktur *</label>
-                  <input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} placeholder="jan@studio.pl" className={inputClasses} />
-                  <p className="sm-hint mt-1">Ten adres pojawi się na fakturach jako wystawca — odpowiedzi klientów trafią prosto do Ciebie.</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="sm-label">Adres firmy</label>
-                    <input type="text" value={sellerAddress} onChange={(e) => setSellerAddress(e.target.value)} placeholder="ul. Prosta 1, 00-001 Warszawa" className={inputClasses} />
-                  </div>
-                  <div>
-                    <label className="sm-label">NIP (opcjonalnie)</label>
-                    <input type="text" value={sellerNip} onChange={(e) => setSellerNip(e.target.value)} placeholder="0000000000" className={inputClasses} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {setupStep === 2 && (
-              <div className="space-y-4">
-                <h4 className="font-semibold text-[16px]">Krok 2: Metody rozliczeń</h4>
-                <p className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
-
-                <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
-                  <span className="text-[15px] font-medium">Przelew bankowy (IBAN)</span>
-                  <input type="checkbox" className="sm-check" checked={usePrzelew} onChange={(e) => setUsePrzelew(e.target.checked)} />
-                </label>
-                {usePrzelew && (
-                  <div>
-                    <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} placeholder="PL00 0000 0000 0000 0000 0000 0000" className={inputClasses} />
-                    <p className="sm-hint mt-1">Numer IBAN jest bezpieczny — służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
-                  </div>
-                )}
-
-                <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
-                  <span className="text-[15px] font-medium">BLIK na telefon</span>
-                  <input type="checkbox" className="sm-check" checked={useBlik} onChange={(e) => setUseBlik(e.target.checked)} />
-                </label>
-                {useBlik && (
-                  <input type="tel" value={blikPhone} onChange={(e) => setBlikPhone(e.target.value)} placeholder="+48 500 000 000" className={inputClasses} />
-                )}
-
-                <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
-                  <span className="text-[15px] font-medium">PayPal</span>
-                  <input type="checkbox" className="sm-check" checked={usePaypal} onChange={(e) => setUsePaypal(e.target.checked)} />
-                </label>
-                {usePaypal && (
-                  <input type="url" value={paypalLink} onChange={(e) => setPaypalLink(e.target.value)} placeholder="https://paypal.me/twojafirma" className={inputClasses} />
-                )}
-              </div>
-            )}
-
-            {setupStep === 3 && (
-              <div className="space-y-3 text-[13px]">
-                <h4 className="font-semibold text-[16px]">Krok 3: Podsumowanie</h4>
-                {[
-                  ['Nazwa firmy', businessName || '-'],
-                  ['Właściciel', userName || '-'],
-                  ['Email wystawcy', businessEmail || '-'],
-                  ['IBAN', usePrzelew ? (iban || '-') : 'wyłączony'],
-                  ['BLIK', useBlik ? (blikPhone || '-') : 'wyłączony'],
-                  ['PayPal', usePaypal ? (paypalLink || '-') : 'wyłączony'],
-                ].map(([label, value], i) => (
-                  <div key={i} className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
-                    <span className="font-bold opacity-75">{label}:</span>
-                    <span className="font-semibold truncate max-w-[60%]">{value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-end pt-2 gap-2">
-              {setupStep > 1 && (
-                <Button variant="ghost" size="sm" onClick={() => setSetupStep(setupStep - 1)}>
-                  Wstecz
-                </Button>
-              )}
-              {setupStep < 3 ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    if (setupStep === 1 && (!businessName.trim() || !businessEmail.trim())) {
-                      alert('Wypełnij wymagane pola (Nazwa firmy i Email)');
-                      return;
-                    }
-                    if (setupStep === 2) {
-                      if (usePrzelew && !iban.trim()) { alert('Podaj numer IBAN albo odznacz przelew'); return; }
-                      if (useBlik && !blikPhone.trim()) { alert('Podaj numer telefonu do BLIK albo odznacz BLIK'); return; }
-                      if (usePaypal && !paypalLink.trim()) { alert('Podaj link PayPal albo odznacz PayPal'); return; }
-                      if (!usePrzelew && !useBlik && !usePaypal) { alert('Zaznacz przynajmniej jedną metodę płatności'); return; }
-                    }
-                    setSetupStep(setupStep + 1);
-                  }}
-                >
-                  Dalej →
-                </Button>
-              ) : (
-                <Button variant="primary" size="sm" onClick={handleCompleteSetup} className="font-semibold shadow-md">
-                  Zapisz profil firmy ✓
-                </Button>
-              )}
+            <span className="text-[15px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>
+              {stat.label}
+            </span>
+            <div className="mt-3 flex items-end justify-between">
+              <span className="text-[34px] font-semibold leading-none tracking-tight">
+                {stat.value}
+              </span>
+              <stat.icon size={20} style={{ color: 'var(--sm-text-quiet)' }} />
             </div>
           </motion.div>
-        </motion.div>
-      ) : (
-        <motion.div variants={itemVariants} className="space-y-10 pt-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              { title: 'Łączna wartość faktur', value: `${totalRevenue.toFixed(2)} zł`, color: 'var(--sm-success)' },
-              { title: 'Wystawione faktury', value: String(invoices.length), color: 'var(--sm-accent)' },
-              { title: 'Wysłane e-mailem', value: String(invoices.filter((i) => i.sent_to).length), color: 'var(--sm-accent)' }
-            ].map((stat, i) => (
-              <motion.div
-                whileHover={{ y: -3 }}
-                key={i}
-                className="p-6 rounded-[14px]"
-                style={{ background: 'var(--sm-surface)' }}
-              >
-                <span className="text-[14px] font-medium block mb-2" style={{ color: 'var(--sm-text-secondary)' }}>{stat.title}</span>
-                <span className="text-[32px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</span>
-              </motion.div>
-            ))}
+        ))}
+      </div>
+
+      {/* Monthly chart */}
+      <div className="rounded-[14px] p-6 sm:p-8" style={{ background: 'var(--sm-surface)' }}>
+        <div className="mb-6">
+          <h3 className="text-[20px] font-semibold">Płatności miesięcznie</h3>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Kwoty w zł</p>
+        </div>
+        <div className="relative">
+          {/* Y axis */}
+          <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)', width: '30px' }}>
+            <span>{Math.ceil(maxMonthly)}</span>
+            <span>{Math.ceil(maxMonthly / 2)}</span>
+            <span>0</span>
           </div>
-
-          <div className="rounded-[16px] space-y-5" style={{ background: 'var(--sm-surface)', padding: '32px' }}>
-            <div className="flex items-center justify-between">
-              <span className="sm-h2">Historia faktur</span>
-              <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-[13px] font-semibold">
-                <Plus size={14} /> Stwórz nową fakturę
-              </Button>
-            </div>
-
-            {invoices.length === 0 ? (
-              <div className="py-12 text-center space-y-2">
-                <div className="w-12 h-12 rounded-[12px] flex items-center justify-center mx-auto mb-2" style={{ background: 'var(--sm-surface-hover)' }}>
-                  <Receipt size={24} />
+          {/* Chart area */}
+          <div className="ml-8">
+            {/* Grid lines */}
+            <div className="relative h-[180px] flex items-end gap-0">
+              {/* Horizontal grid lines */}
+              {[0, 0.5, 1].map((pct) => (
+                <div key={pct} className="absolute left-0 right-0" style={{ bottom: `${pct * 100}%`, height: '1px', background: 'var(--sm-border-subtle)' }} />
+              ))}
+              {/* Bars */}
+              {monthlyData.map((d, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative z-10">
+                  <div
+                    className="w-full max-w-[40px] rounded-t-[4px] transition-all duration-300"
+                    style={{
+                      height: d.total > 0 ? `${Math.max(8, (d.total / maxMonthly) * 100)}%` : '2px',
+                      background: d.total > 0 ? 'var(--sm-accent)' : 'var(--sm-surface-hover)',
+                      minHeight: '2px',
+                    }}
+                  />
                 </div>
-                <h4 className="text-[13px] font-semibold">Brak wystawionych faktur</h4>
-                <p className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Kliknij przycisk powyżej, aby wystawić pierwszą fakturę dla klienta.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-[15px] border-collapse">
-                  <thead>
-                    <tr className="font-medium" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
-                      <th className="py-3">Numer</th>
-                      <th className="py-3">Klient</th>
-                      <th className="py-3">Kwota</th>
-                      <th className="py-3">Płatność</th>
-                      <th className="py-3">Wysyłka</th>
-                      <th className="py-3 text-right">Podgląd</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-medium">
-                    {invoices.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-[#F7F6F3]/50 dark:hover:bg-neutral-900/40">
-                        <td className="py-3.5 font-mono">{inv.number}</td>
-                        <td className="py-3.5">{inv.buyer}</td>
-                        <td className="py-3.5 font-semibold" style={{ color: 'var(--sm-success)' }}>{(inv.total || 0).toFixed(2)} zł</td>
-                        <td className="py-3.5">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
-                        <td className="py-3.5">
-                          {inv.sent_to
-                            ? <span className="px-2.5 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(22,163,74,0.08)', color: 'var(--sm-success)' }}>Wysłana</span>
-                            : <span className="px-2.5 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>Oczekująca</span>}
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <a
-                            href="#"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              const res = await apiFetch(`/api/invoices/${inv.id}/html`);
-                              if (res.ok) {
-                                const html = await res.text();
-                                const w = window.open('', '_blank');
-                                if (w) w.document.write(html);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-500 hover:underline"
-                          >
-                            Otwórz <ExternalLink size={10} />
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              ))}
+            </div>
+            {/* X axis labels */}
+            <div className="flex gap-0 mt-2" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
+              {MONTHS.map((m) => (
+                <div key={m} className="flex-1 text-center py-2 text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>
+                  {m}
+                </div>
+              ))}
+            </div>
           </div>
-        </motion.div>
-      )}
+        </div>
+      </div>
+
+      {/* History section */}
+      <div className="rounded-[14px] p-6 sm:p-8" style={{ background: 'var(--sm-surface)' }}>
+        <div className="mb-6">
+          <h3 className="text-[20px] font-semibold">Historia faktur</h3>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Kto, za co i na jaką kwotę</p>
+        </div>
+
+        {invoices.length === 0 ? (
+          <div className="py-16 text-center space-y-3">
+            <div className="w-14 h-14 rounded-[14px] flex items-center justify-center mx-auto" style={{ background: 'var(--sm-surface-hover)' }}>
+              <Receipt size={28} style={{ color: 'var(--sm-text-quiet)' }} />
+            </div>
+            <h4 className="text-[18px] font-semibold">Brak faktur</h4>
+            <p className="text-[15px] max-w-md mx-auto" style={{ color: 'var(--sm-text-secondary)' }}>
+              Wyślij klientowi pierwszą fakturę z własnym numerem IBAN lub BLIK.
+            </p>
+            <Button variant="primary" size="lg" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }}>
+              <Plus size={16} /> Nowa faktura
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[15px]">
+              <thead>
+                <tr className="font-medium" style={{ color: 'var(--sm-text-quiet)', borderBottom: '1px solid var(--sm-border-subtle)' }}>
+                  <th className="py-3">Numer</th>
+                  <th className="py-3">Klient</th>
+                  <th className="py-3">Kwota</th>
+                  <th className="py-3">Płatność</th>
+                  <th className="py-3">Status</th>
+                  <th className="py-3 text-right">Podgląd</th>
+                </tr>
+              </thead>
+              <tbody className="font-medium">
+                {invoices.map((inv) => (
+                  <tr key={inv.id} style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
+                    <td className="py-4 font-mono">{inv.number}</td>
+                    <td className="py-4">{inv.buyer}</td>
+                    <td className="py-4 font-semibold" style={{ color: 'var(--sm-success)' }}>{(inv.total || 0).toFixed(2)} zł</td>
+                    <td className="py-4">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
+                    <td className="py-4">
+                      {inv.sent_to
+                        ? <span className="px-3 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(22,163,74,0.08)', color: 'var(--sm-success)' }}>Wysłana</span>
+                        : <span className="px-3 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>Oczekująca</span>}
+                    </td>
+                    <td className="py-4 text-right">
+                      <button
+                        onClick={async () => {
+                          const res = await apiFetch(`/api/invoices/${inv.id}/html`);
+                          if (res.ok) {
+                            const html = await res.text();
+                            const w = window.open('', '_blank');
+                            if (w) w.document.write(html);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[14px] font-medium cursor-pointer border-none bg-transparent hover:underline"
+                        style={{ color: 'var(--sm-accent)' }}
+                      >
+                        Otwórz <ExternalLink size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* MODAL TWORZENIA FAKTURY */}
       <AnimatePresence>
@@ -429,20 +365,22 @@ export const FinanceSection = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={springTransition}
-              className="w-full max-w-lg rounded-[20px] p-6 space-y-4 relative text-left max-h-[90vh] overflow-y-auto no-scrollbar" style={{ background: 'var(--sm-bg)', color: 'var(--sm-text)' }}
+              className="w-full max-w-lg rounded-[16px] p-8 space-y-5 relative text-left max-h-[90vh] overflow-y-auto no-scrollbar"
+              style={{ background: 'var(--sm-bg)', color: 'var(--sm-text)' }}
             >
               <motion.button
                 whileHover={{ scale: 1.15 }}
                 onClick={() => setShowCreateModal(false)}
-                className="absolute right-4 top-4 p-1 rounded-full cursor-pointer bg-transparent border-none text-inherit"
+                className="absolute right-5 top-5 p-2 rounded-full cursor-pointer bg-transparent border-none"
+                style={{ color: 'var(--sm-text-quiet)' }}
               >
-                <X size={16} />
+                <X size={18} />
               </motion.button>
 
-              <h3 className="text-[20px] font-semibold">Nowa faktura</h3>
+              <h3 className="text-[22px] font-semibold">Nowa faktura</h3>
 
-              <form onSubmit={handleCreateInvoice} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+              <form onSubmit={handleCreateInvoice} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="sm-label">Nazwa klienta *</label>
                     <input type="text" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Jan Kowalski" required className={inputClasses} />
@@ -458,7 +396,7 @@ export const FinanceSection = () => {
                   <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className={inputClasses} />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="sm-label">Kwota brutto (PLN) *</label>
                     <input type="number" min="1" step="0.01" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="4500" required className={inputClasses} />
@@ -487,13 +425,13 @@ export const FinanceSection = () => {
                 {formMsg && <p className="text-[14px] font-medium" style={{ color: 'var(--sm-success)' }}>{formMsg}</p>}
 
                 <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
-                  <span className="font-semibold text-[16px]">Suma: {newAmount || '0'} zł</span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
+                  <span className="font-semibold text-[18px]">Suma: {newAmount || '0'} zł</span>
+                  <div className="flex gap-3">
+                    <Button variant="ghost" size="md" type="button" onClick={() => setShowCreateModal(false)}>
                       Anuluj
                     </Button>
-                    <Button variant="primary" size="sm" type="submit" disabled={sending} className="gap-1 text-[13px] font-semibold shadow-md">
-                      {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Wystaw i wyślij
+                    <Button variant="primary" size="md" type="submit" disabled={sending} className="gap-1.5">
+                      {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Wystaw i wyślij
                     </Button>
                   </div>
                 </div>
