@@ -94,11 +94,16 @@ def test_normal_endpoint_one_http_call_spec_to_complete_react(client, monkeypatc
     request = post.call_args.kwargs['json']
     assert request['generationConfig']['maxOutputTokens'] == 32000
     assert 'Mad Mochi: mochi, matcha, sakura' in request['contents'][0]['parts'][0]['text']
-    assert post.call_args.args[0].endswith('/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse')
+    endpoint = post.call_args.args[0]
+    assert endpoint.endswith('/models/gemini-3.5-flash-lite:streamGenerateContent?alt=sse')
+    # An AQ-prefixed key still belongs to the free Gemini Developer API; the paid
+    # Vertex endpoint must never be inferred from the key.
+    assert endpoint.startswith('https://generativelanguage.googleapis.com/v1beta/')
+    assert 'aiplatform.googleapis.com' not in endpoint
     assert data['pipeline'] == 'single-spec-design-compiler-react'
-    assert data['provider'] == 'gemini' and data['used_model'] == 'gemini-2.5-flash-lite'
+    assert data['provider'] == 'gemini' and data['used_model'] == 'gemini-3.5-flash-lite'
     assert data['model_attempts'] == [{
-        'provider': 'gemini', 'model': 'gemini-2.5-flash-lite', 'status': 'success',
+        'provider': 'gemini', 'model': 'gemini-3.5-flash-lite', 'status': 'success',
         'duration_ms': data['model_attempts'][0]['duration_ms'],
     }]
     assert data['design_spec']['creative']['conceptTitle'] == payload['creative']['conceptTitle']
@@ -145,7 +150,7 @@ def test_gemini_429_falls_back_and_reports_mistral(client, monkeypatch):
     assert result.status_code == 200, result.text
     data = result.json()
     assert post.call_count == data['ai_calls'] == 2
-    assert data['requested_model'] == 'gemini-2.5-flash-lite'
+    assert data['requested_model'] == 'gemini-3.5-flash-lite'
     assert data['used_model'] == 'mistralai/mistral-small-2603'
     assert data['model'] == data['used_model'] and data['provider'] == 'xkiro'
     assert [attempt['status'] for attempt in data['model_attempts']] == ['unavailable', 'success']
@@ -154,16 +159,21 @@ def test_gemini_429_falls_back_and_reports_mistral(client, monkeypatch):
 
 def test_default_routes_use_free_gemini_then_mistral():
     assert [(target['provider'], target['model']) for target in b.NORMAL_MODEL_TARGETS] == [
-        ('gemini', 'gemini-2.5-flash-lite'),
+        ('gemini', 'gemini-3.5-flash-lite'),
         ('xkiro', 'mistralai/mistral-small-2603'),
     ]
     assert [(target['provider'], target['model']) for target in b.ULTRA_MODEL_TARGETS] == [
-        ('gemini', 'gemini-2.5-flash'),
+        ('gemini', 'gemini-3.5-flash'),
+        ('xkiro', 'mistralai/mistral-large-2512'),
+    ]
+    assert [(target['provider'], target['model']) for target in b.ULTRA_PLUS_MODEL_TARGETS] == [
+        ('gemini', 'gemini-3.5-flash'),
         ('xkiro', 'mistralai/mistral-large-2512'),
     ]
 
 
-def test_missing_xkiro_models_are_removed_and_express_gemini_is_downgraded(monkeypatch):
+def test_missing_xkiro_models_are_removed_without_downgrading_gemini_35(monkeypatch):
+    # A key prefix is not a routing signal: the configured Gemini model survives.
     monkeypatch.setattr(b, 'GEMINI_API_KEY', 'AQ.offline-gemini-key')
     monkeypatch.setenv(
         'SITEMORPH_ULTRA_MODELS',
@@ -171,7 +181,7 @@ def test_missing_xkiro_models_are_removed_and_express_gemini_is_downgraded(monke
     )
     targets = b._model_targets_env('SITEMORPH_ULTRA_MODELS', [])
     assert targets == [
-        {'provider': 'gemini', 'model': 'gemini-2.5-flash'},
+        {'provider': 'gemini', 'model': 'gemini-3.5-flash'},
         {'provider': 'xkiro', 'model': 'mistralai/mistral-large-2512'},
     ]
 
@@ -191,17 +201,25 @@ def test_gemini_native_stream_is_valid_json_fallback(monkeypatch):
     monkeypatch.setattr(b.requests, 'post', post)
 
     text, error = b.gemini_generate_model(
-        'gemini-2.5-flash', 'Return JSON.', 'Create a site.', timeout=15,
+        'gemini-3.5-flash', 'Return JSON.', 'Create a site.', timeout=15,
     )
 
     assert error is None and text == '{"ok":true}'
     call = post.call_args
-    assert call.args[0].startswith('https://aiplatform.googleapis.com/v1/publishers/google/')
-    assert call.args[0].endswith('/models/gemini-2.5-flash:streamGenerateContent?alt=sse')
+    assert call.args[0].startswith('https://generativelanguage.googleapis.com/v1beta/')
+    assert call.args[0].endswith('/models/gemini-3.5-flash:streamGenerateContent?alt=sse')
+    assert 'aiplatform.googleapis.com' not in call.args[0]
     assert 'offline-gemini-key' not in call.args[0]
     assert call.kwargs['headers']['x-goog-api-key'] == 'AQ.offline-gemini-key'
     assert call.kwargs['json']['generationConfig']['responseMimeType'] == 'application/json'
     assert call.kwargs['json']['generationConfig']['maxOutputTokens'] == 32000
+
+    # AQ keys do not imply Vertex: the paid endpoint stays opt-in via config.
+    assert b._gemini_api_base() == 'https://generativelanguage.googleapis.com/v1beta'
+    monkeypatch.setattr(
+        b, 'GEMINI_BASE_URL', 'https://aiplatform.googleapis.com/v1/publishers/google',
+    )
+    assert b._gemini_api_base() == 'https://aiplatform.googleapis.com/v1/publishers/google'
 
 
 def test_missing_gemini_key_uses_xkiro_mistral_directly(client, monkeypatch):

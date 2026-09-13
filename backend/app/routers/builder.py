@@ -43,8 +43,9 @@ OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://sitemorph.pl").s
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "").strip().rstrip("/")
+# Google AI Studio keys must never be sent to the paid Vertex endpoint. Vertex
+# (including Cloud Express) is opt-in only: it needs an explicit GEMINI_BASE_URL.
 GEMINI_DEVELOPER_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
-GEMINI_EXPRESS_BASE_URL = "https://aiplatform.googleapis.com/v1/publishers/google"
 
 logger = logging.getLogger(__name__)
 
@@ -87,11 +88,6 @@ XKIRO_UNAVAILABLE_MODELS = {
     "deepseek/deepseek-v3.2",
 }
 
-GEMINI_EXPRESS_MODEL_ALIASES = {
-    "gemini-3.5-flash": "gemini-2.5-flash",
-    "gemini-3.5-flash-lite": "gemini-2.5-flash-lite",
-}
-
 
 def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[str, str]]:
     """Parse provider|model entries while preserving priority and removing duplicates."""
@@ -114,8 +110,6 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
             continue
         if provider == "xkiro" and model in XKIRO_UNAVAILABLE_MODELS:
             continue
-        if provider == "gemini" and GEMINI_API_KEY.startswith("AQ."):
-            model = GEMINI_EXPRESS_MODEL_ALIASES.get(model, model)
         key = (provider, model)
         if key not in seen:
             seen.add(key)
@@ -128,18 +122,18 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
     return targets
 
 
-# Google Cloud Express provides the stable free path. Mistral remains an
-# independent XKIRO fallback; confirmed-missing DeepSeek IDs are not called.
+# Gemini Developer API (AI Studio) is the free primary path. Mistral remains
+# an independent XKIRO fallback; confirmed-missing DeepSeek IDs are not called.
 NORMAL_MODEL_TARGETS = _model_targets_env("SITEMORPH_NORMAL_MODELS", [
-    ("gemini", "gemini-2.5-flash-lite"),
+    ("gemini", "gemini-3.5-flash-lite"),
     ("xkiro", "mistralai/mistral-small-2603"),
 ])
 ULTRA_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_MODELS", [
-    ("gemini", "gemini-2.5-flash"),
+    ("gemini", "gemini-3.5-flash"),
     ("xkiro", "mistralai/mistral-large-2512"),
 ])
 ULTRA_PLUS_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_PLUS_MODELS", [
-    ("gemini", "gemini-2.5-flash"),
+    ("gemini", "gemini-3.5-flash"),
     ("xkiro", "mistralai/mistral-large-2512"),
 ])
 MODEL_TARGETS = {
@@ -522,12 +516,12 @@ def _gemini_text(body: Any) -> Tuple[str, Optional[str]]:
 
 
 def _gemini_api_base() -> str:
-    if GEMINI_BASE_URL:
-        return GEMINI_BASE_URL
-    # Google Cloud Express keys are encrypted strings beginning with AQ.; the
-    # Express endpoint omits project and location. AI Studio keys use the
-    # Gemini Developer API endpoint.
-    return GEMINI_EXPRESS_BASE_URL if GEMINI_API_KEY.startswith("AQ.") else GEMINI_DEVELOPER_BASE_URL
+    """Gemini Developer API unless the operator explicitly points elsewhere.
+
+    The key prefix says nothing about which endpoint may bill the request, so
+    the paid Vertex/Cloud Express endpoint is never inferred from it.
+    """
+    return GEMINI_BASE_URL or GEMINI_DEVELOPER_BASE_URL
 
 
 def gemini_generate_model(
