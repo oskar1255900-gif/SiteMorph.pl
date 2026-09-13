@@ -21,6 +21,13 @@ Images: prefer user-provided media with matching description. Otherwise src='ass
 
 SERIALIZATION RULE: EVERY field declared as string[] MUST be a JSON array, even when it contains only one item. Never serialize string[] as a plain string.
 
+ENUM RULES:
+pagePlan.sections[*].rhythm.paceRole must be exactly one of: accelerate, stabilize, pause, peak, resolve.
+interactions.widgets[*].type must be exactly one of: tabs, accordion, gallery, carousel, mobile-nav, form.
+Widget type describes interaction behavior, not a section primitive or visual component.
+For an editorial product/menu category switcher, use "tabs", never "EditorialMenu".
+Do not invent expressive enum values such as "awaken".
+
 Return EXACTLY the following root keys (unknown keys are rejected):
 meta: {schemaVersion:'2.0',locale:'pl-PL',siteType:'single-page-business-site',confidence:0..1,assumptions:string[],unknowns:string[]}
 businessBrief: {name,category,positioning,audience,primaryConversion,secondaryConversions:string[],keySignals:string[],risks:string[]}

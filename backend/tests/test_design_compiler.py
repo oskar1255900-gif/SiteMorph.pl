@@ -321,6 +321,142 @@ def test_unknown_enum_without_an_alias_still_fails():
 
 
 # ---------------------------------------------------------------------------
+# FIELD-SPECIFIC ENUM ALIASES (paceRole, widget.type)
+# ---------------------------------------------------------------------------
+
+
+def test_pacerole_awaken_is_aliased_to_accelerate():
+    payload = fixture('mochi')
+    payload['pagePlan']['sections'][0]['rhythm']['paceRole'] = 'awaken'
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['pagePlan']['sections'][0]['rhythm']['paceRole'] == 'accelerate'
+    assert any(a['from'] == 'awaken' and a['to'] == 'accelerate' for a in report.enum_aliases)
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_pacerole_valid_value_is_not_changed():
+    payload = fixture('mochi')
+    payload['pagePlan']['sections'][0]['rhythm']['paceRole'] = 'pause'
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['pagePlan']['sections'][0]['rhythm']['paceRole'] == 'pause'
+    assert report.enum_aliases == []
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_pacerole_unknown_value_still_fails():
+    payload = fixture('mochi')
+    payload['pagePlan']['sections'][0]['rhythm']['paceRole'] = 'dance'
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['pagePlan']['sections'][0]['rhythm']['paceRole'] == 'dance'
+    assert report.enum_aliases == []
+    with pytest.raises(ValueError):
+        validate_spec(normalized, supplied_urls(payload))
+
+
+def test_widget_type_editorial_menu_is_aliased_to_tabs():
+    payload = fixture('mochi')
+    # Add an EditorialMenu section with required props
+    payload['pagePlan']['sections'].append({
+        'id': 'menu',
+        'primitive': 'EditorialMenu',
+        'role': 'menu',
+        'props': {
+            'title': 'Menu',
+            'layoutMode': 'tabs',
+            'groups': [{'label': 'Mains', 'items': [{'name': 'Mochi'}]}],
+        },
+    })
+    payload['interactions']['widgets'] = [{
+        'id': 'menu',
+        'type': 'EditorialMenu',
+        'expectedBehavior': ['switch categories'],
+    }]
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['interactions']['widgets'][0]['type'] == 'tabs'
+    assert any(a['from'] == 'EditorialMenu' and a['to'] == 'tabs' for a in report.enum_aliases)
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_widget_type_valid_value_is_not_changed():
+    payload = fixture('mochi')
+    # Add a HorizontalGallery section with required props
+    payload['pagePlan']['sections'].append({
+        'id': 'gallery-section',
+        'primitive': 'HorizontalGallery',
+        'role': 'proof',
+        'props': {
+            'title': 'Gallery',
+            'media': [],
+            'fallbackText': 'Gallery coming soon',
+        },
+    })
+    payload['interactions']['widgets'] = [{
+        'id': 'gallery-section',
+        'type': 'gallery',
+        'expectedBehavior': ['browse images'],
+    }]
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['interactions']['widgets'][0]['type'] == 'gallery'
+    # No aliases should fire for a valid value
+    assert not any(a['from'] == 'gallery' for a in report.enum_aliases)
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_widget_type_unknown_value_still_fails():
+    payload = fixture('mochi')
+    payload['interactions']['widgets'] = [{
+        'id': 'magic',
+        'type': 'MagicGrid',
+        'expectedBehavior': ['magic'],
+    }]
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['interactions']['widgets'][0]['type'] == 'MagicGrid'
+    assert report.enum_aliases == []
+    with pytest.raises(ValueError):
+        validate_spec(normalized, supplied_urls(payload))
+
+
+def test_both_field_aliases_appear_in_diagnostics():
+    payload = fixture('mochi')
+    payload['pagePlan']['sections'][0]['rhythm']['paceRole'] = 'awaken'
+    # Add an EditorialMenu section with required props
+    payload['pagePlan']['sections'].append({
+        'id': 'menu',
+        'primitive': 'EditorialMenu',
+        'role': 'menu',
+        'props': {
+            'title': 'Menu',
+            'layoutMode': 'tabs',
+            'groups': [{'label': 'Mains', 'items': [{'name': 'Mochi'}]}],
+        },
+    })
+    payload['interactions']['widgets'] = [{
+        'id': 'menu',
+        'type': 'EditorialMenu',
+        'expectedBehavior': ['switch'],
+    }]
+
+    normalized, report = normalize_model_spec(payload)
+
+    aliases = {(a['from'], a['to']) for a in report.enum_aliases}
+    assert ('awaken', 'accelerate') in aliases
+    assert ('EditorialMenu', 'tabs') in aliases
+    validate_spec(normalized, supplied_urls(payload))
+
+
+# ---------------------------------------------------------------------------
 # TOLERANT JSON SYNTAX REPAIR (Free model output)
 # ---------------------------------------------------------------------------
 

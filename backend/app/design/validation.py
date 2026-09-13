@@ -33,12 +33,22 @@ ENUM_ALIASES = {
     'intro': 'pause',
     'climax': 'peak',
     'rest': 'pause',
+    'awaken': 'accelerate',
     # density variants
     'normal': 'medium',
     # imageMaskMode variants
     'rectangle': 'rect',
     # presetId variants
     'calm': 'calm-care',
+}
+
+# Path-specific enum aliases: {field_suffix: {raw_value: replacement}}.
+# Applied before global ENUM_ALIASES so the same value can map differently
+# depending on which field it appears in.
+FIELD_ENUM_ALIASES: dict[str, dict[str, str]] = {
+    '.type': {
+        'EditorialMenu': 'tabs',
+    },
 }
 
 # validate_spec() requires a link's kind to agree with its href's scheme. The
@@ -264,8 +274,18 @@ def _normalize_enum(value, allowed, path, report):
     if not isinstance(value, str):
         return value
     raw = value.strip()
-    candidate = ENUM_ALIASES.get(raw)
-    match = 'alias'
+    # Check path-specific aliases first (e.g. widget.type ≠ section.primitive)
+    candidate = None
+    match = ''
+    for suffix, mapping in FIELD_ENUM_ALIASES.items():
+        if path.endswith(suffix):
+            candidate = mapping.get(raw)
+            if candidate is not None:
+                match = 'field-alias'
+                break
+    if candidate is None:
+        candidate = ENUM_ALIASES.get(raw)
+        match = 'alias'
     if candidate not in allowed:
         matches = [option for option in allowed if isinstance(option, str) and option.lower() == raw.lower()]
         candidate, match = (matches[0], 'case') if len(matches) == 1 else (None, '')
