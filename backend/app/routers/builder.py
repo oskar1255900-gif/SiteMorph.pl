@@ -12,7 +12,11 @@ import time
 import uuid
 import requests
 from pathlib import Path
-from threading import Lock
+
+try:  # Optional at import time so the app still boots without the extra dep.
+    import json_repair
+except ImportError:  # pragma: no cover - requirements.txt pins json-repair
+    json_repair = None
 
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
@@ -35,12 +39,17 @@ router = APIRouter(prefix="/api/builder", tags=["AI Builder"])
 # =============================================================================
 
 # Never hardcode API keys in source code.
-XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
-XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
 OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://sitemorph.pl").strip()
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph").strip()
+# ONE model, ONE request. This identifier is a constant, never a routing hint:
+# OPENROUTER_MODEL may only repeat it (the lock lives below).
+OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+# Legacy provider credentials. The active /generate pipeline never contacts
+# these providers; only older debug/revision helpers still read the constants.
+XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
+XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "").strip().rstrip("/")
 # Google AI Studio keys must never be sent to the paid Vertex endpoint. Vertex
@@ -55,133 +64,77 @@ logger = logging.getLogger(__name__)
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
 # Quality must never be silently reduced on production. The 32k output ceiling
-# is a LIMIT, not a target. A successful generation is one AI call; another
-# model is contacted only after a provider failure or an invalid design spec.
+# is a LIMIT, not a target. One /generate makes exactly one AI call: there is no
+# second model, no retry and no repair request.
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
 MODEL_CONNECT_TIMEOUT = max(1.0, float(os.getenv("SITEMORPH_MODEL_CONNECT_TIMEOUT", "5")))
 MODEL_FIRST_TOKEN_TIMEOUT = max(3.0, float(os.getenv("SITEMORPH_MODEL_FIRST_TOKEN_TIMEOUT", "12")))
-MODEL_ROUTING_BUDGET = max(15.0, float(os.getenv("SITEMORPH_MODEL_ROUTING_BUDGET", "60")))
-MODEL_ATTEMPT_TIMEOUT = max(6.0, float(os.getenv("SITEMORPH_MODEL_ATTEMPT_TIMEOUT", "40")))
-MODEL_COOLDOWN_SECONDS = max(0.0, float(os.getenv("SITEMORPH_MODEL_COOLDOWN_SECONDS", "45")))
-MAX_MODEL_ATTEMPTS = max(1, min(6, int(os.getenv("SITEMORPH_MAX_MODEL_ATTEMPTS", "2"))))
+# The one OpenRouter generation: ~8 s to connect, at most ~55 s to read the
+# whole JSON answer. There is no retry and no fallback, so this is the entire
+# model budget of one /generate request.
+OPENROUTER_CONNECT_TIMEOUT = max(1.0, float(os.getenv("SITEMORPH_OPENROUTER_CONNECT_TIMEOUT", "8")))
+OPENROUTER_TOTAL_TIMEOUT = max(5.0, float(os.getenv("SITEMORPH_OPENROUTER_TIMEOUT", "55")))
+# Nemotron 3 Super supports structured outputs (json_schema). Enabled by
+# default; the cleaned SiteMorphSpecV2 schema is sent in every request.
+OPENROUTER_JSON_FORMAT = os.getenv("SITEMORPH_OPENROUTER_JSON_FORMAT", "1").strip().lower() in {"1", "true", "yes", "on"}
+OPENROUTER_REASONING_PARAM = os.getenv("SITEMORPH_OPENROUTER_REASONING_PARAM", "1").strip().lower() in {"1", "true", "yes", "on"}
+# Gemini structured output stays opt-in: the full contract schema is currently
+# rejected by the API (HTTP 400), and sending it unconditionally would break
+# every Gemini request. Enable only once the offending keyword is verified.
+GEMINI_RESPONSE_SCHEMA_ENABLED = os.getenv(
+    "SITEMORPH_GEMINI_RESPONSE_SCHEMA", ""
+).strip().lower() in {"1", "true", "yes", "on"}
 # Compatibility only: the AI standalone-preview path is disabled (GENERATE_STANDALONE_PREVIEW=False)
 # and never runs inside /generate.
 PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "16000"))
 GENERATION_ATTEMPTS = 1
 
-# Keep mode names for frontend/pricing compatibility. All modes currently use
-# the same one-call spec compiler path. Legacy helper constants remain only
-# for older/debug functions; they are not called by /generate.
+# Legacy helper constants remain only for older/debug functions; they are not
+# called by /generate and no longer participate in any routing table.
 DEEPSEEK_MODEL = os.getenv(
     "SITEMORPH_DEEPSEEK_MODEL",
     "deepseek/deepseek-v3.2",
 )
-FABLE_MODEL = "anthropic/claude-fable-5"
 
-# Confirmed as missing by XKIRO. Ignore them even when an old Vercel model list
-# still contains one of these identifiers.
-XKIRO_UNAVAILABLE_MODELS = {
-    "deepseek/deepseek-v4-pro",
-    "deepseek/deepseek-v4-flash",
-    "deepseek/deepseek-v3.2",
-}
+# -----------------------------------------------------------------------------
+# THE ONLY GENERATION TARGET
+# -----------------------------------------------------------------------------
+# SiteMorph generates sites with exactly one model through OpenRouter. There is
+# deliberately no routing table, no provider list and no fallback: trying a
+# second model would mean a second AI generation for one user request.
 
 
-def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[str, str]]:
-    """Parse provider|model entries while preserving priority and removing duplicates."""
-    raw = os.getenv(name, "").strip()
-    entries = [item.strip() for item in raw.split(",") if item.strip()] if raw else []
-    candidates: List[Tuple[str, str]] = []
-    for entry in entries:
-        provider, separator, model = entry.partition("|")
-        if separator:
-            candidates.append((provider.strip().lower(), model.strip()))
-        else:
-            candidates.append(("xkiro", provider.strip()))
-    if not candidates:
-        candidates = defaults
-
-    targets: List[Dict[str, str]] = []
-    seen = set()
-    for provider, model in candidates:
-        if provider not in {"xkiro", "openrouter", "gemini"} or not model:
-            continue
-        if provider == "xkiro" and model in XKIRO_UNAVAILABLE_MODELS:
-            continue
-        key = (provider, model)
-        if key not in seen:
-            seen.add(key)
-            targets.append({"provider": provider, "model": model})
-    prefer_gemini = os.getenv("SITEMORPH_PREFER_GEMINI", "1").strip().lower() in {"1", "true", "yes", "on"}
-    if prefer_gemini and name in {
-        "SITEMORPH_NORMAL_MODELS", "SITEMORPH_ULTRA_MODELS", "SITEMORPH_ULTRA_PLUS_MODELS",
-    }:
-        targets.sort(key=lambda target: 0 if target["provider"] == "gemini" else 1)
-    return targets
+def _locked_openrouter_model(configured: str) -> str:
+    """The model is a constant; a differing env value is logged and ignored."""
+    configured = (configured or "").strip()
+    if configured and configured != OPENROUTER_MODEL:
+        logger.warning(
+            "OPENROUTER_MODEL=%r is ignored; SiteMorph is locked to %s.",
+            configured,
+            OPENROUTER_MODEL,
+        )
+    return OPENROUTER_MODEL
 
 
-# Gemini Developer API (AI Studio) is the free primary path. Mistral remains
-# an independent XKIRO fallback; confirmed-missing DeepSeek IDs are not called.
-NORMAL_MODEL_TARGETS = _model_targets_env("SITEMORPH_NORMAL_MODELS", [
-    ("gemini", "gemini-3.5-flash-lite"),
-    ("xkiro", "mistralai/mistral-small-2603"),
-])
-ULTRA_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_MODELS", [
-    ("gemini", "gemini-3.5-flash"),
-    ("xkiro", "mistralai/mistral-large-2512"),
-])
-ULTRA_PLUS_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_PLUS_MODELS", [
-    ("gemini", "gemini-3.5-flash"),
-    ("xkiro", "mistralai/mistral-large-2512"),
-])
+SITEMORPH_MODEL = _locked_openrouter_model(os.getenv("OPENROUTER_MODEL", ""))
+SITEMORPH_TARGET = {"provider": "openrouter", "model": SITEMORPH_MODEL}
+
+# The mode names stay for frontend/pricing compatibility; every mode uses the
+# same single model and the same one-request pipeline.
+NORMAL_MODEL_TARGETS = [dict(SITEMORPH_TARGET)]
+ULTRA_MODEL_TARGETS = [dict(SITEMORPH_TARGET)]
+ULTRA_PLUS_MODEL_TARGETS = [dict(SITEMORPH_TARGET)]
 MODEL_TARGETS = {
     "normal": NORMAL_MODEL_TARGETS,
     "ultra": ULTRA_MODEL_TARGETS,
     "ultra+": ULTRA_PLUS_MODEL_TARGETS,
 }
 
-# Compatibility names used by older helpers and offline tests.
-ULTRA_MODEL = ULTRA_MODEL_TARGETS[0]["model"] if ULTRA_MODEL_TARGETS else DEEPSEEK_MODEL
-MODEL_MAP = {mode: targets[0]["model"] if targets else DEEPSEEK_MODEL
-             for mode, targets in MODEL_TARGETS.items()}
-FALLBACK_CHAIN = [target["model"] for target in NORMAL_MODEL_TARGETS[1:]]
-
-_MODEL_COOLDOWNS: Dict[Tuple[str, str], float] = {}
-_MODEL_COOLDOWNS_LOCK = Lock()
-
-
-def _target_key(target: Dict[str, str]) -> Tuple[str, str]:
-    return target["provider"], target["model"]
-
-
-def _target_cooldown_remaining(target: Dict[str, str]) -> float:
-    """Avoid repeatedly waiting for a target that just failed on this worker."""
-    key = _target_key(target)
-    now = time.monotonic()
-    with _MODEL_COOLDOWNS_LOCK:
-        until = _MODEL_COOLDOWNS.get(key, 0.0)
-        if until <= now:
-            _MODEL_COOLDOWNS.pop(key, None)
-            return 0.0
-        return until - now
-
-
-def _cooldown_target(target: Dict[str, str]) -> None:
-    if MODEL_COOLDOWN_SECONDS <= 0:
-        return
-    with _MODEL_COOLDOWNS_LOCK:
-        _MODEL_COOLDOWNS[_target_key(target)] = time.monotonic() + MODEL_COOLDOWN_SECONDS
-
-
-def _clear_target_cooldown(target: Dict[str, str]) -> None:
-    with _MODEL_COOLDOWNS_LOCK:
-        _MODEL_COOLDOWNS.pop(_target_key(target), None)
-
 
 def _is_model_unavailable(error: Optional[str]) -> bool:
-    """True for provider/model failures where trying the next target can help."""
+    """True for transient provider failures: 429/5xx, timeouts, broken reads."""
     if not error:
         return False
     low = error.lower()
@@ -283,12 +236,94 @@ class QuestionInput(BaseModel):
 # JSON / MODEL HELPERS
 # =============================================================================
 
+# Model answers are untrusted input, so the amount of text handed to any parser
+# is capped well above the contract's own 180 kB limit but far below a payload
+# that could stall a request.
+MAX_JSON_TEXT_CHARS = 1_000_000
+
 
 def _bool_env(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _json_candidates(cleaned: str) -> List[str]:
+    """Slices worth trying, most JSON-like first.
+
+    The braced object drops trailing prose; the raw remainder keeps an answer
+    whose closing brace never arrived; the last resort lets the repair parser
+    look at whatever text we did receive.
+    """
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    candidates: List[str] = []
+    if start != -1 and end > start:
+        candidates.append(cleaned[start : end + 1])
+    if start != -1 and cleaned[start:] not in candidates:
+        candidates.append(cleaned[start:])
+    if not candidates:
+        candidates.append(cleaned)
+    return candidates
+
+
+def _repair_json_object(candidate: str) -> Optional[dict]:
+    """Stage two: repair JSON *syntax* only, and only into a JSON object.
+
+    Called exclusively after json.loads raised, so valid JSON never travels
+    through it. It repairs syntax (trailing commas, unquoted keys, single
+    quotes, unbalanced braces) and never invents values: missing required
+    fields are left missing for normalize_model_spec + validate_spec to reject.
+    """
+    if json_repair is None or not candidate.strip():
+        return None
+    try:
+        payload = json_repair.loads(candidate, skip_json_loads=True)
+    except Exception:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def extract_json_repaired(text: str) -> Tuple[dict, bool]:
+    """One JSON object from model output: strict first, syntax repair second.
+
+    Used by the generation path, where a free model occasionally emits a
+    trailing comma or an unquoted key in an otherwise complete plan. Returns
+    the object plus whether the repair parser was actually needed, so the run
+    can report that honestly. An answer that is not a JSON object at all (prose,
+    a bare string, a top-level list) still fails.
+    """
+    if not text or not text.strip():
+        raise ValueError("Pusta odpowiedz modelu")
+
+    cleaned = text.strip()[:MAX_JSON_TEXT_CHARS]
+
+    fence = re.search(r"```(?:json)?\s*(.*?)```", cleaned, re.IGNORECASE | re.DOTALL)
+    if fence:
+        cleaned = fence.group(1).strip()
+
+    brace = cleaned.find("{")
+    bracket = cleaned.find("[")
+    if bracket != -1 and (brace == -1 or bracket < brace):
+        # The first JSON value the model produced is an array; the contract is an
+        # object, so this is a wrong answer rather than broken syntax.
+        raise ValueError("Odpowiedź modelu nie jest obiektem JSON")
+
+    failure: Optional[Exception] = None
+    for candidate in _json_candidates(cleaned):
+        try:
+            payload = json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            failure = exc
+        else:
+            if isinstance(payload, dict):
+                return payload, False
+            raise ValueError("Odpowiedź modelu nie jest obiektem JSON")
+        repaired = _repair_json_object(candidate)
+        if repaired is not None:
+            return repaired, True
+    raise ValueError("Brak obiektu JSON w odpowiedzi") from failure
 
 
 def extract_json(text: str) -> dict:
@@ -488,15 +523,139 @@ def xkiro_generate_model(
     )
 
 
+def _openrouter_content_text(content: Any) -> str:
+    """Read only the final answer text of an OpenRouter completion.
+
+    Content may be a string or a list of text parts. ``reasoning`` and
+    ``reasoning_details`` are a separate field and are never read here, so a
+    model's thinking can never be glued onto the JSON contract.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            str(part.get("text", "")) for part in content
+            if isinstance(part, dict) and isinstance(part.get("text"), str)
+        )
+    return ""
+
+
 def openrouter_generate_model(
-    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
-    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
+    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.6,
+    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[float] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """One OpenRouter request, used only when its key is configured."""
-    return _compatible_generate_model(
-        "openrouter", OPENROUTER_API_KEY, OPENROUTER_BASE_URL, model,
-        system_prompt, user_prompt, temperature, max_tokens, timeout,
-    )
+    """The one OpenRouter request SiteMorph is allowed to make.
+
+    Plain JSON, never streaming: tokens are not forwarded to the user live, so
+    SSE would only add a parser that can break on large payloads. There is no
+    retry here — a failed call returns an error and the endpoint reports it.
+    """
+    if not OPENROUTER_API_KEY:
+        return None, "Brak klucza OpenRouter (OPENROUTER_API_KEY)."
+    if model != OPENROUTER_MODEL:
+        return None, f"Model {model} nie jest dozwolony. SiteMorph używa wyłącznie {OPENROUTER_MODEL}."
+
+    total_timeout = max(5.0, float(timeout or OPENROUTER_TOTAL_TIMEOUT))
+    payload: Dict[str, Any] = {
+        "model": OPENROUTER_MODEL,
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": min(int(max_tokens), 32000),
+    }
+    if OPENROUTER_JSON_FORMAT:
+        payload["response_format"] = {"type": "json_object"}
+        payload["provider"] = {"require_parameters": True}
+    if OPENROUTER_REASONING_PARAM:
+        payload["reasoning"] = {"enabled": False}
+
+    response = None
+    try:
+        response = requests.post(
+            f"{OPENROUTER_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": OPENROUTER_SITE_URL,
+                "X-Title": OPENROUTER_APP_NAME,
+            },
+            json=payload,
+            timeout=(OPENROUTER_CONNECT_TIMEOUT, total_timeout),
+            stream=False,
+        )
+        if response.status_code != 200:
+            return None, _provider_http_error("OpenRouter", response)
+        body = response.json()
+    except requests.Timeout:
+        return None, "OpenRouter przekroczył czas odpowiedzi."
+    except requests.RequestException as exc:
+        return None, f"Nie udało się połączyć z OpenRouter: {exc.__class__.__name__}"
+    except (ValueError, TypeError, AttributeError):
+        return None, "Nie udało się odczytać odpowiedzi OpenRouter."
+    finally:
+        if response is not None and callable(getattr(response, "close", None)):
+            response.close()
+
+    if not isinstance(body, dict):
+        return None, "OpenRouter zwrócił niepoprawną odpowiedź."
+    if body.get("error"):
+        return None, _provider_error_message("OpenRouter", body["error"], 200, {})
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return None, "OpenRouter nie zwrócił żadnej odpowiedzi."
+    choice = choices[0] if isinstance(choices[0], dict) else {}
+    if str(choice.get("finish_reason") or "") == "length":
+        return None, "OpenRouter uciął odpowiedź przez limit modelu."
+    message = choice.get("message")
+    content = _openrouter_content_text(message.get("content") if isinstance(message, dict) else None)
+    if not content.strip():
+        return None, "OpenRouter zwrócił pustą odpowiedź."
+    return content, None
+
+
+# -----------------------------------------------------------------------------
+# USER-FACING FAILURES
+# -----------------------------------------------------------------------------
+# A wrong key or a broken JSON answer must never be reported as "overload".
+PROVIDER_UNAVAILABLE_DETAIL = (
+    "Darmowy model SiteMorph jest chwilowo niedostępny lub osiągnął limit. "
+    "Spróbuj ponownie za chwilę."
+)
+CONFIGURATION_DETAIL = "Generator AI nie jest jeszcze skonfigurowany. Skontaktuj się z administratorem."
+INVALID_RESPONSE_DETAIL = "Model zwrócił niepoprawną odpowiedź. Spróbuj ponownie za chwilę."
+INVALID_SPEC_DETAIL = "Model nie zwrócił poprawnego planu strony. Spróbuj ponownie za chwilę."
+
+
+def openrouter_error_status(error: Optional[str]) -> str:
+    """Classify one failed OpenRouter call for diagnostics and user messaging."""
+    if not error:
+        return "unavailable"
+    low = error.lower()
+    if "brak środków" in low or "http 402" in low:
+        return "payment"
+    if "nie ma dostępu do modelu" in low or "http 401" in low or "http 403" in low:
+        return "unauthorized"
+    if "http 404" in low:
+        return "not_found"
+    if "http 429" in low or "rate limit" in low or "too many" in low:
+        return "rate_limited"
+    if "timeout" in low or "timed out" in low or "przekroczył czas" in low:
+        return "timeout"
+    return "unavailable"
+
+
+def generation_error_detail(status: Optional[str]) -> str:
+    """Short, honest user message for one failed generation."""
+    if status in {"unauthorized", "payment", "not_found"}:
+        return CONFIGURATION_DETAIL
+    if status == "invalid_response":
+        return INVALID_RESPONSE_DETAIL
+    if status == "invalid_spec":
+        return INVALID_SPEC_DETAIL
+    return PROVIDER_UNAVAILABLE_DETAIL
 
 
 def _gemini_text(body: Any) -> Tuple[str, Optional[str]]:
@@ -508,9 +667,12 @@ def _gemini_text(body: Any) -> Tuple[str, Optional[str]]:
         return "", str(block) if block else None
     candidate = candidates[0] if isinstance(candidates[0], dict) else {}
     parts = candidate.get("content", {}).get("parts") or []
+    # Thinking models return reasoning parts next to the answer. Only final
+    # parts may be joined, otherwise the reasoning text is glued onto the JSON.
     text = "".join(
         str(part.get("text", "")) for part in parts
         if isinstance(part, dict) and isinstance(part.get("text"), str)
+        and not part.get("thought")
     )
     return text, candidate.get("finishReason")
 
@@ -528,77 +690,58 @@ def gemini_generate_model(
     model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
     max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Call Google's native Gemini SSE endpoint without exposing the key in the URL."""
+    """Call Google's native Gemini endpoint without exposing the key in the URL.
+
+    One plain JSON response: tokens are never streamed to the user, so SSE only
+    added a parser that could break on very large payloads.
+    """
     if not GEMINI_API_KEY:
         return None, "Brak klucza Gemini"
     if not re.fullmatch(r"[A-Za-z0-9._-]+", model):
         return None, "Niepoprawna nazwa modelu Gemini."
 
     total_timeout = max(3.0, float(timeout or AI_TIMEOUT))
-    deadline = time.monotonic() + total_timeout
+    generation_config: Dict[str, Any] = {
+        "temperature": temperature,
+        "maxOutputTokens": min(int(max_tokens), 32000),
+        "responseMimeType": "application/json",
+    }
+    if GEMINI_RESPONSE_SCHEMA_ENABLED:
+        # Constraints the model cannot guess from prose: the contract is
+        # enforced by the endpoint itself instead of being validated afterwards.
+        from app.design.schema import gemini_response_schema
+        generation_config["responseJsonSchema"] = gemini_response_schema()
     response = None
     try:
         response = requests.post(
-            f"{_gemini_api_base()}/models/{model}:streamGenerateContent?alt=sse",
+            f"{_gemini_api_base()}/models/{model}:generateContent",
             headers={
                 "x-goog-api-key": GEMINI_API_KEY,
                 "Content-Type": "application/json",
-                "Accept": "text/event-stream",
+                "Accept": "application/json",
                 "User-Agent": "SiteMorph/2",
             },
             json={
                 "systemInstruction": {"parts": [{"text": system_prompt}]},
                 "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-                "generationConfig": {
-                    "temperature": temperature,
-                    "maxOutputTokens": min(int(max_tokens), 32000),
-                    "responseMimeType": "application/json",
-                },
+                "generationConfig": generation_config,
             },
-            timeout=(min(MODEL_CONNECT_TIMEOUT, total_timeout),
-                     min(MODEL_FIRST_TOKEN_TIMEOUT, total_timeout)),
-            stream=True,
+            timeout=(min(MODEL_CONNECT_TIMEOUT, total_timeout), total_timeout),
+            stream=False,
         )
         if response.status_code != 200:
             return None, _provider_http_error("Gemini", response)
 
-        content_type = str(response.headers.get("content-type", "")).lower()
-        if "text/event-stream" not in content_type:
-            body = response.json()
-            if isinstance(body, dict) and body.get("error"):
-                return None, _provider_error_message("Gemini", body["error"], response.status_code, response.headers)
-            content, finish_reason = _gemini_text(body)
-            if str(finish_reason).upper() == "MAX_TOKENS":
-                return None, "Gemini uciął odpowiedź przez limit modelu."
-            return (content, None) if content.strip() else (None, "Gemini zwrócił pustą odpowiedź.")
-
-        parts: List[str] = []
-        finish_reason = None
-        malformed_events = 0
-        for payload in _iter_sse_payloads(response, deadline):
-            if payload == "[DONE]":
-                break
-            try:
-                event = json.loads(payload)
-            except json.JSONDecodeError:
-                malformed_events += 1
-                if malformed_events > 2:
-                    return None, "Gemini zwrócił uszkodzony fragment odpowiedzi strumieniowej."
-                continue
-            if isinstance(event, dict) and event.get("error"):
-                return None, _provider_error_message("Gemini", event["error"], 200, response.headers)
-            text, reason = _gemini_text(event)
-            if text:
-                parts.append(text)
-            if reason:
-                finish_reason = str(reason).upper()
-
-        if finish_reason == "MAX_TOKENS":
+        body = response.json()
+        if isinstance(body, dict) and body.get("error"):
+            return None, _provider_error_message("Gemini", body["error"], response.status_code, response.headers)
+        content, finish_reason = _gemini_text(body)
+        reason = str(finish_reason).upper() if finish_reason else ""
+        if reason == "MAX_TOKENS":
             return None, "Gemini uciął odpowiedź przez limit modelu."
-        if finish_reason in {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"}:
-            return None, f"Gemini zatrzymał odpowiedź ({finish_reason})."
-        content = "".join(parts).strip()
-        return (content, None) if content else (None, "Gemini zwrócił pustą odpowiedź.")
+        if reason in {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"}:
+            return None, f"Gemini zatrzymał odpowiedź ({reason})."
+        return (content, None) if content.strip() else (None, "Gemini zwrócił pustą odpowiedź.")
     except requests.Timeout:
         return None, "Gemini przekroczył czas odpowiedzi."
     except requests.RequestException as exc:
@@ -2465,107 +2608,105 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
     )
 
 
-def _provider_configured(provider: str) -> bool:
-    if provider == "openrouter":
-        return bool(OPENROUTER_API_KEY)
-    if provider == "gemini":
-        return bool(GEMINI_API_KEY)
-    return bool(XKIRO_API_KEY)
-
-
-def _call_model_target(
-    target: Dict[str, str], system_prompt: str, user_prompt: str, timeout: float,
-) -> Tuple[Optional[str], Optional[str]]:
-    generators = {
-        "xkiro": xkiro_generate_model,
-        "openrouter": openrouter_generate_model,
-        "gemini": gemini_generate_model,
-    }
-    generate = generators[target["provider"]]
-    return generate(
-        target["model"], system_prompt, user_prompt,
-        temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=max(3, int(timeout)),
-    )
-
-
 def _generate_design_spec(data: BuilderInput, supplied):
+    """Exactly one OpenRouter generation. No fallback, no repair request.
+
+    The request is refused before any network call when the key is missing.
+    A failed or invalid answer ends the generation instead of silently trying
+    another model, so one /generate never costs more than one AI call.
+    """
     from app.design.prompt import SYSTEM_PROMPT as spec_prompt
-    from app.design.validation import validate_spec
+    from app.design.validation import normalize_model_spec, spec_error_summary, validate_spec
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     request = json.dumps({"original_user_prompt": raw_prompt, "preferences": _explicit_preferences(data),
                           "provided_images": supplied}, ensure_ascii=False, separators=(",", ":"))
     mode = data.mode if data.mode in MODEL_TARGETS else "normal"
-    targets = MODEL_TARGETS.get(mode) or NORMAL_MODEL_TARGETS
     routing: Dict[str, Any] = {
         "requested_mode": mode,
-        "requested_model": targets[0]["model"] if targets else DEEPSEEK_MODEL,
+        "requested_model": SITEMORPH_MODEL,
         "used_provider": None,
         "used_model": None,
         "attempts": [],
     }
-    deadline = time.monotonic() + MODEL_ROUTING_BUDGET
-    blocked_providers = set()
-    errors: List[str] = []
 
-    for target in targets:
-        if len(routing["attempts"]) >= MAX_MODEL_ATTEMPTS:
-            break
-        provider = target["provider"]
-        if provider in blocked_providers or not _provider_configured(provider):
-            continue
-        cooldown = _target_cooldown_remaining(target)
-        if cooldown > 0:
-            errors.append(f"{target['model']}: pominięty przez {round(cooldown)} s po wcześniejszym błędzie")
-            continue
-        remaining = deadline - time.monotonic()
-        if remaining < 3:
-            errors.append("Przekroczono wspólny limit czasu wyboru modelu.")
-            break
+    if not OPENROUTER_API_KEY:
+        error = "Brak klucza OpenRouter (OPENROUTER_API_KEY)."
+        routing["error_status"] = "unauthorized"
+        logger.warning("SiteMorph generation refused: %s", error)
+        return None, [], error, routing
 
-        attempt_started = time.monotonic()
-        text, error = _call_model_target(
-            target, spec_prompt, request, min(remaining, MODEL_ATTEMPT_TIMEOUT),
+    attempt_started = time.monotonic()
+    text, error = openrouter_generate_model(
+        SITEMORPH_MODEL, spec_prompt, request,
+        temperature=0.3, max_tokens=MAX_OUTPUT_TOKENS, timeout=OPENROUTER_TOTAL_TIMEOUT,
+    )
+    attempt: Dict[str, Any] = {
+        "provider": "openrouter",
+        "model": SITEMORPH_MODEL,
+        "status": "success",
+        "duration_ms": round((time.monotonic() - attempt_started) * 1000),
+    }
+    routing["attempts"].append(attempt)
+
+    if not text:
+        error = error or "Pusta odpowiedź modelu."
+        attempt["status"] = openrouter_error_status(error)
+        routing["error_status"] = attempt["status"]
+        logger.warning(
+            "SiteMorph OpenRouter call failed after %s ms (%s): %s",
+            attempt["duration_ms"], attempt["status"], error[:1000],
         )
-        attempt = {
-            "provider": provider,
-            "model": target["model"],
-            "status": "failed",
-            "duration_ms": round((time.monotonic() - attempt_started) * 1000),
-        }
-        routing["attempts"].append(attempt)
+        return None, [], error[:1800], routing
 
-        if not text:
-            error = error or "Pusta odpowiedź modelu."
-            errors.append(f"{target['model']}: {error}")
-            attempt["status"] = "unavailable" if _is_model_unavailable(error) else "failed"
-            if attempt["status"] == "unavailable":
-                _cooldown_target(target)
-            low_error = error.lower()
-            if "http 401" in low_error or "brak środków" in low_error:
-                blocked_providers.add(provider)
-            continue
+    try:
+        payload, json_repaired = extract_json_repaired(text)
+    except (ValueError, TypeError, AttributeError, KeyError) as exc:
+        # Only the parser's message is logged, never the model's answer, which
+        # can quote the user's own prompt back at us.
+        detail = " ".join(str(exc).split("\n")[:4])[:500]
+        attempt["status"] = "invalid_response"
+        routing["error_status"] = "invalid_response"
+        logger.warning("SiteMorph OpenRouter returned invalid JSON: %s", detail)
+        return None, [], f"Niepoprawny JSON w odpowiedzi modelu ({detail})", routing
 
-        try:
-            spec, warnings = validate_spec(extract_json(text), [asset["url"] for asset in supplied])
-        except (ValueError, TypeError, AttributeError, KeyError) as exc:
-            detail = " ".join(str(exc).split("\n")[:4])[:500]
-            attempt["status"] = "invalid_spec"
-            errors.append(f"{target['model']}: niepoprawny plan strony ({detail})")
-            continue
+    if json_repaired:
+        attempt["json_repaired"] = True
 
-        attempt["status"] = "success"
-        _clear_target_cooldown(target)
-        routing["used_provider"] = provider
-        routing["used_model"] = target["model"]
-        return spec, warnings, None, routing
+    # Models routinely add undeclared keys, serialize a string[] as one string,
+    # pad text or typo an enum value. Repairing that locally is deterministic
+    # and costs no extra generation request.
+    payload, normalization = normalize_model_spec(payload)
+    for bucket, values in normalization.buckets().items():
+        if values:
+            attempt[bucket] = values
+    if normalization:
+        logger.info(
+            "SiteMorph normalized the model answer: %s",
+            json.dumps(normalization.buckets(), ensure_ascii=False)[:1000],
+        )
 
-    configured = [target for target in targets if _provider_configured(target["provider"])]
-    if not configured:
-        error = "Brak aktywnego klucza XKIRO, Gemini lub OpenRouter dla skonfigurowanych modeli."
-    else:
-        error = " | ".join(errors[-3:]) or "Żaden skonfigurowany model nie odpowiedział."
-    logger.warning("SiteMorph model routing failed for mode %s: %s", mode, error)
-    return None, [], error[:1800], routing
+    try:
+        spec, warnings = validate_spec(payload, [asset["url"] for asset in supplied])
+    except (ValueError, TypeError, AttributeError, KeyError) as exc:
+        # The user-facing message stays short and stable; the exact contract
+        # path is recorded for diagnostics instead of leaking a traceback.
+        paths = spec_error_summary(exc)
+        detail = "; ".join(paths) if paths else " ".join(str(exc).split("\n")[:4])[:500]
+        # Quote what was repaired alongside the failure: a schema error is much
+        # easier to place when you can see which fields normalization touched.
+        repaired = {key: values for key, values in normalization.buckets().items() if values}
+        if repaired:
+            detail = f"{detail} | repaired: {json.dumps(repaired, ensure_ascii=False)}"
+        attempt["status"] = "invalid_spec"
+        if paths:
+            attempt["validation_errors"] = paths
+        routing["error_status"] = "invalid_spec"
+        logger.warning("SiteMorph OpenRouter returned an invalid design spec: %s", detail[:2000])
+        return None, [], f"Niepoprawny plan strony ({detail})", routing
+
+    routing["used_provider"] = "openrouter"
+    routing["used_model"] = SITEMORPH_MODEL
+    return spec, warnings, None, routing
 
 
 @router.post("/generate")
@@ -2575,11 +2716,8 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     from app.design.prompt import PROMPT_VERSION as spec_prompt_version
     if not current_user.get("id") or current_user.get("is_anon") or current_user["id"] == "anon":
         raise HTTPException(status_code=401, detail="Zaloguj się, aby wygenerować stronę.")
-    if not XKIRO_API_KEY and not GEMINI_API_KEY and not OPENROUTER_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="Generator AI nie jest jeszcze skonfigurowany. Skontaktuj się z administratorem.",
-        )
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(status_code=503, detail=CONFIGURATION_DETAIL)
     started = time.perf_counter()
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     if not raw_prompt or len(raw_prompt) > 24000:
@@ -2589,10 +2727,16 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     spec, warnings, error, routing = _generate_design_spec(data, supplied)
     llm_ms = round((time.perf_counter() - llm_started) * 1000)
     if spec is None:
-        logger.warning("SiteMorph generation failed after %s ms: %s", llm_ms, error or "unknown error")
+        status = routing.get("error_status")
+        if not status and routing.get("attempts"):
+            status = (routing["attempts"][-1] or {}).get("status")
+        logger.warning(
+            "SiteMorph generation failed after %s ms (%s): %s",
+            llm_ms, status or "unknown", error or "unknown error",
+        )
         raise HTTPException(
-            status_code=503,
-            detail="Modele AI są chwilowo przeciążone. Spróbuj ponownie za kilkanaście sekund.",
+            status_code=502 if status in {"invalid_response", "invalid_spec"} else 503,
+            detail=generation_error_detail(status),
         )
     asset_started = time.perf_counter()
     resolved, photos, asset_warnings, asset_report = bind_assets(spec, UNSPLASH_ACCESS_KEY)

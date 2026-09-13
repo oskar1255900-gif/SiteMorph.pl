@@ -217,3 +217,104 @@ class SiteMorphSpecV2(Model):
     interactions: Interactions
     mobile: Mobile = Field(default_factory=Mobile)
     validationHints: ValidationHints = Field(default_factory=ValidationHints)
+
+
+# Keywords Gemini's responseJsonSchema accepts. Anything else is dropped, but
+# constraints that carry real meaning are restated as description text so the
+# model still learns them. The Pydantic schema itself is never modified.
+GEMINI_SCHEMA_KEYWORDS = frozenset({
+    '$defs', '$ref', 'type', 'format', 'title', 'description', 'enum', 'items',
+    'prefixItems', 'minItems', 'maxItems', 'minimum', 'maximum', 'anyOf',
+    'oneOf', 'properties', 'additionalProperties', 'required', 'propertyOrdering',
+})
+TEXT_ONLY_CONSTRAINTS = (
+    ('minLength', 'At least {value} characters.'),
+    ('maxLength', 'At most {value} characters.'),
+    ('pattern', 'Must match this regular expression: {value}'),
+)
+_GEMINI_SCHEMA_CACHE: Dict[str, Any] = {}
+
+
+def _gemini_constraints_as_text(node: Dict[str, Any]) -> List[str]:
+    return [template.format(value=node[key]) for key, template in TEXT_ONLY_CONSTRAINTS if key in node]
+
+
+def _sanitize_gemini_node(node: Any) -> Any:
+    if not isinstance(node, dict):
+        return node
+    out: Dict[str, Any] = {}
+    for key, value in node.items():
+        if key in {'properties', '$defs'}:
+            out[key] = ({name: _sanitize_gemini_node(sub) for name, sub in value.items()}
+                        if isinstance(value, dict) else value)
+        elif key in {'items', 'additionalProperties'}:
+            out[key] = _sanitize_gemini_node(value) if isinstance(value, dict) else value
+        elif key in {'anyOf', 'oneOf', 'prefixItems'}:
+            out[key] = ([_sanitize_gemini_node(item) for item in value]
+                        if isinstance(value, list) else value)
+        elif key == 'const':
+            # Gemini has no const; a one-item enum is the same constraint.
+            out['enum'] = [value]
+        elif key in {'default', 'minLength', 'maxLength', 'pattern'} or key not in GEMINI_SCHEMA_KEYWORDS:
+            continue
+        else:
+            out[key] = value
+    notes = _gemini_constraints_as_text(node)
+    description = node.get('description')
+    parts = [description] if isinstance(description, str) and description.strip() else []
+    parts.extend(notes)
+    if parts:
+        out['description'] = ' '.join(parts)
+    return out
+
+
+def gemini_response_schema() -> Dict[str, Any]:
+    """Cached Gemini responseJsonSchema built from the canonical contract."""
+    if 'schema' not in _GEMINI_SCHEMA_CACHE:
+        _GEMINI_SCHEMA_CACHE['schema'] = _sanitize_gemini_node(SiteMorphSpecV2.model_json_schema())
+    return _GEMINI_SCHEMA_CACHE['schema']
+
+
+# OpenRouter structured output accepts standard JSON Schema keywords including
+# minLength, maxLength, pattern. We only need to convert const -> enum and
+# strip default values that confuse some providers.
+OPENROUTER_SCHEMA_KEYWORDS = frozenset({
+    '$defs', '$ref', 'type', 'format', 'title', 'description', 'enum', 'items',
+    'prefixItems', 'minItems', 'maxItems', 'minimum', 'maximum', 'anyOf',
+    'oneOf', 'properties', 'additionalProperties', 'required',
+    'propertyOrdering', 'minLength', 'maxLength', 'pattern',
+})
+_OPENROUTER_SCHEMA_CACHE: Dict[str, Any] = {}
+
+
+def _sanitize_openrouter_node(node: Any) -> Any:
+    if not isinstance(node, dict):
+        return node
+    out: Dict[str, Any] = {}
+    for key, value in node.items():
+        if key in {'properties', '$defs'}:
+            out[key] = ({name: _sanitize_openrouter_node(sub) for name, sub in value.items()}
+                        if isinstance(value, dict) else value)
+        elif key in {'items', 'additionalProperties'}:
+            out[key] = _sanitize_openrouter_node(value) if isinstance(value, dict) else value
+        elif key in {'anyOf', 'oneOf', 'prefixItems'}:
+            out[key] = ([_sanitize_openrouter_node(item) for item in value]
+                        if isinstance(value, list) else value)
+        elif key == 'const':
+            out['enum'] = [value]
+        elif key == 'default':
+            continue
+        elif key not in OPENROUTER_SCHEMA_KEYWORDS:
+            continue
+        else:
+            out[key] = value
+    return out
+
+
+def openrouter_response_schema() -> Dict[str, Any]:
+    """Cached responseJsonSchema for OpenRouter structured output."""
+    if 'schema' not in _OPENROUTER_SCHEMA_CACHE:
+        _OPENROUTER_SCHEMA_CACHE['schema'] = _sanitize_openrouter_node(
+            SiteMorphSpecV2.model_json_schema()
+        )
+    return _OPENROUTER_SCHEMA_CACHE['schema']
