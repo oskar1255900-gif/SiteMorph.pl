@@ -26,9 +26,9 @@ export const SIDEBAR_MENU = [
 ];
 
 const Logo = () => (
-  <div className="flex items-center gap-2.5">
-    <img src="/logo.svg" alt="" width="28" height="28" className="rounded-[8px]" />
-    <span className="text-[17px] font-semibold tracking-[-0.03em]">
+  <div className="flex items-center gap-3">
+    <img src="/logo.svg" alt="" width="32" height="32" className="rounded-[10px]" />
+    <span className="text-[18px] font-semibold tracking-[-0.03em]">
       Site<span className="sm-brand-gradient">Morph</span>
     </span>
   </div>
@@ -53,14 +53,14 @@ export const DashboardSidebar = ({
 }) => {
   return (
     <aside
-      className="hidden lg:flex w-[264px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 bg-[var(--sm-sidebar)] text-[var(--sm-text)]"
+      className="hidden lg:flex w-[280px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 bg-[var(--sm-sidebar)] text-[var(--sm-text)]"
     >
       <div>
         {/* Header */}
-        <div className="h-16 flex items-center justify-between gap-2 px-5">
+        <div className="h-[72px] flex items-center justify-between gap-3 px-6">
           <button
             onClick={onExit}
-            className="flex min-h-[44px] items-center gap-2 rounded-[8px] border-none bg-transparent px-1.5 cursor-pointer text-[var(--sm-text)]"
+            className="flex min-h-[48px] items-center gap-3 rounded-[10px] border-none bg-transparent px-2 cursor-pointer text-[var(--sm-text)]"
             aria-label="SiteMorph — strona główna"
           >
             <Logo />
@@ -73,13 +73,13 @@ export const DashboardSidebar = ({
             title={theme === 'dark' ? 'Motyw jasny' : 'Motyw ciemny'}
             aria-label="Zmień motyw"
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </motion.button>
         </div>
 
         {/* Main nav */}
-        <nav className="px-3 space-y-0.5" aria-label="Menu główne">
-          <div className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-quiet)]">
+        <nav className="px-4 space-y-1" aria-label="Menu główne">
+          <div className="px-3 pb-3 pt-3 text-[13px] font-medium uppercase tracking-wider" style={{ color: 'var(--sm-text-quiet)' }}>
             Menu
           </div>
           {SIDEBAR_MENU.map((item) => (
@@ -87,69 +87,73 @@ export const DashboardSidebar = ({
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className="sm-nav-item"
+              style={{ minHeight: '48px', fontSize: '15px', paddingLeft: '14px', gap: '14px' }}
               aria-current={activeTab === item.id ? 'page' : undefined}
             >
-              <item.icon size={18} className="shrink-0" />
+              <item.icon size={20} className="shrink-0" />
               <span className="truncate">{item.label}</span>
             </button>
           ))}
         </nav>
 
         {/* Account nav */}
-        <nav className="px-3 space-y-0.5 mt-2" aria-label="Konto">
+        <nav className="px-4 space-y-1 mt-3" aria-label="Konto">
           <button
             onClick={() => setActiveTab('settings')}
             className="sm-nav-item"
+            style={{ minHeight: '48px', fontSize: '15px', paddingLeft: '14px', gap: '14px' }}
             aria-current={activeTab === 'settings' ? 'page' : undefined}
           >
-            <Settings size={18} className="shrink-0" />
+            <Settings size={20} className="shrink-0" />
             <span className="truncate">Ustawienia</span>
           </button>
         </nav>
       </div>
 
       {/* Bottom: credits + user */}
-      <div className="px-3 pb-4 space-y-2">
+      <div className="px-4 pb-5 space-y-3">
         {/* Credits */}
-        <div className="flex items-center justify-between gap-2 rounded-[10px] bg-[var(--sm-surface)] p-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-hover)]">
-              <Coins size={16} className="text-[var(--sm-text-quiet)]" />
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-[var(--sm-surface)] p-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
+              <Coins size={18} style={{ color: 'var(--sm-text-quiet)' }} />
             </span>
             <div className="min-w-0">
-              <div className="text-[14px] font-semibold leading-tight">{credits} kredytów</div>
-              <div className="text-[12px] text-[var(--sm-text-quiet)]">
+              <div className="text-[15px] font-semibold leading-tight">{credits} kredytów</div>
+              <div className="text-[13px]" style={{ color: 'var(--sm-text-quiet)' }}>
                 {credits > 0 ? 'Aktywny pakiet' : 'Darmowy plan'}
               </div>
             </div>
           </div>
           <button
             onClick={() => setActiveTab('pricing')}
-            className="shrink-0 min-h-[36px] rounded-[8px] px-3 text-[13px] font-medium text-[var(--sm-accent)] hover:bg-[var(--sm-accent-muted)] cursor-pointer border-none bg-transparent transition-colors"
+            className="shrink-0 min-h-[40px] rounded-[10px] px-4 text-[14px] font-medium cursor-pointer border-none bg-transparent transition-colors"
+            style={{ color: 'var(--sm-accent)' }}
           >
             Doładuj
           </button>
         </div>
 
         {/* User */}
-        <div className="flex items-center justify-between gap-2 px-1">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-hover)] text-[12px] font-semibold text-[var(--sm-text-quiet)]">
+        <div className="flex items-center justify-between gap-3 px-2">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-hover)] text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>
               {(session?.user?.email?.[0] || 'U').toUpperCase()}
             </span>
             <div className="min-w-0">
-              <div className="truncate text-[13px] font-medium">
+              <div className="truncate text-[14px] font-medium">
                 {session?.user?.email?.split('@')[0] || 'Użytkownik'}
               </div>
             </div>
           </div>
           <button
             onClick={onExit}
-            className="sm-icon-btn shrink-0 text-[var(--sm-text-quiet)] hover:text-[var(--sm-danger)]"
+            className="sm-icon-btn shrink-0"
+            style={{ color: 'var(--sm-text-quiet)' }}
             title="Wyloguj"
             aria-label="Wyloguj"
           >
-            <LogOut size={16} />
+            <LogOut size={18} />
           </button>
         </div>
       </div>

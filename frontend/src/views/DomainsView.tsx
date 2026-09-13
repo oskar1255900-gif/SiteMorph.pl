@@ -143,7 +143,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
       style={{ perspective: 1200 }}
     >
       <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
+        <div className="w-12 h-12 rounded-[12px] flex items-center justify-center" style={{ background: 'var(--sm-accent-muted)', color: 'var(--sm-accent)' }}>
           <Globe size={22} />
         </div>
         <div>

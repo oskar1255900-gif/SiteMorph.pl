@@ -366,7 +366,7 @@ export const FinanceSection = () => {
                   <Receipt size={24} />
                 </div>
                 <h4 className="text-[13px] font-semibold">Brak wystawionych faktur</h4>
-                <p className="text-[13px] font-bold opacity-80">Kliknij przycisk powyżej, aby wystawić pierwszą fakturę dla klienta.</p>
+                <p className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Kliknij przycisk powyżej, aby wystawić pierwszą fakturę dla klienta.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">

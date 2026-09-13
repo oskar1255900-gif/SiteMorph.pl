@@ -688,13 +688,13 @@ export const TutorialsView = () => {
       className="max-w-5xl mx-auto py-8 px-6 pb-16 text-[var(--sm-text)]"
       style={{ perspective: 1600 }}
     >
-      <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
+      <motion.div variants={cineSoft} className="flex items-center gap-4 mb-10">
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'var(--sm-accent-muted)', color: 'var(--sm-accent)' }}>
           <GraduationCap size={22} />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>Akademia SiteMorph</h1>
-          <p className="text-[13px] font-bold opacity-80">Poradniki tekstowe — czytaj, kopiuj szablony, wdrażaj od razu.</p>
+          <h1 className="sm-h1">Akademia SiteMorph</h1>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Poradniki tekstowe — czytaj, kopiuj szablony, wdrażaj od razu.</p>
         </div>
       </motion.div>
 

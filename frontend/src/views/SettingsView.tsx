@@ -61,25 +61,25 @@ export const SettingsView = () => {
       className="mx-auto max-w-3xl px-5 py-8 pb-16 text-[var(--sm-text)]"
       style={{ perspective: 1200 }}
     >
-      <motion.div variants={cineSoft} className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md bg-blue-100 dark:bg-neutral-900 text-[#2563eb] dark:text-white border border-[#EAEAEA] dark:border-neutral-800">
+      <motion.div variants={cineSoft} className="flex items-center gap-4 mb-10">
+        <div className="w-12 h-12 rounded-[12px] flex items-center justify-center" style={{ background: 'var(--sm-accent-muted)', color: 'var(--sm-accent)' }}>
           <Settings size={22} />
         </div>
         <div>
           <h1 className="sm-h1">Ustawienia</h1>
-          <p className="text-[13px] font-bold opacity-80">Twoje dane firmy, płatności i faktury w jednym miejscu.</p>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Twoje dane firmy, płatności i faktury w jednym miejscu.</p>
         </div>
       </motion.div>
 
       {needLogin ? (
-        <motion.div variants={itemVariants} className="rounded-2xl border p-6 bg-[#F7F6F3]/40 dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 text-center space-y-2">
-          <p className="text-sm font-semibold">Zaloguj się, aby zarządzać ustawieniami</p>
-          <p className="text-[13px] font-bold opacity-70">Ustawienia są przypisane do Twojego konta SiteMorph.</p>
+        <motion.div variants={itemVariants} className="rounded-[14px] p-8 text-center space-y-3" style={{ background: 'var(--sm-surface)' }}>
+          <p className="text-[18px] font-semibold">Zaloguj się, aby zarządzać ustawieniami</p>
+          <p className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Ustawienia są przypisane do Twojego konta SiteMorph.</p>
         </motion.div>
       ) : loading ? (
         <div className="py-16 text-center text-[13px] font-semibold opacity-60">Ładowanie…</div>
       ) : (
-        <motion.div variants={itemVariants} className="sm-card space-y-6 p-6 sm:p-7">
+        <motion.div variants={itemVariants} className="rounded-[14px] space-y-6 p-6 sm:p-8" style={{ background: 'var(--sm-surface)' }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.hint ? 'sm:col-span-2' : ''}>
@@ -91,12 +91,12 @@ export const SettingsView = () => {
                   placeholder={f.placeholder}
                   className={inputClasses}
                 />
-                {f.hint && <p className="text-[13px] font-bold opacity-60 mt-1">{f.hint}</p>}
+                {f.hint && <p className="sm-hint mt-1">{f.hint}</p>}
               </div>
             ))}
           </div>
-          {err && <p className="text-[13px] font-semibold text-rose-500">{err}</p>}
-          {msg && <p className="text-[13px] font-semibold text-emerald-500">{msg}</p>}
+          {err && <p className="text-[14px] font-medium" style={{ color: 'var(--sm-danger)' }}>{err}</p>}
+          {msg && <p className="text-[14px] font-medium" style={{ color: 'var(--sm-success)' }}>{msg}</p>}
           <div className="flex justify-end pt-2">
             <Button variant="primary" size="sm" onClick={handleSave} disabled={saving} className="font-semibold gap-1.5">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Zapisz ustawienia
