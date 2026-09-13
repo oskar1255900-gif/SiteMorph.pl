@@ -89,7 +89,8 @@ def test_normal_endpoint_one_http_call_spec_to_complete_react(client, monkeypatc
     data = result.json()
     assert post.call_count == data['ai_calls'] == 1
     request = post.call_args.kwargs['json']
-    assert request['max_tokens'] == 32000 and request['model'] == 'deepseek/deepseek-v4-flash'
+    assert request['max_tokens'] == 32000 and request['model'] == 'deepseek/deepseek-v3.2'
+    assert request['stream'] is False and 'stream_options' not in request
     assert 'Mad Mochi: mochi, matcha, sakura' in request['messages'][1]['content']
     assert data['pipeline'] == 'single-spec-design-compiler-react'
     assert data['provider'] == 'xkiro' and data['used_model'] == request['model']
@@ -136,7 +137,7 @@ def test_409_falls_back_fast_and_reports_the_model_that_worked(client, monkeypat
     assert result.status_code == 200, result.text
     data = result.json()
     assert post.call_count == data['ai_calls'] == 2
-    assert data['requested_model'] == 'deepseek/deepseek-v4-flash'
+    assert data['requested_model'] == 'deepseek/deepseek-v3.2'
     assert data['used_model'] == 'mistralai/mistral-small-2603'
     assert data['model'] == data['used_model'] and data['provider'] == 'xkiro'
     assert [attempt['status'] for attempt in data['model_attempts']] == ['unavailable', 'success']
@@ -145,15 +146,24 @@ def test_409_falls_back_fast_and_reports_the_model_that_worked(client, monkeypat
 
 def test_default_routes_use_only_deepseek_mistral_then_gemini():
     assert [(target['provider'], target['model']) for target in b.NORMAL_MODEL_TARGETS] == [
-        ('xkiro', 'deepseek/deepseek-v4-flash'),
+        ('xkiro', 'deepseek/deepseek-v3.2'),
         ('xkiro', 'mistralai/mistral-small-2603'),
         ('gemini', 'gemini-3.5-flash'),
     ]
     assert [(target['provider'], target['model']) for target in b.ULTRA_MODEL_TARGETS] == [
-        ('xkiro', 'deepseek/deepseek-v4-pro'),
+        ('xkiro', 'deepseek/deepseek-v3.2'),
         ('xkiro', 'mistralai/mistral-large-2512'),
         ('gemini', 'gemini-3.5-flash'),
     ]
+
+
+def test_old_xkiro_v4_env_models_are_normalized(monkeypatch):
+    monkeypatch.setenv(
+        'SITEMORPH_TEST_MODELS',
+        'xkiro|deepseek/deepseek-v4-pro,xkiro|deepseek/deepseek-v4-flash',
+    )
+    targets = b._model_targets_env('SITEMORPH_TEST_MODELS', [])
+    assert targets == [{'provider': 'xkiro', 'model': 'deepseek/deepseek-v3.2'}]
 
 
 def test_gemini_native_stream_is_valid_json_fallback(monkeypatch):

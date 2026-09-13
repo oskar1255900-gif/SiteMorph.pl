@@ -75,9 +75,16 @@ GENERATION_ATTEMPTS = 1
 # for older/debug functions; they are not called by /generate.
 DEEPSEEK_MODEL = os.getenv(
     "SITEMORPH_DEEPSEEK_MODEL",
-    "deepseek/deepseek-v4-pro",
+    "deepseek/deepseek-v3.2",
 )
 FABLE_MODEL = "anthropic/claude-fable-5"
+
+# XKIRO removed these identifiers from its live catalogue. Normalising them
+# also repairs deployments that still have the old lists saved in Vercel env.
+XKIRO_MODEL_ALIASES = {
+    "deepseek/deepseek-v4-pro": "deepseek/deepseek-v3.2",
+    "deepseek/deepseek-v4-flash": "deepseek/deepseek-v3.2",
+}
 
 
 def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[str, str]]:
@@ -99,6 +106,8 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
     for provider, model in candidates:
         if provider not in {"xkiro", "openrouter", "gemini"} or not model:
             continue
+        if provider == "xkiro":
+            model = XKIRO_MODEL_ALIASES.get(model, model)
         key = (provider, model)
         if key not in seen:
             seen.add(key)
@@ -110,7 +119,7 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
 # primary XKIRO models; Google's native Gemini API is an independent last-resort
 # provider. Custom provider|model lists can still be supplied through env vars.
 NORMAL_MODEL_TARGETS = _model_targets_env("SITEMORPH_NORMAL_MODELS", [
-    ("xkiro", "deepseek/deepseek-v4-flash"),
+    ("xkiro", "deepseek/deepseek-v3.2"),
     ("xkiro", "mistralai/mistral-small-2603"),
     ("gemini", "gemini-3.5-flash"),
 ])
@@ -357,7 +366,7 @@ def _compatible_generate_model(
     system_prompt: str, user_prompt: str, temperature: float,
     max_tokens: int, timeout: Optional[int],
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Call one OpenAI-compatible stream with bounded idle and total time."""
+    """Call one OpenAI-compatible endpoint; prefer stable JSON over SSE."""
     provider_label = "OpenRouter" if provider == "openrouter" else "XKIRO"
     if not api_key:
         return None, f"Brak klucza {provider_label}"
@@ -367,7 +376,7 @@ def _compatible_generate_model(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "Accept": "text/event-stream",
+        "Accept": "application/json",
         "User-Agent": "SiteMorph/2",
     }
     if provider == "openrouter":
@@ -383,17 +392,15 @@ def _compatible_generate_model(
                 "model": model,
                 "temperature": temperature,
                 "max_tokens": min(int(max_tokens), 32000),
-                "stream": True,
-                "stream_options": {"include_usage": True},
+                "stream": False,
                 "response_format": {"type": "json_object"},
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
             },
-            timeout=(min(MODEL_CONNECT_TIMEOUT, total_timeout),
-                     min(MODEL_FIRST_TOKEN_TIMEOUT, total_timeout)),
-            stream=True,
+            timeout=(min(MODEL_CONNECT_TIMEOUT, total_timeout), total_timeout),
+            stream=False,
         )
         if response.status_code != 200:
             return None, _provider_http_error(provider_label, response)
