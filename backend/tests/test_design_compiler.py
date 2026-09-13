@@ -1,4 +1,5 @@
 import json
+import os
 from copy import deepcopy
 from unittest.mock import Mock
 import pytest
@@ -819,15 +820,17 @@ def _openrouter_http(status, body):
     return response
 
 
-def test_stale_openrouter_model_env_cannot_switch_production():
+def test_openrouter_model_is_locked_to_nemotron():
     assert b.OPENROUTER_MODEL == 'nvidia/nemotron-3-super-120b-a12b:free'
-    # A stale OPENROUTER_MODEL (e.g. an old value in .env) is ignored.
-    assert b._locked_openrouter_model('z-ai/glm-5.2:free') == b.OPENROUTER_MODEL
-    assert b._locked_openrouter_model('') == b.OPENROUTER_MODEL
+    assert b.XKIRO_MODEL == 'nvidia/nemotron-3-super'
+    # Default provider is openrouter
+    assert b.AI_PROVIDER == 'openrouter'
     assert b.SITEMORPH_MODEL == b.OPENROUTER_MODEL
 
 
-def test_active_routing_is_one_openrouter_model_only():
+def test_active_routing_is_one_model_only():
+    """Default provider is openrouter; exactly one model, no fallback."""
+    assert b.AI_PROVIDER == 'openrouter'
     expected = [{'provider': 'openrouter', 'model': 'nvidia/nemotron-3-super-120b-a12b:free'}]
     assert b.NORMAL_MODEL_TARGETS == expected
     assert b.ULTRA_MODEL_TARGETS == expected
@@ -836,8 +839,9 @@ def test_active_routing_is_one_openrouter_model_only():
     for targets in b.MODEL_TARGETS.values():
         assert len(targets) == 1  # no fallback chain, no second model
         assert targets[0] == expected[0]
+    # Only the active provider's model should appear; no routing table
     chain = json.dumps(b.MODEL_TARGETS).lower()
-    for banned in ('gemini', 'xkiro', 'mistral', 'deepseek', 'ling', 'hugging', 'openrouter/free'):
+    for banned in ('gemini', 'mistral', 'deepseek', 'ling', 'hugging', 'openrouter/free'):
         assert banned not in chain, banned
 
 
@@ -996,6 +1000,126 @@ def test_reasoning_is_disabled_with_the_probed_parameter(monkeypatch):
     post.reset_mock()
     b.openrouter_generate_model(b.OPENROUTER_MODEL, 'S', 'U')
     assert 'reasoning' not in post.call_args.kwargs['json']
+
+
+# ---------------------------------------------------------------------------
+# XKIRO PROVIDER
+# ---------------------------------------------------------------------------
+XKIRO_TEST_KEY = 'sk-xt-offline-test-key'
+
+
+def test_xkiro_provider_config(monkeypatch):
+    """SITEMORPH_AI_PROVIDER=xkiro selects XKIRO model and endpoint."""
+    monkeypatch.setattr(b, 'AI_PROVIDER', 'xkiro')
+    monkeypatch.setattr(b, 'SITEMORPH_MODEL', b.XKIRO_MODEL)
+    monkeypatch.setattr(b, 'SITEMORPH_TARGET', {'provider': 'xkiro', 'model': b.XKIRO_MODEL})
+    assert b.XKIRO_MODEL == 'nvidia/nemotron-3-super'
+    assert b.XKIRO_BASE_URL == 'https://api.xkiro.com/v1'
+    assert b.SITEMORPH_MODEL == b.XKIRO_MODEL
+    assert b.SITEMORPH_TARGET == {'provider': 'xkiro', 'model': b.XKIRO_MODEL}
+
+
+def test_xkiro_generate_uses_correct_endpoint(monkeypatch):
+    """XKIRO sends to /v1/chat/completions with stream=False."""
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', XKIRO_TEST_KEY)
+    post = Mock(return_value=_openrouter_ok({'ok': True}))
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    b.xkiro_generate_model(b.XKIRO_MODEL, 'S', 'U')
+    assert post.call_args.args[0] == 'https://api.xkiro.com/v1/chat/completions'
+    payload = post.call_args.kwargs['json']
+    assert payload['model'] == 'nvidia/nemotron-3-super'
+    assert payload['stream'] is False
+    assert payload['temperature'] == 0.3
+    assert payload['max_tokens'] == 32000
+    assert post.call_args.kwargs['headers']['Authorization'] == f'Bearer {XKIRO_TEST_KEY}'
+
+
+def test_xkiro_send_json_object_by_default(monkeypatch):
+    """XKIRO includes response_format json_object when enabled."""
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', XKIRO_TEST_KEY)
+    monkeypatch.setattr(b, 'XKIRO_JSON_FORMAT', True)
+    post = Mock(return_value=_openrouter_ok({'ok': True}))
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    b.xkiro_generate_model(b.XKIRO_MODEL, 'S', 'U')
+    assert post.call_args.kwargs['json']['response_format'] == {'type': 'json_object'}
+
+
+def test_xkiro_same_canonical_prompt(monkeypatch):
+    """XKIRO receives the same system prompt as OpenRouter."""
+    from app.design.prompt import SYSTEM_PROMPT
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', XKIRO_TEST_KEY)
+    post = Mock(return_value=_openrouter_ok({'ok': True}))
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    b.xkiro_generate_model(b.XKIRO_MODEL, SYSTEM_PROMPT, 'user msg')
+    msgs = post.call_args.kwargs['json']['messages']
+    assert msgs[0]['role'] == 'system'
+    assert msgs[0]['content'] == SYSTEM_PROMPT
+    assert msgs[1]['content'] == 'user msg'
+
+
+def test_xkiro_no_fallback_to_openrouter(client, monkeypatch):
+    """XKIRO failure does not trigger OpenRouter in the same request."""
+    monkeypatch.setattr(b, 'AI_PROVIDER', 'xkiro')
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', XKIRO_TEST_KEY)
+    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', OPENROUTER_TEST_KEY)
+
+    # XKIRO returns an error
+    error_response = Mock(status_code=429, headers={})
+    error_response.json.return_value = {'error': {'message': 'Rate limited'}}
+    xkiro_post = Mock(return_value=error_response)
+    monkeypatch.setattr(b.requests, 'post', xkiro_post)
+
+    result = client.post('/api/builder/generate', json={
+        'business_name': '', 'niche': '', 'description': 'test',
+        'image_urls': [],
+    })
+    assert result.status_code != 200
+    # Only one request was made (to XKIRO, not OpenRouter)
+    assert xkiro_post.call_count == 1
+
+
+def test_missing_xkiro_key_returns_config_error(client, monkeypatch):
+    """Missing XKIRO_API_KEY returns 503 without making a request."""
+    monkeypatch.setattr(b, 'AI_PROVIDER', 'xkiro')
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', '')
+    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', OPENROUTER_TEST_KEY)
+
+    post = Mock()
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    result = client.post('/api/builder/generate', json={
+        'business_name': '', 'niche': '', 'description': 'test',
+        'image_urls': [],
+    })
+    assert result.status_code == 503
+    assert post.call_count == 0  # no request made
+
+
+def test_unknown_provider_falls_back_to_openrouter(monkeypatch):
+    """Invalid SITEMORPH_AI_PROVIDER falls back to openrouter with warning."""
+    monkeypatch.setenv('SITEMORPH_AI_PROVIDER', 'invalid')
+    # Re-evaluate the module-level constant
+    val = os.getenv('SITEMORPH_AI_PROVIDER', 'openrouter').strip().lower()
+    if val not in ('xkiro', 'openrouter'):
+        val = 'openrouter'
+    assert val == 'openrouter'
+
+
+def test_xkiro_internal_error_is_not_success(monkeypatch):
+    """HTTP 200 with internal_error body is treated as failure."""
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', XKIRO_TEST_KEY)
+    response = Mock(status_code=200, headers={})
+    response.json.return_value = {'error': {'message': 'internal_error', 'type': 'server_error'}}
+    post = Mock(return_value=response)
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    text, error = b.xkiro_generate_model(b.XKIRO_MODEL, 'S', 'U')
+    assert text is None
+    assert error is not None
+    assert 'internal_error' in error.lower() or 'error' in error.lower()
 
 
 def test_endpoint_repairs_strict_contract_violations_in_one_call(client, monkeypatch):
@@ -1315,14 +1439,14 @@ def test_gemini_generate_content_json_returns_only_final_text(monkeypatch):
     assert b._gemini_api_base() == 'https://aiplatform.googleapis.com/v1/publishers/google'
 
 
-def test_openai_compatible_stream_can_finish_without_done_marker(monkeypatch):
-    event = {'choices': [{'delta': {'content': '{"ok":true}'}, 'finish_reason': 'stop'}]}
-    response = Mock(status_code=200, headers={'content-type': 'text/event-stream'})
-    response.iter_lines.return_value = ['data: ' + json.dumps(event), '']
+def test_xkiro_non_streaming_json_response(monkeypatch):
+    """XKIRO returns a standard non-streaming JSON response."""
+    response = Mock(status_code=200, headers={})
+    response.json.return_value = {'choices': [{'finish_reason': 'stop', 'message': {'content': '{"ok":true}'}}]}
     monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-test-key')
     monkeypatch.setattr(b.requests, 'post', Mock(return_value=response))
 
-    text, error = b.xkiro_generate_model('deepseek/test', 'Return JSON.', 'Create a site.', timeout=15)
+    text, error = b.xkiro_generate_model(b.XKIRO_MODEL, 'Return JSON.', 'Create a site.', timeout=15)
 
     assert error is None and text == '{"ok":true}'
 

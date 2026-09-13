@@ -41,8 +41,8 @@ export const MobileNav = ({
 
   return (
     <>
-      {/* Top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between gap-2 border-b border-[var(--sm-border)] bg-[var(--sm-bg)]/95 px-4 backdrop-blur-xl text-[var(--sm-text)]">
+      {/* Top bar — no border, surface difference */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between gap-2 px-4 backdrop-blur-xl bg-[var(--sm-bg)]/95 text-[var(--sm-text)]">
         <button
           onClick={onExit}
           className="flex min-h-[44px] items-center gap-2 rounded-[8px] bg-transparent border-none px-1 cursor-pointer text-[var(--sm-text)]"
@@ -54,7 +54,7 @@ export const MobileNav = ({
         </button>
 
         <div className="flex items-center gap-1">
-          <span className="hidden min-h-[32px] items-center gap-1.5 rounded-full border border-[var(--sm-border)] bg-[var(--sm-surface-2)] px-3 text-[13px] font-medium sm:inline-flex">
+          <span className="hidden min-h-[32px] items-center gap-1.5 rounded-full bg-[var(--sm-surface)] px-3 text-[13px] font-medium sm:inline-flex">
             <Coins size={13} /> {credits} kr.
           </span>
           <button
@@ -83,20 +83,20 @@ export const MobileNav = ({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setOpen(false)}
-              className="lg:hidden fixed inset-0 z-40 bg-black/50"
+              className="lg:hidden fixed inset-0 z-40 bg-black/60"
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring' as const, stiffness: 400, damping: 32 }}
-              className="lg:hidden fixed top-0 bottom-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col justify-between border-r border-[var(--sm-border)] bg-[var(--sm-bg)] text-[var(--sm-text)] select-none"
+              className="lg:hidden fixed top-0 bottom-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col justify-between bg-[var(--sm-sidebar)] text-[var(--sm-text)] select-none"
               role="dialog"
               aria-modal="true"
               aria-label="Menu nawigacji"
             >
               <div className="min-h-0 flex-1 overflow-y-auto sm-scroll">
-                <div className="flex h-14 items-center justify-between gap-2 border-b border-[var(--sm-border)] px-4">
+                <div className="flex h-14 items-center justify-between gap-2 px-5">
                   <span className="text-[17px] font-semibold tracking-[-0.03em]">
                     Site<span className="sm-brand-gradient">Morph</span>
                   </span>
@@ -105,10 +105,7 @@ export const MobileNav = ({
                   </button>
                 </div>
 
-                <nav className="space-y-0.5 p-3" aria-label="Menu główne">
-                  <div className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
-                    Menu
-                  </div>
+                <nav className="space-y-0.5 px-3" aria-label="Menu główne">
                   {SIDEBAR_MENU.map((item) => (
                     <button
                       key={item.id}
@@ -120,7 +117,7 @@ export const MobileNav = ({
                       <span className="truncate">{item.label}</span>
                     </button>
                   ))}
-                  <div className="sm-divider mx-3 my-2" />
+                  <div className="h-px bg-[var(--sm-border-subtle)] mx-3 my-2" />
                   <button
                     onClick={() => setActiveTab('settings')}
                     className="sm-nav-item"
@@ -132,16 +129,16 @@ export const MobileNav = ({
                 </nav>
               </div>
 
-              {/* Bottom: credits + user */}
-              <div className="space-y-2 border-t border-[var(--sm-border)] p-3">
-                <div className="flex items-center justify-between gap-2 rounded-[8px] bg-[var(--sm-surface-2)] border border-[var(--sm-border)] p-3">
+              {/* Bottom */}
+              <div className="px-3 pb-4 space-y-2">
+                <div className="flex items-center justify-between gap-2 rounded-[10px] bg-[var(--sm-surface)] p-3">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-3)]">
-                      <Coins size={16} className="text-[var(--sm-text-2)]" />
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-hover)]">
+                      <Coins size={16} className="text-[var(--sm-text-quiet)]" />
                     </span>
                     <div className="min-w-0">
                       <div className="text-[14px] font-semibold">{credits} kredytów</div>
-                      <div className="text-[12px] text-[var(--sm-text-3)]">
+                      <div className="text-[12px] text-[var(--sm-text-quiet)]">
                         {credits > 0 ? 'Aktywny pakiet' : 'Darmowy plan'}
                       </div>
                     </div>
@@ -156,22 +153,22 @@ export const MobileNav = ({
 
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-3)] text-[13px] font-semibold text-[var(--sm-text-2)]">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-hover)] text-[12px] font-semibold text-[var(--sm-text-quiet)]">
                       {(session?.user?.email?.[0] || 'U').toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate text-[14px] font-medium">
+                      <div className="truncate text-[13px] font-medium">
                         {session?.user?.email?.split('@')[0] || 'Użytkownik'}
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={onExit}
-                    className="sm-icon-btn shrink-0 text-[var(--sm-text-2)] hover:text-[var(--sm-danger)]"
+                    className="sm-icon-btn shrink-0 text-[var(--sm-text-quiet)] hover:text-[var(--sm-danger)]"
                     title="Wyloguj"
                     aria-label="Wyloguj"
                   >
-                    <LogOut size={18} />
+                    <LogOut size={16} />
                   </button>
                 </div>
               </div>

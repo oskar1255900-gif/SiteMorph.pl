@@ -171,9 +171,9 @@ export const FinanceSection = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[#2563eb] dark:text-white"
+      className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[var(--sm-text)]"
     >
-      <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-3">
+      <div className="flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
         <div>
           <h2 className="text-xl font-semibold">Finanse i Księgowość</h2>
           <p className="text-[13px] font-bold opacity-80">
@@ -214,7 +214,7 @@ export const FinanceSection = () => {
 
           <motion.div
             layout
-            className="p-6 rounded-2xl border text-left space-y-4 shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
+            className="p-6 rounded-[16px] text-left space-y-4" style={{ background: 'var(--sm-surface)' }}
           >
             {setupStep === 1 && (
               <div className="space-y-3">
@@ -250,7 +250,7 @@ export const FinanceSection = () => {
                 <h4 className="font-semibold text-sm">Krok 2: Metody rozliczeń</h4>
                 <p className="text-[13px] font-bold opacity-80">Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
+                <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
                   <span className="text-[13px] font-semibold">Przelew bankowy (IBAN)</span>
                   <input type="checkbox" className="sm-check" checked={usePrzelew} onChange={(e) => setUsePrzelew(e.target.checked)} />
                 </label>
@@ -261,7 +261,7 @@ export const FinanceSection = () => {
                   </div>
                 )}
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
+                <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
                   <span className="text-[13px] font-semibold">BLIK na telefon</span>
                   <input type="checkbox" className="sm-check" checked={useBlik} onChange={(e) => setUseBlik(e.target.checked)} />
                 </label>
@@ -269,7 +269,7 @@ export const FinanceSection = () => {
                   <input type="tel" value={blikPhone} onChange={(e) => setBlikPhone(e.target.value)} placeholder="+48 500 000 000" className={inputClasses} />
                 )}
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer border-[#EAEAEA] dark:border-neutral-800 bg-[#F7F6F3]/40 dark:bg-neutral-950">
+                <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
                   <span className="text-[13px] font-semibold">PayPal</span>
                   <input type="checkbox" className="sm-check" checked={usePaypal} onChange={(e) => setUsePaypal(e.target.checked)} />
                 </label>
@@ -290,7 +290,7 @@ export const FinanceSection = () => {
                   ['BLIK', useBlik ? (blikPhone || '-') : 'wyłączony'],
                   ['PayPal', usePaypal ? (paypalLink || '-') : 'wyłączony'],
                 ].map(([label, value], i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-[#EAEAEA] dark:border-neutral-900 last:border-none">
+                  <div key={i} className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
                     <span className="font-bold opacity-75">{label}:</span>
                     <span className="font-semibold truncate max-w-[60%]">{value}</span>
                   </div>
@@ -339,19 +339,19 @@ export const FinanceSection = () => {
               { title: 'Łączna wartość faktur', value: `${totalRevenue.toFixed(2)} zł`, color: 'text-emerald-500' },
               { title: 'Wystawione faktury', value: invoices.length, color: 'text-[#2563eb] dark:text-white' },
               { title: 'Wysłane e-mailem', value: invoices.filter((i) => i.sent_to).length, color: 'text-[#2563eb] dark:text-white' }
-            ].map((stat, i) => (
-              <motion.div
-                whileHover={{ y: -3 }}
-                key={i}
-                className="p-4 rounded-2xl border shadow-lg bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900"
-              >
+            ].map((stat, i) => (            <motion.div
+            whileHover={{ y: -3 }}
+            key={i}
+            className="p-5 rounded-[14px]"
+            style={{ background: 'var(--sm-surface)' }}
+          >
                 <span className="text-[13px] font-semibold uppercase tracking-wider block mb-1 opacity-70">{stat.title}</span>
                 <span className={`text-xl font-semibold ${stat.color}`}>{stat.value}</span>
               </motion.div>
             ))}
           </div>
 
-          <div className="p-6 rounded-2xl border shadow-xl space-y-4 bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
+          <div className="p-6 rounded-[16px] space-y-4" style={{ background: 'var(--sm-surface)' }}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">Rejestr faktur</span>
               <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-[13px] font-semibold">
@@ -361,7 +361,7 @@ export const FinanceSection = () => {
 
             {invoices.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2 border shadow-sm bg-[#F7F6F3] dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
+                <div className="w-12 h-12 rounded-[12px] flex items-center justify-center mx-auto mb-2" style={{ background: 'var(--sm-surface-hover)' }}>
                   <Receipt size={24} />
                 </div>
                 <h4 className="text-[13px] font-semibold">Brak wystawionych faktur</h4>
@@ -371,7 +371,7 @@ export const FinanceSection = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[13px] border-collapse">
                   <thead>
-                    <tr className="border-b border-[#EAEAEA] dark:border-neutral-900 font-semibold">
+                    <tr className="font-semibold" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
                       <th className="py-2.5">Numer</th>
                       <th className="py-2.5">Klient</th>
                       <th className="py-2.5">Kwota</th>
@@ -389,8 +389,8 @@ export const FinanceSection = () => {
                         <td className="py-3">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
                         <td className="py-3">
                           {inv.sent_to
-                            ? <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-[rgba(22,163,74,0.08)] text-[var(--sm-success)] border border-[rgba(22,163,74,0.2)]">Wysłana</span>
-                            : <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-amber-100 text-amber-800 dark:bg-neutral-900 dark:text-amber-300 border border-amber-400">Oczekująca</span>}
+                            ? <span className="px-2.5 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(22,163,74,0.08)', color: 'var(--sm-success)' }}>Wysłana</span>
+                            : <span className="px-2.5 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>Oczekująca</span>}
                         </td>
                         <td className="py-3 text-right">
                           <a
@@ -428,7 +428,7 @@ export const FinanceSection = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={springTransition}
-              className="w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-4 relative text-left bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-800 text-[#2563eb] dark:text-white max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="w-full max-w-lg rounded-[20px] p-6 space-y-4 relative text-left max-h-[90vh] overflow-y-auto no-scrollbar" style={{ background: 'var(--sm-bg)', color: 'var(--sm-text)' }}
             >
               <motion.button
                 whileHover={{ scale: 1.15 }}
@@ -485,7 +485,7 @@ export const FinanceSection = () => {
                 {formErr && <p className="text-[13px] font-semibold text-rose-500">{formErr}</p>}
                 {formMsg && <p className="text-[13px] font-semibold text-emerald-500">{formMsg}</p>}
 
-                <div className="flex items-center justify-between pt-4 border-t border-[#EAEAEA] dark:border-neutral-900">
+                <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
                   <span className="font-semibold text-sm">Suma: {newAmount || '0'} zł</span>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" type="button" onClick={() => setShowCreateModal(false)}>

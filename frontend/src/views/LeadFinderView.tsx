@@ -406,9 +406,9 @@ export const LeadFinderView = ({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.98 }}
                   transition={{ type: 'spring' as const, stiffness: 400, damping: 28 }}
-                  className="absolute z-30 mt-2 w-full overflow-hidden rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface)] shadow-2xl"
+                  className="absolute z-30 mt-2 w-full overflow-hidden rounded-[14px] bg-[var(--sm-surface-elevated)] shadow-2xl"
                 >
-                  <div className="border-b border-[var(--sm-border)] p-2.5">
+                  <div className="p-3" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
                     <div className="relative">
                       <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sm-text-3)]" />
                       <input
@@ -432,7 +432,7 @@ export const LeadFinderView = ({
                       <button
                         key={`${r.osm_type}_${r.osm_id}_${foldPl(r.name)}`}
                         onClick={() => { setCitySelected(r.name); setCityDetails(r); setCityQuery(r.name); setCityOpen(false) }}
-                        className={`w-full min-h-[56px] border-b border-[var(--sm-border)] px-4 py-2.5 text-left transition last:border-0 hover:bg-[var(--sm-surface-2)] ${citySelected === r.name ? 'bg-[var(--sm-surface-2)]' : ''}`}
+                        className={`w-full min-h-[56px] px-4 py-2.5 text-left transition last:border-0 hover:bg-[var(--sm-surface-hover)] ${citySelected === r.name ? 'bg-[var(--sm-surface-hover)]' : ''}`}
                       >
                         <div className="text-[15px] font-medium leading-tight">{r.name}</div>
                         <div className="truncate text-[13px] leading-tight text-[var(--sm-text-2)]">{r.display_name}</div>
@@ -471,9 +471,9 @@ export const LeadFinderView = ({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.98 }}
                   transition={{ type: 'spring' as const, stiffness: 400, damping: 28 }}
-                  className="absolute z-30 mt-2 w-full overflow-hidden rounded-[12px] border border-[var(--sm-border)] bg-[var(--sm-surface)] shadow-2xl"
+                  className="absolute z-30 mt-2 w-full overflow-hidden rounded-[14px] bg-[var(--sm-surface-elevated)] shadow-2xl"
                 >
-                  <div className="border-b border-[var(--sm-border)] p-2.5">
+                  <div className="p-3" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
                     <div className="relative">
                       <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sm-text-3)]" />
                       <input
@@ -491,7 +491,7 @@ export const LeadFinderView = ({
                       <button
                         key={ind}
                         onClick={() => { setIndustry(ind); setIndustryQuery(''); setIndustryOpen(false) }}
-                        className={`w-full min-h-[44px] border-b border-[var(--sm-border)] px-4 py-2.5 text-left text-[15px] font-medium last:border-0 hover:bg-[var(--sm-surface-2)] transition ${industry===ind ? 'bg-[var(--sm-surface-2)]' : ''}`}
+                        className={`w-full min-h-[48px] px-4 py-3 text-left text-[15px] font-medium last:border-0 hover:bg-[var(--sm-surface-hover)] transition ${industry===ind ? 'bg-[var(--sm-surface-hover)]' : ''}`}
                       >
                         {ind}
                       </button>
@@ -502,7 +502,7 @@ export const LeadFinderView = ({
             </AnimatePresence>
           </div>
         </div>
-        <label className="sm-card-quiet flex min-h-[56px] cursor-pointer items-center gap-3 p-3.5 transition-colors hover:border-[var(--sm-border-strong)]">
+        <label className="flex min-h-[56px] cursor-pointer items-center gap-3 p-4 rounded-[12px] transition-colors" style={{ background: 'var(--sm-surface)' }}>
           <input type="checkbox" checked={onlyWithoutWebsite} onChange={(e) => setOnlyWithoutWebsite(e.target.checked)} className="sm-check" />
           <span className="text-[15px] font-medium">Tylko firmy bez strony</span>
           <span className="ml-auto text-[13px] text-[var(--sm-text-3)]">domyślnie zaznaczone</span>
@@ -521,8 +521,7 @@ export const LeadFinderView = ({
         </p>
       </motion.div>
       {!hasSearched ? (
-        <motion.div variants={cineSoft} className="sm-card mx-auto flex max-w-2xl items-center gap-3.5 p-5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]">
+        <motion.div variants={cineSoft} className="sm-card mx-auto flex max-w-2xl items-center gap-3.5 p-5">                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px]" style={{ background: 'var(--sm-surface-hover)' }}>
             <Search size={19} className="text-[var(--sm-text-3)]" />
           </span>
           <p className="text-[15px] leading-[1.55] text-[var(--sm-text-2)]">
@@ -564,13 +563,13 @@ export const LeadFinderView = ({
                 </button>
               </div>
               {leads.length > 0 && (
-                <div className="flex items-start gap-2.5 rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] px-4 py-3 text-[14px] leading-[1.55] text-[var(--sm-text-2)]">
+                <div className="flex items-start gap-2.5 rounded-[12px] px-4 py-3 text-[14px] leading-[1.55] text-[var(--sm-text-2)]" style={{ background: 'var(--sm-surface)' }}>
                   <Info size={16} className="mt-0.5 shrink-0 text-[var(--sm-text-3)]" />
                   <span>Część firm może mieć stronę mimo braku jej w danych OpenStreetMap — przed kontaktem potwierdź informacje o firmie (przycisk „Otwórz w mapach”).</span>
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex gap-1 rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface)] p-1">
+                <div className="flex gap-1 rounded-[10px] p-1" style={{ background: 'var(--sm-surface)' }}>
                   {(['all','no-website','has-website'] as const).map(f => (
                     <button key={f} onClick={() => setWebsiteFilter(f)} className={`min-h-[44px] px-3.5 rounded-[8px] text-[14px] font-medium transition ${websiteFilter===f ? 'bg-[var(--sm-surface-2)] text-[var(--sm-text)]' : 'text-[var(--sm-text-2)] hover:text-[var(--sm-text)]'}`}>
                       {f==='all' ? 'Wszystkie' : f==='no-website' ? 'Bez strony' : 'Ze stroną'}
@@ -606,7 +605,7 @@ export const LeadFinderView = ({
                       // otwiera profil firmy (oceny, zdjecia, godziny), a nie pusty punkt na mapie
                       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([l.name, addr || '', cityCountry].filter(Boolean).join(' '))}`
                       return (
-                        <motion.div layout key={String(l.id)} className="sm-card flex flex-col gap-3.5 p-5 transition-colors hover:border-[var(--sm-border-strong)]">
+                        <motion.div layout key={String(l.id)} className="flex flex-col gap-3.5 p-5 transition-colors rounded-[14px]" style={{ background: 'var(--sm-surface)' }}>
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <h4 className="truncate text-[17px] font-semibold leading-tight" title={l.name}>{l.name}</h4>
@@ -625,7 +624,7 @@ export const LeadFinderView = ({
                             <div className="flex items-center gap-2"><Phone size={15} className="shrink-0 text-[var(--sm-text-3)]" /><span>{phone || 'Brak danych'}</span></div>
                             <div className="flex items-center gap-2"><Globe size={15} className="shrink-0 text-[var(--sm-text-3)]" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="max-w-[260px] truncate underline">{website}</a> : <span>Brak strony</span>}</div>
                           </div>
-                          <div className="flex flex-wrap gap-2 border-t border-[var(--sm-border)] pt-4">
+                          <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
                             <button
                               onClick={() => handleSave(l)}
                               disabled={!!savingId || isSaved}

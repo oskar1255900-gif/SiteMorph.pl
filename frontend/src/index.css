@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ============================================================================
-   SF Pro Display — local font faces
+   SF Pro Display
    ========================================================================== */
 @font-face {
   font-family: 'SF Pro Display';
@@ -28,24 +28,23 @@
 }
 
 /* ============================================================================
-   DESIGN SYSTEM — SiteMorph
-   One visual language: true white/black, single blue accent (#2563EB).
-   Light: pure white. Dark: true black. No teal, lime, pink, or purple.
-   Red only for errors. Amber only for warnings.
+   DESIGN SYSTEM — Focused AI Workspace
+   No borders as default separator. Surface differences, spacing, typography.
+   Deep black dark mode. Snow white light mode. Single blue accent.
    ========================================================================== */
 :root {
-  /* Light mode — snow white */
+  /* Light — snow white */
   --sm-bg: #FFFFFF;
-  --sm-surface: #FAFAFA;
-  --sm-surface-2: #F4F4F5;
-  --sm-surface-3: #E4E4E7;
+  --sm-sidebar: #FAFAFA;
+  --sm-surface: #F5F5F6;
+  --sm-surface-elevated: #FFFFFF;
+  --sm-surface-hover: #ECECEF;
   --sm-text: #09090B;
-  --sm-text-strong: #09090B;
-  --sm-text-2: #52525B;
-  --sm-text-3: #A1A1AA;
-  --sm-border: #E7E7E9;
-  --sm-border-strong: #D4D4D8;
-  /* Brand accent — single controlled blue */
+  --sm-text-secondary: #52525B;
+  --sm-text-quiet: #71717A;
+  --sm-border: transparent;
+  --sm-border-subtle: rgba(0, 0, 0, 0.06);
+  /* Accent */
   --sm-accent: #2563EB;
   --sm-accent-hover: #1D4ED8;
   --sm-accent-ink: #FFFFFF;
@@ -55,29 +54,33 @@
   --sm-warning: #D97706;
   --sm-success: #16A34A;
   /* Shape */
+  --sm-radius-sm: 8px;
   --sm-radius: 12px;
   --sm-radius-lg: 16px;
-  --sm-radius-sm: 8px;
+  --sm-radius-xl: 20px;
   /* Motion */
   --sm-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --sm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   /* Control sizes */
   --sm-control: 44px;
   --sm-control-lg: 48px;
+  /* Shadows — only for elevated surfaces */
+  --sm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --sm-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --sm-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 html.dark {
-  /* Dark mode — true black */
+  /* Dark — true black */
   --sm-bg: #000000;
-  --sm-surface: #080808;
-  --sm-surface-2: #101010;
-  --sm-surface-3: #1A1A1A;
+  --sm-sidebar: #050505;
+  --sm-surface: #0A0A0B;
+  --sm-surface-elevated: #111113;
+  --sm-surface-hover: #18181B;
   --sm-text: #FAFAFA;
-  --sm-text-strong: #FFFFFF;
-  --sm-text-2: #A1A1AA;
-  --sm-text-3: #71717A;
-  --sm-border: rgba(255, 255, 255, 0.10);
-  --sm-border-strong: rgba(255, 255, 255, 0.16);
+  --sm-text-secondary: #A1A1AA;
+  --sm-text-quiet: #71717A;
+  --sm-border: transparent;
+  --sm-border-subtle: rgba(255, 255, 255, 0.06);
   --sm-accent: #3B82F6;
   --sm-accent-hover: #60A5FA;
   --sm-accent-ink: #FFFFFF;
@@ -85,6 +88,9 @@ html.dark {
   --sm-danger: #EF4444;
   --sm-warning: #F59E0B;
   --sm-success: #22C55E;
+  --sm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --sm-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --sm-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================================================
@@ -110,7 +116,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1, h2, h3, h4, h5 {
@@ -118,7 +124,7 @@ h1, h2, h3, h4, h5 {
   letter-spacing: -0.03em;
   line-height: 1.15;
   margin: 0;
-  color: var(--sm-text-strong);
+  color: var(--sm-text);
 }
 
 ::selection {
@@ -130,11 +136,11 @@ h1, h2, h3, h4, h5 {
    ANIMATIONS
    ========================================================================== */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeIn {
-  animation: fadeIn 0.4s var(--sm-ease) forwards;
+  animation: fadeIn 0.35s var(--sm-ease) forwards;
 }
 
 @keyframes shimmer {
@@ -143,38 +149,37 @@ h1, h2, h3, h4, h5 {
 }
 
 /* ============================================================================
-   PRIMITIVES — used on every screen
+   PRIMITIVES — no borders by default
    ========================================================================== */
 
-/* Card */
+/* Surface card — background difference, no border */
 .sm-card {
   background: var(--sm-surface);
-  border: 1px solid var(--sm-border);
   border-radius: var(--sm-radius);
 }
 
-.sm-card-quiet {
-  background: var(--sm-surface-2);
-  border: 1px solid var(--sm-border);
+.sm-card-elevated {
+  background: var(--sm-surface-elevated);
   border-radius: var(--sm-radius);
+  box-shadow: var(--sm-shadow-sm);
 }
 
-/* Form controls — always 48px height, 16px text (prevents iOS zoom) */
+/* Form controls — no borders, surface difference */
 .sm-input,
 .sm-select,
 .sm-textarea {
   width: 100%;
   min-height: var(--sm-control-lg);
-  padding: 12px 14px;
-  border-radius: var(--sm-radius-sm);
-  border: 1px solid var(--sm-border);
+  padding: 12px 16px;
+  border-radius: var(--sm-radius);
+  border: none;
   background: var(--sm-surface);
   color: var(--sm-text);
   font-size: 16px;
   font-family: inherit;
   line-height: 1.45;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 .sm-textarea {
   min-height: 112px;
@@ -182,23 +187,23 @@ h1, h2, h3, h4, h5 {
 }
 .sm-input::placeholder,
 .sm-textarea::placeholder {
-  color: var(--sm-text-3);
+  color: var(--sm-text-quiet);
 }
-.sm-input:hover:not(:disabled),
-.sm-select:hover:not(:disabled),
-.sm-textarea:hover:not(:disabled) {
-  border-color: var(--sm-border-strong);
+.sm-input:hover,
+.sm-select:hover,
+.sm-textarea:hover {
+  background: var(--sm-surface-hover);
 }
 .sm-input:focus-visible,
 .sm-select:focus-visible,
 .sm-textarea:focus-visible {
-  border-color: var(--sm-accent);
-  box-shadow: 0 0 0 3px var(--sm-accent-muted);
+  background: var(--sm-surface-elevated);
+  box-shadow: 0 0 0 2px var(--sm-accent);
 }
 .sm-input:disabled,
 .sm-select:disabled,
 .sm-textarea:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -207,17 +212,17 @@ h1, h2, h3, h4, h5 {
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: var(--sm-text-2);
+  color: var(--sm-text-secondary);
   margin-bottom: 6px;
   letter-spacing: 0.01em;
 }
 .sm-hint {
   font-size: 13px;
   line-height: 1.5;
-  color: var(--sm-text-3);
+  color: var(--sm-text-quiet);
 }
 
-/* Buttons — 44px standard, 48px CTA */
+/* Buttons — no borders, surface-based */
 .sm-btn {
   display: inline-flex;
   align-items: center;
@@ -225,7 +230,7 @@ h1, h2, h3, h4, h5 {
   gap: 8px;
   min-height: var(--sm-control);
   padding: 0 18px;
-  border: 1px solid var(--sm-border);
+  border: none;
   border-radius: var(--sm-radius-sm);
   background: var(--sm-surface);
   color: var(--sm-text);
@@ -234,18 +239,17 @@ h1, h2, h3, h4, h5 {
   font-family: inherit;
   line-height: 1;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
   user-select: none;
 }
 .sm-btn:hover:not(:disabled) {
-  background: var(--sm-surface-2);
-  border-color: var(--sm-border-strong);
+  background: var(--sm-surface-hover);
 }
 .sm-btn:active:not(:disabled) {
   transform: scale(0.98);
 }
 .sm-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 .sm-btn-lg {
@@ -256,7 +260,6 @@ h1, h2, h3, h4, h5 {
 }
 .sm-btn-primary {
   background: var(--sm-accent);
-  border-color: transparent;
   color: var(--sm-accent-ink);
   font-weight: 600;
 }
@@ -264,23 +267,21 @@ h1, h2, h3, h4, h5 {
   background: var(--sm-accent-hover);
 }
 .sm-btn-ghost {
-  border-color: transparent;
   background: transparent;
   color: var(--sm-text);
 }
 .sm-btn-ghost:hover:not(:disabled) {
-  background: var(--sm-surface-2);
+  background: var(--sm-surface-hover);
 }
 .sm-btn-danger {
   background: transparent;
-  border-color: rgba(220, 38, 38, 0.3);
   color: var(--sm-danger);
 }
 .sm-btn-danger:hover:not(:disabled) {
   background: rgba(220, 38, 38, 0.08);
 }
 
-/* Icon-only button: 44×44 minimum */
+/* Icon button — 44×44 minimum */
 .sm-icon-btn {
   display: inline-grid;
   place-items: center;
@@ -289,14 +290,14 @@ h1, h2, h3, h4, h5 {
   min-width: var(--sm-control);
   min-height: var(--sm-control);
   border-radius: var(--sm-radius-sm);
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: inherit;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 .sm-icon-btn:hover {
-  background: var(--sm-surface-2);
+  background: var(--sm-surface-hover);
 }
 
 /* Focus visible — one style across the app */
@@ -309,7 +310,7 @@ h1, h2, h3, h4, h5 {
   outline-offset: 2px;
 }
 
-/* Nav item — one active style */
+/* Nav item — surface difference, no border */
 .sm-nav-item {
   display: flex;
   align-items: center;
@@ -317,36 +318,35 @@ h1, h2, h3, h4, h5 {
   width: 100%;
   min-height: var(--sm-control);
   padding: 0 14px;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--sm-radius-sm);
   font-size: 14px;
   font-weight: 500;
-  color: var(--sm-text-2);
+  color: var(--sm-text-secondary);
   background: transparent;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
   text-align: left;
 }
 .sm-nav-item:hover {
-  background: var(--sm-surface-2);
+  background: var(--sm-surface-hover);
   color: var(--sm-text);
 }
 .sm-nav-item[aria-current='page'] {
-  background: var(--sm-accent-muted);
-  color: var(--sm-accent);
+  background: var(--sm-surface-hover);
+  color: var(--sm-text);
   font-weight: 600;
 }
 
-/* Pill — only for statuses, filters, toggles */
+/* Pill — only for statuses, filters */
 .sm-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid var(--sm-border);
-  background: var(--sm-surface-2);
-  color: var(--sm-text-2);
+  background: var(--sm-surface);
+  color: var(--sm-text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -357,18 +357,18 @@ h1, h2, h3, h4, h5 {
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: var(--sm-text-strong);
+  color: var(--sm-text);
 }
 .sm-h2 {
   font-size: clamp(20px, 2vw, 26px);
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: var(--sm-text-strong);
+  color: var(--sm-text);
 }
 .sm-sub {
   font-size: 15px;
   line-height: 1.6;
-  color: var(--sm-text-2);
+  color: var(--sm-text-secondary);
 }
 
 /* Brand gradient — blue only */
@@ -383,11 +383,11 @@ h1, h2, h3, h4, h5 {
 /* Scrollbar */
 .sm-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--sm-border-strong) transparent;
+  scrollbar-color: var(--sm-border-subtle) transparent;
 }
 .sm-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .sm-scroll::-webkit-scrollbar-thumb {
-  background: var(--sm-border-strong);
+  background: var(--sm-border-subtle);
   border-radius: 999px;
 }
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -400,16 +400,16 @@ input[type="checkbox"].sm-check {
   width: 20px;
   height: 20px;
   border-radius: 6px;
-  border: 1.5px solid var(--sm-border-strong);
+  border: none;
   background: var(--sm-surface);
   display: inline-grid;
   place-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, transform 0.1s ease;
   flex-shrink: 0;
 }
 input[type="checkbox"].sm-check:hover {
-  border-color: var(--sm-accent);
+  background: var(--sm-surface-hover);
 }
 input[type="checkbox"].sm-check:active {
   transform: scale(0.94);
@@ -425,16 +425,15 @@ input[type="checkbox"].sm-check::before {
 }
 input[type="checkbox"].sm-check:checked {
   background: var(--sm-accent);
-  border-color: var(--sm-accent);
 }
 input[type="checkbox"].sm-check:checked::before {
   transform: scale(1);
 }
 
-/* Divider */
+/* Divider — subtle, not a border */
 .sm-divider {
   height: 1px;
-  background: var(--sm-border);
+  background: var(--sm-border-subtle);
   border: none;
   margin: 0;
 }

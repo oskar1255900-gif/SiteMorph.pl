@@ -71,7 +71,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         <motion.div variants={cineParent} initial="hidden" animate="visible" className="md:col-span-4 space-y-4">
-          <motion.div variants={cineChild} className="rounded-2xl p-5 border shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
+          <motion.div variants={cineChild} className="rounded-[14px] p-5" style={{ background: 'var(--sm-surface)' }}>
             <h3 className="text-sm font-semibold mb-1">Kontakt bezpośredni</h3>
             <p className="text-[13px] font-bold mb-3 opacity-80">Napisz bezpośrednio na nasz email:</p>
             <a href="mailto:support@sitemorph.ai" className="inline-flex min-h-[44px] items-center text-[15px] font-medium text-[var(--sm-accent)] hover:underline">support@sitemorph.ai</a>
@@ -83,7 +83,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="md:col-span-8 rounded-2xl p-8 border shadow-xl bg-white dark:bg-black border-[#EAEAEA] dark:border-neutral-900">
+        <motion.div variants={itemVariants} className="md:col-span-8 rounded-[14px] p-8" style={{ background: 'var(--sm-surface)' }}>
           {sent ? (
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -146,7 +146,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
               exit={{ scale: 0.98, y: 6, opacity: 0 }}
               transition={{ type: 'spring' as const, stiffness: 340, damping: 22 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl p-6 space-y-4"
+              className="relative w-full max-w-sm rounded-[16px] shadow-2xl p-6 space-y-4" style={{ background: 'var(--sm-bg)' }}
             >
               <div className="relative flex items-center justify-between">
                 <h3 className="text-base font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>Panel administratora</h3>

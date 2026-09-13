@@ -53,11 +53,11 @@ export const DashboardSidebar = ({
 }) => {
   return (
     <aside
-      className="hidden lg:flex w-[260px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 border-r border-[var(--sm-border)] bg-[var(--sm-surface)] text-[var(--sm-text)]"
+      className="hidden lg:flex w-[264px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 bg-[var(--sm-sidebar)] text-[var(--sm-text)]"
     >
       <div>
         {/* Header */}
-        <div className="h-16 flex items-center justify-between gap-2 border-b border-[var(--sm-border)] px-4">
+        <div className="h-16 flex items-center justify-between gap-2 px-5">
           <button
             onClick={onExit}
             className="flex min-h-[44px] items-center gap-2 rounded-[8px] border-none bg-transparent px-1.5 cursor-pointer text-[var(--sm-text)]"
@@ -78,8 +78,8 @@ export const DashboardSidebar = ({
         </div>
 
         {/* Main nav */}
-        <nav className="p-3 space-y-0.5" aria-label="Menu główne">
-          <div className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
+        <nav className="px-3 space-y-0.5" aria-label="Menu główne">
+          <div className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-quiet)]">
             Menu
           </div>
           {SIDEBAR_MENU.map((item) => (
@@ -96,10 +96,7 @@ export const DashboardSidebar = ({
         </nav>
 
         {/* Account nav */}
-        <nav className="px-3 space-y-0.5" aria-label="Konto">
-          <div className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
-            Konto
-          </div>
+        <nav className="px-3 space-y-0.5 mt-2" aria-label="Konto">
           <button
             onClick={() => setActiveTab('settings')}
             className="sm-nav-item"
@@ -112,16 +109,16 @@ export const DashboardSidebar = ({
       </div>
 
       {/* Bottom: credits + user */}
-      <div className="space-y-2 border-t border-[var(--sm-border)] p-3">
+      <div className="px-3 pb-4 space-y-2">
         {/* Credits */}
-        <div className="flex items-center justify-between gap-2 rounded-[8px] bg-[var(--sm-surface-2)] border border-[var(--sm-border)] p-3">
+        <div className="flex items-center justify-between gap-2 rounded-[10px] bg-[var(--sm-surface)] p-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-3)]">
-              <Coins size={16} className="text-[var(--sm-text-2)]" />
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-hover)]">
+              <Coins size={16} className="text-[var(--sm-text-quiet)]" />
             </span>
             <div className="min-w-0">
               <div className="text-[14px] font-semibold leading-tight">{credits} kredytów</div>
-              <div className="text-[12px] text-[var(--sm-text-3)]">
+              <div className="text-[12px] text-[var(--sm-text-quiet)]">
                 {credits > 0 ? 'Aktywny pakiet' : 'Darmowy plan'}
               </div>
             </div>
@@ -137,22 +134,22 @@ export const DashboardSidebar = ({
         {/* User */}
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-3)] text-[13px] font-semibold text-[var(--sm-text-2)]">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-hover)] text-[12px] font-semibold text-[var(--sm-text-quiet)]">
               {(session?.user?.email?.[0] || 'U').toUpperCase()}
             </span>
             <div className="min-w-0">
-              <div className="truncate text-[14px] font-medium">
+              <div className="truncate text-[13px] font-medium">
                 {session?.user?.email?.split('@')[0] || 'Użytkownik'}
               </div>
             </div>
           </div>
           <button
             onClick={onExit}
-            className="sm-icon-btn shrink-0 text-[var(--sm-text-2)] hover:text-[var(--sm-danger)]"
+            className="sm-icon-btn shrink-0 text-[var(--sm-text-quiet)] hover:text-[var(--sm-danger)]"
             title="Wyloguj"
             aria-label="Wyloguj"
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
           </button>
         </div>
       </div>

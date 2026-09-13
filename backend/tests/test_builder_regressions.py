@@ -23,7 +23,7 @@ def test_http_failure_never_retries_or_reduces_budget(monkeypatch, status):
     post = Mock(return_value=Mock(status_code=status))
     monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-test-key')
     monkeypatch.setattr(b.requests, 'post', post)
-    files, _, error = b._generate_project_with_retry(b.DEEPSEEK_MODEL, 'business prompt')
+    files, _, error = b._generate_project_with_retry(b.XKIRO_MODEL, 'business prompt')
     assert files is None and error
     assert post.call_count == 1
     assert post.call_args.kwargs['json']['max_tokens'] == 32000
@@ -34,7 +34,7 @@ def test_truncated_completion_is_not_accepted(monkeypatch):
     response.json.return_value = {'choices': [{'finish_reason': 'length', 'message': {'content': json.dumps({'files': _good_project()})}}]}
     monkeypatch.setattr(b, 'XKIRO_API_KEY', 'test')
     monkeypatch.setattr(b.requests, 'post', Mock(return_value=response))
-    assert b._generate_project_with_retry(b.DEEPSEEK_MODEL, 'prompt')[0] is None
+    assert b._generate_project_with_retry(b.XKIRO_MODEL, 'prompt')[0] is None
 
 
 @pytest.mark.parametrize('change', ['empty_css', 'invalid_package', 'missing_import', 'tailwind', 'iframe'])

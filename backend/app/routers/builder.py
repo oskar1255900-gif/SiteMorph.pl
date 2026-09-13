@@ -50,6 +50,14 @@ OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 # these providers; only older debug/revision helpers still read the constants.
 XKIRO_API_KEY = os.getenv("XKIRO_API_KEY", "").strip()
 XKIRO_BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
+XKIRO_MODEL = "nvidia/nemotron-3-super"
+
+# Provider selection: exactly one AI provider per generation.
+# "xkiro" or "openrouter" — never both in the same request.
+AI_PROVIDER = os.getenv("SITEMORPH_AI_PROVIDER", "openrouter").strip().lower()
+if AI_PROVIDER not in ('xkiro', 'openrouter'):
+    logger.warning("SITEMORPH_AI_PROVIDER=%r is not valid; falling back to openrouter.", AI_PROVIDER)
+    AI_PROVIDER = 'openrouter'
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "").strip().rstrip("/")
 # Google AI Studio keys must never be sent to the paid Vertex endpoint. Vertex
@@ -101,25 +109,21 @@ DEEPSEEK_MODEL = os.getenv(
 # -----------------------------------------------------------------------------
 # THE ONLY GENERATION TARGET
 # -----------------------------------------------------------------------------
-# SiteMorph generates sites with exactly one model through OpenRouter. There is
-# deliberately no routing table, no provider list and no fallback: trying a
-# second model would mean a second AI generation for one user request.
+# SiteMorph generates sites with exactly one model through exactly one provider.
+# There is deliberately no routing table, no provider list and no fallback:
+# trying a second model would mean a second AI generation for one user request.
+# The active provider is chosen by SITEMORPH_AI_PROVIDER before any request.
 
 
-def _locked_openrouter_model(configured: str) -> str:
-    """The model is a constant; a differing env value is logged and ignored."""
-    configured = (configured or "").strip()
-    if configured and configured != OPENROUTER_MODEL:
-        logger.warning(
-            "OPENROUTER_MODEL=%r is ignored; SiteMorph is locked to %s.",
-            configured,
-            OPENROUTER_MODEL,
-        )
+def _active_model() -> str:
+    """Return the model identifier for the selected provider."""
+    if AI_PROVIDER == 'xkiro':
+        return XKIRO_MODEL
     return OPENROUTER_MODEL
 
 
-SITEMORPH_MODEL = _locked_openrouter_model(os.getenv("OPENROUTER_MODEL", ""))
-SITEMORPH_TARGET = {"provider": "openrouter", "model": SITEMORPH_MODEL}
+SITEMORPH_MODEL = _active_model()
+SITEMORPH_TARGET = {"provider": AI_PROVIDER, "model": SITEMORPH_MODEL}
 
 # The mode names stay for frontend/pricing compatibility; every mode uses the
 # same single model and the same one-request pipeline.
@@ -627,6 +631,87 @@ PROVIDER_UNAVAILABLE_DETAIL = (
 CONFIGURATION_DETAIL = "Generator AI nie jest jeszcze skonfigurowany. Skontaktuj się z administratorem."
 INVALID_RESPONSE_DETAIL = "Model zwrócił niepoprawną odpowiedź. Spróbuj ponownie za chwilę."
 INVALID_SPEC_DETAIL = "Model nie zwrócił poprawnego planu strony. Spróbuj ponownie za chwilę."
+
+
+# -----------------------------------------------------------------------------
+# XKIRO TRANSPORT
+# -----------------------------------------------------------------------------
+# Direct requests.post to XKIRO, no OpenAI client, no streaming.
+XKIRO_CONNECT_TIMEOUT = max(1.0, float(os.getenv("SITEMORPH_XKIRO_CONNECT_TIMEOUT", "8")))
+XKIRO_TOTAL_TIMEOUT = max(5.0, float(os.getenv("SITEMORPH_XKIRO_TIMEOUT", "90")))
+# Probed against live endpoint: json_object is accepted by XKIRO for nvidia models.
+XKIRO_JSON_FORMAT = os.getenv("SITEMORPH_XKIRO_JSON_FORMAT", "1").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def xkiro_generate_model(
+    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.3,
+    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[float] = None,
+) -> Tuple[Optional[str], Optional[str]]:
+    """The one XKIRO request SiteMorph is allowed to make.
+
+    Plain JSON, never streaming. There is no retry — a failed call returns an
+    error and the endpoint reports it.
+    """
+    if not XKIRO_API_KEY:
+        return None, "Brak klucza XKIRO (XKIRO_API_KEY)."
+    if model != XKIRO_MODEL:
+        return None, f"Model {model} nie jest dozwolony. XKIRO używa wyłącznie {XKIRO_MODEL}."
+
+    total_timeout = max(5.0, float(timeout or XKIRO_TOTAL_TIMEOUT))
+    payload: Dict[str, Any] = {
+        "model": XKIRO_MODEL,
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": min(int(max_tokens), 32000),
+    }
+    if XKIRO_JSON_FORMAT:
+        payload["response_format"] = {"type": "json_object"}
+
+    response = None
+    try:
+        response = requests.post(
+            f"{XKIRO_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {XKIRO_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=(XKIRO_CONNECT_TIMEOUT, total_timeout),
+            stream=False,
+        )
+        if response.status_code != 200:
+            return None, _provider_http_error("XKIRO", response)
+        body = response.json()
+    except requests.Timeout:
+        return None, "XKIRO przekroczył czas odpowiedzi."
+    except requests.RequestException as exc:
+        return None, f"Nie udało się połączyć z XKIRO: {exc.__class__.__name__}"
+    except (ValueError, TypeError, AttributeError):
+        return None, "Nie udało się odczytać odpowiedzi XKIRO."
+    finally:
+        if response is not None and callable(getattr(response, "close", None)):
+            response.close()
+
+    if not isinstance(body, dict):
+        return None, "XKIRO zwrócił niepoprawną odpowiedź."
+    # HTTP 200 with an error body is not success
+    if body.get("error"):
+        return None, _provider_error_message("XKIRO", body["error"], 200, {})
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return None, "XKIRO nie zwrócił żadnej odpowiedzi."
+    choice = choices[0] if isinstance(choices[0], dict) else {}
+    if str(choice.get("finish_reason") or "") == "length":
+        return None, "XKIRO uciął odpowiedź przez limit modelu."
+    message = choice.get("message")
+    content = _openrouter_content_text(message.get("content") if isinstance(message, dict) else None)
+    if not content.strip():
+        return None, "XKIRO zwrócił pustą odpowiedź."
+    return content, None
 
 
 def openrouter_error_status(error: Optional[str]) -> str:
@@ -2572,7 +2657,7 @@ def _generate_project_with_retry(
 ) -> Tuple[Optional[Dict[str, str]], Dict[str, Any], Optional[str]]:
     """Compatibility name; exactly one request, including on HTTP errors."""
     text, err = xkiro_generate_model(
-        model, SYSTEM_PROMPT, generation_prompt, temperature=0.58,
+        XKIRO_MODEL, SYSTEM_PROMPT, generation_prompt, temperature=0.58,
         max_tokens=max_tokens or MAX_OUTPUT_TOKENS, timeout=AI_TIMEOUT,
     )
     if not text:
@@ -2609,7 +2694,7 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
 
 
 def _generate_design_spec(data: BuilderInput, supplied):
-    """Exactly one OpenRouter generation. No fallback, no repair request.
+    """Exactly one AI generation through the configured provider. No fallback, no repair request.
 
     The request is refused before any network call when the key is missing.
     A failed or invalid answer ends the generation instead of silently trying
@@ -2629,19 +2714,33 @@ def _generate_design_spec(data: BuilderInput, supplied):
         "attempts": [],
     }
 
-    if not OPENROUTER_API_KEY:
-        error = "Brak klucza OpenRouter (OPENROUTER_API_KEY)."
-        routing["error_status"] = "unauthorized"
-        logger.warning("SiteMorph generation refused: %s", error)
-        return None, [], error, routing
+    # Check that the selected provider has a valid API key
+    if AI_PROVIDER == 'xkiro':
+        if not XKIRO_API_KEY:
+            error = "Brak klucza XKIRO (XKIRO_API_KEY)."
+            routing["error_status"] = "unauthorized"
+            logger.warning("SiteMorph generation refused: %s", error)
+            return None, [], error, routing
+    else:
+        if not OPENROUTER_API_KEY:
+            error = "Brak klucza OpenRouter (OPENROUTER_API_KEY)."
+            routing["error_status"] = "unauthorized"
+            logger.warning("SiteMorph generation refused: %s", error)
+            return None, [], error, routing
 
     attempt_started = time.monotonic()
-    text, error = openrouter_generate_model(
-        SITEMORPH_MODEL, spec_prompt, request,
-        temperature=0.3, max_tokens=MAX_OUTPUT_TOKENS, timeout=OPENROUTER_TOTAL_TIMEOUT,
-    )
+    if AI_PROVIDER == 'xkiro':
+        text, error = xkiro_generate_model(
+            XKIRO_MODEL, spec_prompt, request,
+            temperature=0.3, max_tokens=MAX_OUTPUT_TOKENS, timeout=XKIRO_TOTAL_TIMEOUT,
+        )
+    else:
+        text, error = openrouter_generate_model(
+            OPENROUTER_MODEL, spec_prompt, request,
+            temperature=0.3, max_tokens=MAX_OUTPUT_TOKENS, timeout=OPENROUTER_TOTAL_TIMEOUT,
+        )
     attempt: Dict[str, Any] = {
-        "provider": "openrouter",
+        "provider": AI_PROVIDER,
         "model": SITEMORPH_MODEL,
         "status": "success",
         "duration_ms": round((time.monotonic() - attempt_started) * 1000),
@@ -2653,8 +2752,8 @@ def _generate_design_spec(data: BuilderInput, supplied):
         attempt["status"] = openrouter_error_status(error)
         routing["error_status"] = attempt["status"]
         logger.warning(
-            "SiteMorph OpenRouter call failed after %s ms (%s): %s",
-            attempt["duration_ms"], attempt["status"], error[:1000],
+            "SiteMorph %s call failed after %s ms (%s): %s",
+            AI_PROVIDER, attempt["duration_ms"], attempt["status"], error[:1000],
         )
         return None, [], error[:1800], routing
 
@@ -2666,7 +2765,7 @@ def _generate_design_spec(data: BuilderInput, supplied):
         detail = " ".join(str(exc).split("\n")[:4])[:500]
         attempt["status"] = "invalid_response"
         routing["error_status"] = "invalid_response"
-        logger.warning("SiteMorph OpenRouter returned invalid JSON: %s", detail)
+        logger.warning("SiteMorph %s returned invalid JSON: %s", AI_PROVIDER, detail)
         return None, [], f"Niepoprawny JSON w odpowiedzi modelu ({detail})", routing
 
     if json_repaired:
@@ -2701,10 +2800,10 @@ def _generate_design_spec(data: BuilderInput, supplied):
         if paths:
             attempt["validation_errors"] = paths
         routing["error_status"] = "invalid_spec"
-        logger.warning("SiteMorph OpenRouter returned an invalid design spec: %s", detail[:2000])
+        logger.warning("SiteMorph %s returned an invalid design spec: %s", AI_PROVIDER, detail[:2000])
         return None, [], f"Niepoprawny plan strony ({detail})", routing
 
-    routing["used_provider"] = "openrouter"
+    routing["used_provider"] = AI_PROVIDER
     routing["used_model"] = SITEMORPH_MODEL
     return spec, warnings, None, routing
 
@@ -2716,7 +2815,9 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     from app.design.prompt import PROMPT_VERSION as spec_prompt_version
     if not current_user.get("id") or current_user.get("is_anon") or current_user["id"] == "anon":
         raise HTTPException(status_code=401, detail="Zaloguj się, aby wygenerować stronę.")
-    if not OPENROUTER_API_KEY:
+    if AI_PROVIDER == 'xkiro' and not XKIRO_API_KEY:
+        raise HTTPException(status_code=503, detail=CONFIGURATION_DETAIL)
+    if AI_PROVIDER == 'openrouter' and not OPENROUTER_API_KEY:
         raise HTTPException(status_code=503, detail=CONFIGURATION_DETAIL)
     started = time.perf_counter()
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
