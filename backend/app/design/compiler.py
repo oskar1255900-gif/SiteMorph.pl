@@ -39,7 +39,9 @@ def compile_design(spec, resolved):
     }
     for path in sorted(RUNTIME.iterdir()):
         if path.suffix in {'.tsx', '.ts', '.css'}:
-            files[ROOT + 'src/runtime/' + path.name] = path.read_text()
+            # The runtime sources are UTF-8; never inherit the platform locale
+            # (cp1250/Windows would raise UnicodeDecodeError on Polish copy).
+            files[ROOT + 'src/runtime/' + path.name] = path.read_text(encoding='utf-8')
     imports, components = [], []
     for index, section in enumerate(sections):
         name = 'Section' + str(index + 1)
