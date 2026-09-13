@@ -155,7 +155,8 @@ def test_generation_failure_has_no_success_fallback(client, monkeypatch):
     generate = Mock(return_value=(None, {}, 'Provider HTTP 524', routing))
     monkeypatch.setattr(b, '_generate_design_spec', generate)
     response = client.post('/api/builder/generate', json={'business_name': 'A', 'description': 'A', 'niche': ''})
-    assert response.status_code == 502
+    assert response.status_code == 503
+    assert response.json()['detail'] == 'Modele AI są chwilowo przeciążone. Spróbuj ponownie za kilkanaście sekund.'
     assert generate.call_count == 1
 
 

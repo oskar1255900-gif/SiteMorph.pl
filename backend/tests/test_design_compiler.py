@@ -12,6 +12,15 @@ from design_fixtures import fixture, supplied_urls
 from test_builder_regressions import client  # isolated SQLite + authenticated TestClient fixture
 
 
+@pytest.fixture(autouse=True)
+def reset_model_cooldowns():
+    with b._MODEL_COOLDOWNS_LOCK:
+        b._MODEL_COOLDOWNS.clear()
+    yield
+    with b._MODEL_COOLDOWNS_LOCK:
+        b._MODEL_COOLDOWNS.clear()
+
+
 @pytest.mark.parametrize('brand', ['mochi', 'architecture', 'techno', 'law', 'detailing'])
 def test_real_runtime_compiles_distinct_businesses(brand):
     payload = fixture(brand)
@@ -102,14 +111,14 @@ def test_invalid_spec_tries_next_configured_model_without_ai_repair(client, monk
     post = Mock(return_value=response)
     monkeypatch.setattr(b.requests, 'post', post)
     result = client.post('/api/builder/generate', json={'business_name': 'Mochi', 'niche': '', 'description': 'mochi'})
-    assert result.status_code == 502
+    assert result.status_code == 503
     assert 1 < post.call_count <= b.MAX_MODEL_ATTEMPTS
 
 
 def test_409_falls_back_fast_and_reports_the_model_that_worked(client, monkeypatch):
     payload = fixture('mochi')
     monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-test-key')
-    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', 'offline-openrouter-key')
+    monkeypatch.setattr(b, 'GEMINI_API_KEY', '')
 
     unavailable = Mock(status_code=409, headers={})
     unavailable.json.return_value = {'error': {'code': 'conflict', 'message': 'model busy'}}
@@ -128,11 +137,93 @@ def test_409_falls_back_fast_and_reports_the_model_that_worked(client, monkeypat
     data = result.json()
     assert post.call_count == data['ai_calls'] == 2
     assert data['requested_model'] == 'deepseek/deepseek-v4-flash'
-    assert data['used_model'] == 'inclusionai/ling-3.0-flash-vl:free'
-    assert data['model'] == data['used_model'] and data['provider'] == 'openrouter'
+    assert data['used_model'] == 'mistralai/mistral-small-2603'
+    assert data['model'] == data['used_model'] and data['provider'] == 'xkiro'
     assert [attempt['status'] for attempt in data['model_attempts']] == ['unavailable', 'success']
-    assert post.call_args_list[1].args[0] == 'https://openrouter.ai/api/v1/chat/completions'
-    assert post.call_args_list[1].kwargs['headers']['X-Title'] == 'SiteMorph'
+    assert post.call_args_list[1].args[0] == 'https://api.xkiro.com/v1/chat/completions'
+
+
+def test_default_routes_use_only_deepseek_mistral_then_gemini():
+    assert [(target['provider'], target['model']) for target in b.NORMAL_MODEL_TARGETS] == [
+        ('xkiro', 'deepseek/deepseek-v4-flash'),
+        ('xkiro', 'mistralai/mistral-small-2603'),
+        ('gemini', 'gemini-3.5-flash'),
+    ]
+    assert [(target['provider'], target['model']) for target in b.ULTRA_MODEL_TARGETS] == [
+        ('xkiro', 'deepseek/deepseek-v4-pro'),
+        ('xkiro', 'mistralai/mistral-large-2512'),
+        ('gemini', 'gemini-3.5-flash'),
+    ]
+
+
+def test_gemini_native_stream_is_valid_json_fallback(monkeypatch):
+    first = {'candidates': [{'content': {'parts': [{'text': '{"ok":'}]}}]}
+    last = {'candidates': [{'content': {'parts': [{'text': 'true}'}]}, 'finishReason': 'STOP'}]}
+    response = Mock(status_code=200, headers={'content-type': 'text/event-stream'})
+    response.iter_lines.return_value = [
+        'data: ' + json.dumps(first), '',
+        'data: malformed-provider-event', '',
+        'data: ' + json.dumps(last), '',
+    ]
+    post = Mock(return_value=response)
+    monkeypatch.setattr(b, 'GEMINI_API_KEY', 'AQ.offline-gemini-key')
+    monkeypatch.setattr(b, 'GEMINI_BASE_URL', '')
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    text, error = b.gemini_generate_model(
+        'gemini-3.5-flash', 'Return JSON.', 'Create a site.', timeout=15,
+    )
+
+    assert error is None and text == '{"ok":true}'
+    call = post.call_args
+    assert call.args[0].startswith('https://aiplatform.googleapis.com/v1/publishers/google/')
+    assert call.args[0].endswith('/models/gemini-3.5-flash:streamGenerateContent?alt=sse')
+    assert 'offline-gemini-key' not in call.args[0]
+    assert call.kwargs['headers']['x-goog-api-key'] == 'AQ.offline-gemini-key'
+    assert call.kwargs['json']['generationConfig']['responseMimeType'] == 'application/json'
+    assert call.kwargs['json']['generationConfig']['maxOutputTokens'] == 32000
+
+
+def test_xkiro_auth_failure_skips_to_independent_gemini_provider(client, monkeypatch):
+    payload = fixture('mochi')
+    unavailable = Mock(status_code=401, headers={})
+    unavailable.json.return_value = {'error': {'code': 'unauthorized', 'message': 'invalid key'}}
+    success = Mock(status_code=200, headers={'content-type': 'application/json'})
+    success.json.return_value = {
+        'candidates': [{
+            'content': {'parts': [{'text': json.dumps(payload)}]},
+            'finishReason': 'STOP',
+        }],
+    }
+    post = Mock(side_effect=[unavailable, success])
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-xkiro-key')
+    monkeypatch.setattr(b, 'GEMINI_API_KEY', 'offline-gemini-key')
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    result = client.post('/api/builder/generate', json={
+        'business_name': '', 'niche': '', 'description': 'Mad Mochi',
+        'image_urls': supplied_urls(payload),
+    })
+
+    assert result.status_code == 200, result.text
+    data = result.json()
+    assert post.call_count == data['ai_calls'] == 2
+    assert data['provider'] == 'gemini' and data['used_model'] == 'gemini-3.5-flash'
+    assert post.call_args_list[1].args[0].endswith(
+        '/models/gemini-3.5-flash:streamGenerateContent?alt=sse'
+    )
+
+
+def test_openai_compatible_stream_can_finish_without_done_marker(monkeypatch):
+    event = {'choices': [{'delta': {'content': '{"ok":true}'}, 'finish_reason': 'stop'}]}
+    response = Mock(status_code=200, headers={'content-type': 'text/event-stream'})
+    response.iter_lines.return_value = ['data: ' + json.dumps(event), '']
+    monkeypatch.setattr(b, 'XKIRO_API_KEY', 'offline-test-key')
+    monkeypatch.setattr(b.requests, 'post', Mock(return_value=response))
+
+    text, error = b.xkiro_generate_model('deepseek/test', 'Return JSON.', 'Create a site.', timeout=15)
+
+    assert error is None and text == '{"ok":true}'
 
 
 @pytest.mark.parametrize('error', [

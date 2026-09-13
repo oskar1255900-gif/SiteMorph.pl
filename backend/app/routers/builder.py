@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any, Tuple
 import html
 import json
+import logging
 import os
 import re
 import shutil
@@ -11,6 +12,7 @@ import time
 import uuid
 import requests
 from pathlib import Path
+from threading import Lock
 
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
@@ -39,24 +41,30 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
 OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://sitemorph.pl").strip()
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "SiteMorph").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "").strip().rstrip("/")
+GEMINI_DEVELOPER_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+GEMINI_EXPRESS_BASE_URL = "https://aiplatform.googleapis.com/v1/publishers/google"
+
+logger = logging.getLogger(__name__)
 
 # The active pipeline is one compact design-spec response plus deterministic
 # validation/assets/React compilation. Hosting timeouts are configurable; they
 # are limits, never promised generation durations.
 _IS_VERCEL = os.getenv("VERCEL") == "1"
 
-# Quality must never be silently reduced on production. DeepSeek V4 Pro gets a
-# 32k output-token ceiling on BOTH Vercel and local. 32k is a LIMIT, not a target:
-# the model generates as many tokens as the site actually needs (typically far
-# fewer), so the Vercel 300s function cap is only at risk on unusually long runs.
-# Provider errors are surfaced; no retries or smaller token ceilings.
+# Quality must never be silently reduced on production. The 32k output ceiling
+# is a LIMIT, not a target. A successful generation is one AI call; another
+# model is contacted only after a provider failure or an invalid design spec.
 MAX_OUTPUT_TOKENS = int(os.getenv("SITEMORPH_MAX_OUTPUT_TOKENS", "32000"))
 AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450"))
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
 MODEL_CONNECT_TIMEOUT = max(1.0, float(os.getenv("SITEMORPH_MODEL_CONNECT_TIMEOUT", "5")))
 MODEL_FIRST_TOKEN_TIMEOUT = max(3.0, float(os.getenv("SITEMORPH_MODEL_FIRST_TOKEN_TIMEOUT", "12")))
 MODEL_ROUTING_BUDGET = max(15.0, float(os.getenv("SITEMORPH_MODEL_ROUTING_BUDGET", "55")))
-MAX_MODEL_ATTEMPTS = max(1, min(8, int(os.getenv("SITEMORPH_MAX_MODEL_ATTEMPTS", "5"))))
+MODEL_ATTEMPT_TIMEOUT = max(6.0, float(os.getenv("SITEMORPH_MODEL_ATTEMPT_TIMEOUT", "18")))
+MODEL_COOLDOWN_SECONDS = max(0.0, float(os.getenv("SITEMORPH_MODEL_COOLDOWN_SECONDS", "45")))
+MAX_MODEL_ATTEMPTS = max(1, min(6, int(os.getenv("SITEMORPH_MAX_MODEL_ATTEMPTS", "3"))))
 # Compatibility only: the AI standalone-preview path is disabled (GENERATE_STANDALONE_PREVIEW=False)
 # and never runs inside /generate.
 PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "16000"))
@@ -89,7 +97,7 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
     targets: List[Dict[str, str]] = []
     seen = set()
     for provider, model in candidates:
-        if provider not in {"xkiro", "openrouter"} or not model:
+        if provider not in {"xkiro", "openrouter", "gemini"} or not model:
             continue
         key = (provider, model)
         if key not in seen:
@@ -98,28 +106,23 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
     return targets
 
 
-# Normal favours speed. Ultra starts with the strongest DeepSeek model. Every
-# entry is still only a design-spec request; React is compiled deterministically.
+# Keep the default route deliberately short. DeepSeek and Mistral remain the
+# primary XKIRO models; Google's native Gemini API is an independent last-resort
+# provider. Custom provider|model lists can still be supplied through env vars.
 NORMAL_MODEL_TARGETS = _model_targets_env("SITEMORPH_NORMAL_MODELS", [
     ("xkiro", "deepseek/deepseek-v4-flash"),
-    ("openrouter", "inclusionai/ling-3.0-flash-vl:free"),
-    ("xkiro", "mistralai/mistral-large-2512"),
-    ("xkiro", "minimax/minimax-m2.7-highspeed:free"),
-    ("xkiro", DEEPSEEK_MODEL),
+    ("xkiro", "mistralai/mistral-small-2603"),
+    ("gemini", "gemini-3.5-flash"),
 ])
 ULTRA_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_MODELS", [
     ("xkiro", DEEPSEEK_MODEL),
-    ("openrouter", "inclusionai/ling-3.0-flash-vl:free"),
     ("xkiro", "mistralai/mistral-large-2512"),
-    ("xkiro", "minimax/minimax-m3:free"),
-    ("openrouter", "thinkingmachines/inkling-small:free"),
+    ("gemini", "gemini-3.5-flash"),
 ])
 ULTRA_PLUS_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_PLUS_MODELS", [
     ("xkiro", DEEPSEEK_MODEL),
-    ("openrouter", "inclusionai/ling-3.0-flash-vl:free"),
-    ("openrouter", "nvidia/nemotron-3-ultra-550b-a55b:free"),
     ("xkiro", "mistralai/mistral-large-2512"),
-    ("openrouter", "nex-agi/nex-n2.5-pro:free"),
+    ("gemini", "gemini-3.5-flash"),
 ])
 MODEL_TARGETS = {
     "normal": NORMAL_MODEL_TARGETS,
@@ -133,6 +136,38 @@ MODEL_MAP = {mode: targets[0]["model"] if targets else DEEPSEEK_MODEL
              for mode, targets in MODEL_TARGETS.items()}
 FALLBACK_CHAIN = [target["model"] for target in NORMAL_MODEL_TARGETS[1:]]
 
+_MODEL_COOLDOWNS: Dict[Tuple[str, str], float] = {}
+_MODEL_COOLDOWNS_LOCK = Lock()
+
+
+def _target_key(target: Dict[str, str]) -> Tuple[str, str]:
+    return target["provider"], target["model"]
+
+
+def _target_cooldown_remaining(target: Dict[str, str]) -> float:
+    """Avoid repeatedly waiting for a target that just failed on this worker."""
+    key = _target_key(target)
+    now = time.monotonic()
+    with _MODEL_COOLDOWNS_LOCK:
+        until = _MODEL_COOLDOWNS.get(key, 0.0)
+        if until <= now:
+            _MODEL_COOLDOWNS.pop(key, None)
+            return 0.0
+        return until - now
+
+
+def _cooldown_target(target: Dict[str, str]) -> None:
+    if MODEL_COOLDOWN_SECONDS <= 0:
+        return
+    with _MODEL_COOLDOWNS_LOCK:
+        _MODEL_COOLDOWNS[_target_key(target)] = time.monotonic() + MODEL_COOLDOWN_SECONDS
+
+
+def _clear_target_cooldown(target: Dict[str, str]) -> None:
+    with _MODEL_COOLDOWNS_LOCK:
+        _MODEL_COOLDOWNS.pop(_target_key(target), None)
+
+
 def _is_model_unavailable(error: Optional[str]) -> bool:
     """True for provider/model failures where trying the next target can help."""
     if not error:
@@ -142,7 +177,7 @@ def _is_model_unavailable(error: Optional[str]) -> bool:
         "capacity", "internal_error", "temporarily", "overloaded",
         "rate limit", "too many", "timeout", "timed out", "przekroczyło czas", "przekroczył czas",
         "connection", "połączyć", "przerwane", "reset", "empty response",
-        "pustą odpowiedź", "unsupported", "not supported", "model not found",
+        "pustą odpowiedź", "uszkodzony fragment", "unsupported", "not supported", "model not found",
         "http 408", "http 409", "conflict", "http 425", "http 429",
         "http 500", "http 502", "http 503", "http 504", "http 524", "http 529",
     ))
@@ -281,6 +316,42 @@ def extract_json_array(text: str) -> list:
     return json.loads(cleaned[start : end + 1])
 
 
+def _iter_sse_payloads(response: Any, deadline: float):
+    """Yield SSE data payloads and handle both standard and compact streams."""
+    pending: List[str] = []
+    for raw_line in response.iter_lines(decode_unicode=True):
+        if time.monotonic() > deadline:
+            raise requests.Timeout()
+        line = raw_line.decode("utf-8", "replace") if isinstance(raw_line, bytes) else str(raw_line or "")
+        if not line:
+            if pending:
+                yield "\n".join(pending)
+                pending = []
+            continue
+        if line.startswith(":") or not line.startswith("data:"):
+            continue
+
+        value = line[5:].lstrip()
+        if not pending:
+            pending = [value]
+            continue
+
+        current = "\n".join(pending)
+        try:
+            if current != "[DONE]":
+                json.loads(current)
+        except json.JSONDecodeError:
+            # A standards-compliant SSE server may split one JSON event over
+            # multiple data lines. Join those lines before declaring it broken.
+            pending.append(value)
+        else:
+            yield current
+            pending = [value]
+
+    if pending:
+        yield "\n".join(pending)
+
+
 def _compatible_generate_model(
     provider: str, api_key: str, base_url: str, model: str,
     system_prompt: str, user_prompt: str, temperature: float,
@@ -345,22 +416,18 @@ def _compatible_generate_model(
         finish_reason = None
         done = False
         saw_error = None
-        for raw_line in response.iter_lines(decode_unicode=True):
-            if time.monotonic() > deadline:
-                return None, f"{provider_label} przekroczył całkowity czas odpowiedzi."
-            if not raw_line:
-                continue
-            line = raw_line.decode("utf-8", "replace") if isinstance(raw_line, bytes) else str(raw_line)
-            if not line.startswith("data:"):
-                continue
-            payload = line[5:].strip()
+        malformed_events = 0
+        for payload in _iter_sse_payloads(response, deadline):
             if payload == "[DONE]":
                 done = True
                 break
             try:
                 event = json.loads(payload)
             except json.JSONDecodeError:
-                return None, f"{provider_label} zwrócił uszkodzony fragment odpowiedzi strumieniowej."
+                malformed_events += 1
+                if malformed_events > 2:
+                    return None, f"{provider_label} zwrócił uszkodzony fragment odpowiedzi strumieniowej."
+                continue
             if event.get("error"):
                 saw_error = event["error"]
                 break
@@ -378,13 +445,16 @@ def _compatible_generate_model(
 
         if saw_error:
             return None, _provider_error_message(provider_label, saw_error, 200, response.headers)
-        if not done:
-            return None, f"Połączenie z {provider_label} zostało przerwane przed zakończeniem odpowiedzi."
         if finish_reason == "length":
             return None, f"{provider_label} uciął odpowiedź przez limit modelu."
         if finish_reason in {"content_filter", "error"}:
             return None, f"{provider_label} zakończył odpowiedź: {finish_reason}."
         content = "".join(parts).strip()
+        # Some compatible providers omit [DONE]. A complete JSON response is
+        # still passed to strict spec validation; a truncated one is rejected
+        # there and routing continues to the next model.
+        if not done and not content:
+            return None, f"Połączenie z {provider_label} zostało przerwane przed zakończeniem odpowiedzi."
         return (content, None) if content else (None, f"{provider_label} zwrócił pustą odpowiedź.")
     except requests.Timeout:
         return None, f"{provider_label} przekroczył czas odpowiedzi."
@@ -417,6 +487,117 @@ def openrouter_generate_model(
         "openrouter", OPENROUTER_API_KEY, OPENROUTER_BASE_URL, model,
         system_prompt, user_prompt, temperature, max_tokens, timeout,
     )
+
+
+def _gemini_text(body: Any) -> Tuple[str, Optional[str]]:
+    if not isinstance(body, dict):
+        return "", None
+    candidates = body.get("candidates") or []
+    if not candidates:
+        block = body.get("promptFeedback", {}).get("blockReason")
+        return "", str(block) if block else None
+    candidate = candidates[0] if isinstance(candidates[0], dict) else {}
+    parts = candidate.get("content", {}).get("parts") or []
+    text = "".join(
+        str(part.get("text", "")) for part in parts
+        if isinstance(part, dict) and isinstance(part.get("text"), str)
+    )
+    return text, candidate.get("finishReason")
+
+
+def _gemini_api_base() -> str:
+    if GEMINI_BASE_URL:
+        return GEMINI_BASE_URL
+    # Google Cloud Express keys are encrypted strings beginning with AQ.; the
+    # Express endpoint omits project and location. AI Studio keys use the
+    # Gemini Developer API endpoint.
+    return GEMINI_EXPRESS_BASE_URL if GEMINI_API_KEY.startswith("AQ.") else GEMINI_DEVELOPER_BASE_URL
+
+
+def gemini_generate_model(
+    model: str, system_prompt: str, user_prompt: str, temperature: float = 0.58,
+    max_tokens: int = MAX_OUTPUT_TOKENS, timeout: Optional[int] = None,
+) -> Tuple[Optional[str], Optional[str]]:
+    """Call Google's native Gemini SSE endpoint without exposing the key in the URL."""
+    if not GEMINI_API_KEY:
+        return None, "Brak klucza Gemini"
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", model):
+        return None, "Niepoprawna nazwa modelu Gemini."
+
+    total_timeout = max(3.0, float(timeout or AI_TIMEOUT))
+    deadline = time.monotonic() + total_timeout
+    response = None
+    try:
+        response = requests.post(
+            f"{_gemini_api_base()}/models/{model}:streamGenerateContent?alt=sse",
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+                "User-Agent": "SiteMorph/2",
+            },
+            json={
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": min(int(max_tokens), 32000),
+                    "responseMimeType": "application/json",
+                },
+            },
+            timeout=(min(MODEL_CONNECT_TIMEOUT, total_timeout),
+                     min(MODEL_FIRST_TOKEN_TIMEOUT, total_timeout)),
+            stream=True,
+        )
+        if response.status_code != 200:
+            return None, _provider_http_error("Gemini", response)
+
+        content_type = str(response.headers.get("content-type", "")).lower()
+        if "text/event-stream" not in content_type:
+            body = response.json()
+            if isinstance(body, dict) and body.get("error"):
+                return None, _provider_error_message("Gemini", body["error"], response.status_code, response.headers)
+            content, finish_reason = _gemini_text(body)
+            if str(finish_reason).upper() == "MAX_TOKENS":
+                return None, "Gemini uciął odpowiedź przez limit modelu."
+            return (content, None) if content.strip() else (None, "Gemini zwrócił pustą odpowiedź.")
+
+        parts: List[str] = []
+        finish_reason = None
+        malformed_events = 0
+        for payload in _iter_sse_payloads(response, deadline):
+            if payload == "[DONE]":
+                break
+            try:
+                event = json.loads(payload)
+            except json.JSONDecodeError:
+                malformed_events += 1
+                if malformed_events > 2:
+                    return None, "Gemini zwrócił uszkodzony fragment odpowiedzi strumieniowej."
+                continue
+            if isinstance(event, dict) and event.get("error"):
+                return None, _provider_error_message("Gemini", event["error"], 200, response.headers)
+            text, reason = _gemini_text(event)
+            if text:
+                parts.append(text)
+            if reason:
+                finish_reason = str(reason).upper()
+
+        if finish_reason == "MAX_TOKENS":
+            return None, "Gemini uciął odpowiedź przez limit modelu."
+        if finish_reason in {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"}:
+            return None, f"Gemini zatrzymał odpowiedź ({finish_reason})."
+        content = "".join(parts).strip()
+        return (content, None) if content else (None, "Gemini zwrócił pustą odpowiedź.")
+    except requests.Timeout:
+        return None, "Gemini przekroczył czas odpowiedzi."
+    except requests.RequestException as exc:
+        return None, f"Nie udało się połączyć z Gemini: {exc.__class__.__name__}"
+    except (ValueError, TypeError, AttributeError):
+        return None, "Nie udało się odczytać kompletnej odpowiedzi Gemini."
+    finally:
+        if response is not None and callable(getattr(response, "close", None)):
+            response.close()
 
 
 def _provider_error_message(provider: str, error: Any, status: int, headers: Any) -> str:
@@ -2277,13 +2458,20 @@ def _make_art_input(data: BuilderInput) -> DesignAgentInput:
 def _provider_configured(provider: str) -> bool:
     if provider == "openrouter":
         return bool(OPENROUTER_API_KEY)
+    if provider == "gemini":
+        return bool(GEMINI_API_KEY)
     return bool(XKIRO_API_KEY)
 
 
 def _call_model_target(
     target: Dict[str, str], system_prompt: str, user_prompt: str, timeout: float,
 ) -> Tuple[Optional[str], Optional[str]]:
-    generate = openrouter_generate_model if target["provider"] == "openrouter" else xkiro_generate_model
+    generators = {
+        "xkiro": xkiro_generate_model,
+        "openrouter": openrouter_generate_model,
+        "gemini": gemini_generate_model,
+    }
+    generate = generators[target["provider"]]
     return generate(
         target["model"], system_prompt, user_prompt,
         temperature=0.58, max_tokens=MAX_OUTPUT_TOKENS, timeout=max(3, int(timeout)),
@@ -2315,13 +2503,19 @@ def _generate_design_spec(data: BuilderInput, supplied):
         provider = target["provider"]
         if provider in blocked_providers or not _provider_configured(provider):
             continue
+        cooldown = _target_cooldown_remaining(target)
+        if cooldown > 0:
+            errors.append(f"{target['model']}: pominięty przez {round(cooldown)} s po wcześniejszym błędzie")
+            continue
         remaining = deadline - time.monotonic()
         if remaining < 3:
             errors.append("Przekroczono wspólny limit czasu wyboru modelu.")
             break
 
         attempt_started = time.monotonic()
-        text, error = _call_model_target(target, spec_prompt, request, remaining)
+        text, error = _call_model_target(
+            target, spec_prompt, request, min(remaining, MODEL_ATTEMPT_TIMEOUT),
+        )
         attempt = {
             "provider": provider,
             "model": target["model"],
@@ -2334,6 +2528,8 @@ def _generate_design_spec(data: BuilderInput, supplied):
             error = error or "Pusta odpowiedź modelu."
             errors.append(f"{target['model']}: {error}")
             attempt["status"] = "unavailable" if _is_model_unavailable(error) else "failed"
+            if attempt["status"] == "unavailable":
+                _cooldown_target(target)
             low_error = error.lower()
             if "http 401" in low_error or "brak środków" in low_error:
                 blocked_providers.add(provider)
@@ -2348,15 +2544,17 @@ def _generate_design_spec(data: BuilderInput, supplied):
             continue
 
         attempt["status"] = "success"
+        _clear_target_cooldown(target)
         routing["used_provider"] = provider
         routing["used_model"] = target["model"]
         return spec, warnings, None, routing
 
     configured = [target for target in targets if _provider_configured(target["provider"])]
     if not configured:
-        error = "Brak aktywnego klucza XKIRO lub OpenRouter dla skonfigurowanych modeli."
+        error = "Brak aktywnego klucza XKIRO, Gemini lub OpenRouter dla skonfigurowanych modeli."
     else:
         error = " | ".join(errors[-3:]) or "Żaden skonfigurowany model nie odpowiedział."
+    logger.warning("SiteMorph model routing failed for mode %s: %s", mode, error)
     return None, [], error[:1800], routing
 
 
@@ -2367,8 +2565,11 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     from app.design.prompt import PROMPT_VERSION as spec_prompt_version
     if not current_user.get("id") or current_user.get("is_anon") or current_user["id"] == "anon":
         raise HTTPException(status_code=401, detail="Zaloguj się, aby wygenerować stronę.")
-    if not XKIRO_API_KEY and not OPENROUTER_API_KEY:
-        raise HTTPException(status_code=503, detail="Brak konfiguracji modelu (XKIRO_API_KEY lub OPENROUTER_API_KEY).")
+    if not XKIRO_API_KEY and not GEMINI_API_KEY and not OPENROUTER_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Generator AI nie jest jeszcze skonfigurowany. Skontaktuj się z administratorem.",
+        )
     started = time.perf_counter()
     raw_prompt = (data.extraPrompt or data.description or data.business_name or "").strip()
     if not raw_prompt or len(raw_prompt) > 24000:
@@ -2378,7 +2579,11 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     spec, warnings, error, routing = _generate_design_spec(data, supplied)
     llm_ms = round((time.perf_counter() - llm_started) * 1000)
     if spec is None:
-        raise HTTPException(status_code=502, detail="Nie udało się wygenerować poprawnej strony. " + (error or ""))
+        logger.warning("SiteMorph generation failed after %s ms: %s", llm_ms, error or "unknown error")
+        raise HTTPException(
+            status_code=503,
+            detail="Modele AI są chwilowo przeciążone. Spróbuj ponownie za kilkanaście sekund.",
+        )
     asset_started = time.perf_counter()
     resolved, photos, asset_warnings, asset_report = bind_assets(spec, UNSPLASH_ACCESS_KEY)
     asset_ms = round((time.perf_counter() - asset_started) * 1000)
@@ -2398,7 +2603,7 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     brief = spec.businessBrief.model_dump()
     used_model = routing["used_model"] or routing["requested_model"]
     used_provider = routing["used_provider"] or "unknown"
-    if len(routing["attempts"]) > 1:
+    if used_model != routing["requested_model"]:
         warnings.append(
             f"Model główny był niedostępny; projekt wygenerował {used_model}."
         )
