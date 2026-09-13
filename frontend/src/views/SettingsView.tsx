@@ -67,7 +67,7 @@ export const SettingsView = () => {
         </div>
         <div>
           <h1 className="sm-h1">Ustawienia</h1>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Twoje dane firmy, płatności i faktury w jednym miejscu.</p>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Uzupełnij dane firmy, aby wystawiać faktury.</p>
         </div>
       </motion.div>
 

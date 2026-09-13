@@ -438,7 +438,7 @@ export const BuilderFullView = ({
     const originalPrompt = (promptOverride || builderPrompt || '').trim();
     if (!originalPrompt || uploading || generatingRef.current || pendingGeneration.current || previewBuilding || publishing || savingRef.current) return;
     if (credits < cost) {
-      setGenerationErr(`Brak kredytów! Potrzeba ${cost}, masz ${credits}.`);
+      setGenerationErr(`Brakuje kredytów. Potrzeba ${cost}, masz ${credits}. Doładuj kredyty w cenniku.`);
       return;
     }
     generatingRef.current = true;
@@ -466,7 +466,20 @@ export const BuilderFullView = ({
         }),
       });
       const data = await res.json().catch(() => ({ detail: `Niepoprawna odpowiedź serwera (HTTP ${res.status})` }));
-      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : `Błąd generowania (HTTP ${res.status})`);
+      if (!res.ok) {
+        const raw = typeof data.detail === 'string' ? data.detail : '';
+        // Hide technical backend details from user
+        if (raw.includes('normalized') || raw.includes('invalid design spec') || raw.includes('openrouter') || raw.includes('SiteMorph')) {
+          throw new Error('Model miał problem z projektem. Spróbuj opisać inaczej.');
+        }
+        if (raw.includes('429') || raw.includes('rate') || raw.includes('limit')) {
+          throw new Error('Model jest chwilowo przeciążony. Poczekaj chwilę i spróbuj ponownie.');
+        }
+        if (raw.includes('timeout') || raw.includes('Timeout')) {
+          throw new Error('Generowanie trwało za długo. Spróbuj krótszy opis.');
+        }
+        throw new Error(raw || `Coś poszło nie tak (HTTP ${res.status}). Spróbuj ponownie.`);
+      }
       setThinkingPhase('compile');
       const files: Record<string, string> = data.files || {};
       const artifact = await compileReactProject(files, API_BASE || window.location.origin);
@@ -542,7 +555,7 @@ export const BuilderFullView = ({
   };
 
   const persistProject = async (): Promise<number> => {
-    if (!generatedSite?.artifact || !previewReady || previewRuntimeErr) throw new Error('Poczekaj na poprawne uruchomienie podglądu.');
+    if (!generatedSite?.artifact || !previewReady || previewRuntimeErr) throw new Error('Poczekaj, aż strona się załaduje.');
     if (savingRef.current) throw new Error('Trwa już zapis projektu.');
     savingRef.current = true;
     setIsSaving(true);
@@ -570,10 +583,10 @@ export const BuilderFullView = ({
 
   // Quick prompts for badges
   const quickPrompts = [
-    { icon: Coffee, label: 'Restauracja', prompt: 'Restauracja z menu, galerią zdjęć i rezerwacją online' },
-    { icon: Briefcase, label: 'Landing page', prompt: 'Nowoczesny landing page dla startupu SaaS z sekcją cen' },
-    { icon: Home, label: 'Nieruchomości', prompt: 'Agencja nieruchomości z ofertami mieszkań i domów' },
-    { icon: Zap, label: 'Usługi', prompt: 'Firma usługowa z cennikiem i formularzem kontaktowym' },
+    { icon: Coffee, label: 'Restauracja', prompt: 'Restauracja z menu i galerią zdjęć' },
+    { icon: Briefcase, label: 'Startup', prompt: 'Nowoczesna strona dla startupu z cennikiem' },
+    { icon: Home, label: 'Nieruchomości', prompt: 'Agencja nieruchomości z ofertami mieszkań' },
+    { icon: Zap, label: 'Usługi', prompt: 'Firma usługowa z cennikiem i kontaktem' },
   ];
 
   return (
@@ -613,7 +626,7 @@ export const BuilderFullView = ({
               setPublishing(true); setPublishErr('');
               try {
                 const artifact = generatedSite.artifact;
-                if (!artifact || !previewReady) throw new Error('Podgląd jeszcze nie jest gotowy.');
+                if (!artifact || !previewReady) throw new Error('Poczekaj, aż podgląd się załaduje.');
                 const projectId = await persistProject();
                 const res = await apiFetch('/api/publish', { method: 'POST', body: JSON.stringify({
                   project_id: projectId, source_hash: artifact.sourceHash, build_id: artifact.buildId,
@@ -628,8 +641,8 @@ export const BuilderFullView = ({
           </div>
         </header>
 
-        {generationErr && generatedSite && <div role="alert" className="px-4 py-2 text-xs bg-amber-500/10 text-amber-500">{generationErr}</div>}
-        {publishErr && <div role="alert" className="px-4 py-2 text-xs bg-red-500/10 text-red-500">{publishErr}</div>}
+        {generationErr && generatedSite && <div role="alert" className="px-4 py-2.5 text-[14px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>{generationErr}</div>}
+        {publishErr && <div role="alert" className="px-4 py-2.5 text-[14px] font-medium" style={{ background: 'rgba(220,38,38,0.08)', color: 'var(--sm-danger)' }}>{publishErr}</div>}
         <div className="px-5 py-2.5 flex flex-wrap gap-2 text-[13px]" style={{ background: 'var(--sm-surface)' }}>
           <button disabled={uploading || isGenerating || uploadedAssets.length >= 8} onClick={() => fileInput.current?.click()} className="disabled:opacity-40">{uploading ? 'Dodaję zdjęcia…' : 'Dodaj własne zdjęcia'}</button>
           {uploadedAssets.map(asset => <button key={asset.url} disabled={isGenerating} onClick={() => setUploadedAssets(list => list.filter(a => a.url !== asset.url))} title="Usuń zdjęcie z następnej generacji" className="rounded bg-gray-500/10 px-2 py-1">{asset.name} ×</button>)}
@@ -652,24 +665,24 @@ export const BuilderFullView = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-xs" htmlFor="next-prompt">Opis kolejnej strony</label>
+                  <label className="text-[14px] font-medium" htmlFor="next-prompt" style={{ color: 'var(--sm-text-secondary)' }}>Napisz o kolejnej stronie</label>
                   <textarea id="next-prompt" value={builderPrompt} onChange={e => setBuilderPrompt(e.target.value)} className={`w-full rounded-lg p-3 text-xs border ${dk ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`} rows={3} />
-                  <button onClick={() => generateWithAnswers(answers)} disabled={!builderPrompt.trim() || isGenerating || previewBuilding || (!previewReady && !previewRuntimeErr) || publishing} className="w-full py-2 rounded-lg text-xs bg-green-600 text-white disabled:opacity-40">Wygeneruj nową stronę · {cost} kr.</button>
+                  <button onClick={() => generateWithAnswers(answers)} disabled={!builderPrompt.trim() || isGenerating || previewBuilding || (!previewReady && !previewRuntimeErr) || publishing} className="w-full py-2.5 rounded-[10px] text-[15px] font-medium disabled:opacity-40" style={{ background: 'var(--sm-accent)', color: 'white' }}>Zbuduj nową stronę · {cost} kr.</button>
                   <button onClick={handleSaveProject} disabled={isSaving || publishing || !previewReady} className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none disabled:opacity-40 ${theme === 'dark' ? 'bg-white text-black hover:bg-white/90' : 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'}`}>
                     <Save size={12} className="inline mr-1.5" />
                     {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
                   </button>
 
-                  {saveMsg && <p className={`text-[10px] text-center ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>{saveMsg}</p>}
+                  {saveMsg && <p className="text-[13px] text-center" style={{ color: 'var(--sm-success)' }}>{saveMsg}</p>}
                 </div>
 
                 {generatorWarnings.length > 0 && (
                   <div className={`rounded-lg border p-3 space-y-1.5 ${theme === 'dark' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
-                    <div className={`text-[10px] font-semibold ${theme === 'dark' ? 'text-amber-300/90' : 'text-amber-700'}`}>
+                    <div className="text-[14px] font-medium" style={{ color: 'var(--sm-warning)' }}>
                       ⚠ Uwagi do uzupełnienia
                     </div>
                     {generatorWarnings.map((w, i) => (
-                      <p key={i} className={`text-[10px] leading-relaxed ${theme === 'dark' ? 'text-amber-200/60' : 'text-amber-800/70'}`}>{w}</p>
+                      <p key={i} className="text-[14px] leading-relaxed" style={{ color: 'var(--sm-text-secondary)' }}>{w}</p>
                     ))}
                   </div>
                 )}
@@ -701,13 +714,13 @@ export const BuilderFullView = ({
                       </svg>
                     </div>
                     <div>
-                      <h2 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white/80' : 'text-gray-600'}`}>Cześć! 👋</h2>
-                      <h3 className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Opisz stronę, a ją zbuduję.</h3>
+                      <h2 className="text-[16px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>Cześć!</h2>
+                      <h3 className="text-[20px] font-semibold" style={{ color: 'var(--sm-text)' }}>Opisz swoją stronę, a ja ją zbuduję.</h3>
                     </div>
                   </div>
 
                   <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
-                    Wklej dane firmy prosto z Google Maps albo opisz własnymi słowami. Dobiorę układ, fonty i treści do Twojej marki. Możesz też dodać własne zdjęcia.
+                    Napisz czym zajmuje się firma, a ja zaprojektuję stronę. Możesz też dodać własne zdjęcia.
                   </p>
 
                   <div className="flex flex-wrap gap-1.5">
@@ -749,7 +762,7 @@ export const BuilderFullView = ({
                             generateWithAnswers(answers, builderPrompt);
                           }
                         }}
-                        placeholder="Opisz stronę, którą chcesz zbudować..."
+                        placeholder="Napisz czym zajmuje się firma..."
                         className={`w-full bg-transparent border-none outline-none resize-none px-5 pt-4 pb-2 min-h-[80px] text-[15px] ${theme === 'dark' ? 'text-white placeholder:text-[var(--sm-text-quiet)]' : 'text-[var(--sm-text)] placeholder:text-[var(--sm-text-quiet)]'}`}
                       />                        <div className="flex items-center justify-between px-4 pb-4">
                         <div className="flex items-center gap-1">
@@ -765,11 +778,11 @@ export const BuilderFullView = ({
                             {(['normal', 'ultra', 'ultra+'] as const).map(m => (
                               <button key={m} onClick={() => setBuilderMode(m)}
                                 className={`px-3 py-1.5 rounded-[8px] text-[13px] font-medium cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : m === 'ultra+' ? 'bg-amber-500/20 text-amber-300' : (theme === 'dark' ? 'bg-[#18181B] text-white' : 'bg-white text-[#2563EB] shadow-sm')) : (theme === 'dark' ? 'text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)] bg-transparent' : 'text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)] bg-transparent')}`}>
-                                {m === 'normal' ? 'S1' : m === 'ultra' ? 'Ultra' : 'Ultra+'}
+                                {m === 'normal' ? 'Szybki' : m === 'ultra' ? 'Dobry' : 'Najlepszy'}
                               </button>
                             ))}
                           </div>
-                          <span className={`text-[10px] font-medium ${theme === 'dark' ? 'text-white/20' : 'text-gray-400'}`}>{cost} kr.</span>                            <button
+                          <span className="text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>{cost} kr.</span>                            <button
                             onClick={() => {
                               if (!builderPrompt.trim()) return;
                               generateWithAnswers(answers, builderPrompt);
@@ -816,7 +829,7 @@ export const BuilderFullView = ({
                       {generationErr ? 'Nie udało się wygenerować strony' : 'Podgląd strony'}
                     </h3>
                     <p className="text-[14px]" style={{ color: 'var(--sm-text-secondary)' }}>
-                      {generationErr || 'Opisz stronę w panelu po lewej, aby wygenerować podgląd.'}
+                      {generationErr || 'Napisz po lewej, co ma być na stronie, a ja ją zbuduję.'}
                     </p>
                     {generationErr && (
                       <button
@@ -847,8 +860,7 @@ export const BuilderFullView = ({
                       <div className="max-w-lg text-center">
                         <X size={28} className="mx-auto mb-3 text-red-400" />
                         <h3 className="text-sm font-semibold text-white mb-2">Błąd kompilacji React</h3>
-                        <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewBuildErr}</p>
-                        <p className="text-[10px] text-white/30 mt-3">Kod DeepSeeka nadal jest dostępny w zakładce „Kod”.</p>
+                        <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewBuildErr}</p>                          <p className="text-[13px] mt-3" style={{ color: 'var(--sm-text-quiet)' }}>Kod strony dostępny jest w zakładce Kod.</p>
                       </div>
                     </div>
                   ) : compiledPreviewHtml ? (
@@ -858,7 +870,7 @@ export const BuilderFullView = ({
                           <X size={28} className="mx-auto mb-3 text-amber-400" />
                           <h3 className="text-sm font-semibold text-white mb-2">Błąd podglądu</h3>
                           <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewRuntimeErr}</p>
-                          <p className="text-[10px] text-white/30 mt-3">Kod DeepSeeka nadal jest dostępny w zakładce „Kod”.</p>
+                          <p className="text-[13px] mt-3" style={{ color: 'var(--sm-text-quiet)' }}>Kod strony dostępny jest w zakładce Kod.</p>
                         </div>
                       </div>
                     ) : (

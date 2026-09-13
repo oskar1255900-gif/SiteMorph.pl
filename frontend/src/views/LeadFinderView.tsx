@@ -355,14 +355,14 @@ export const LeadFinderView = ({
           <h1 className="sm-h1">Lead Finder</h1>
           <span
             className="mt-2 inline-flex shrink-0 text-[var(--sm-text-3)]"
-            title="Dane pochodzą z OpenStreetMap. Przed kontaktem warto potwierdzić informacje o firmie."
+            title="Dane mogą nie być w pełni aktualne. Sprawdź firmę przed kontaktem."
             aria-label="Informacja o źródle danych"
           >
             <Info size={18} />
           </span>
         </div>
         <p className="max-w-xl text-[16px] leading-[1.55] text-[var(--sm-text-2)]">
-          Wybierz kraj, miasto i branżę — pokażemy lokalne firmy z OpenStreetMap.
+          Znajdź firmy w Twojej okolicy. Wybierz kraj, miasto i branżę.
         </p>
       </div>
       <motion.div variants={cineChild} className="sm-card space-y-6 p-5 sm:p-6">
@@ -517,7 +517,7 @@ export const LeadFinderView = ({
             : 'Szukaj leadów'}
         </button>
         <p className="text-center text-[13px] leading-relaxed text-[var(--sm-text-3)]">
-          Dane pochodzą z OpenStreetMap. Przed kontaktem warto potwierdzić informacje o firmie.
+
         </p>
       </motion.div>
       {!hasSearched ? (
@@ -543,7 +543,7 @@ export const LeadFinderView = ({
           {isSearching && (
             <div className="sm-card flex items-center gap-3.5 p-5">
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--sm-accent)] border-t-transparent" />
-              <span className="text-[15px] text-[var(--sm-text-2)]">Szukam firm w OpenStreetMap — to może potrwać kilka sekund…</span>
+              <span className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Szukam firm w okolicy — to chwilka…</span>
             </div>
           )}
           {!isSearching && (
@@ -565,7 +565,7 @@ export const LeadFinderView = ({
               {leads.length > 0 && (
                 <div className="flex items-start gap-2.5 rounded-[12px] px-4 py-3 text-[14px] leading-[1.55] text-[var(--sm-text-2)]" style={{ background: 'var(--sm-surface)' }}>
                   <Info size={16} className="mt-0.5 shrink-0 text-[var(--sm-text-3)]" />
-                  <span>Część firm może mieć stronę mimo braku jej w danych OpenStreetMap — przed kontaktem potwierdź informacje o firmie (przycisk „Otwórz w mapach”).</span>
+                  <span>Sprawdź dane firmy przed kontaktem. Niektóre informacje mogą być nieaktualne.</span>
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-2">

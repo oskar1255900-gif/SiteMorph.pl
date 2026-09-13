@@ -694,7 +694,7 @@ export const TutorialsView = () => {
         </div>
         <div>
           <h1 className="sm-h1">Akademia SiteMorph</h1>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Poradniki tekstowe — czytaj, kopiuj szablony, wdrażaj od razu.</p>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Naucz się tworzyć strony krok po kroku.</p>
         </div>
       </motion.div>
 

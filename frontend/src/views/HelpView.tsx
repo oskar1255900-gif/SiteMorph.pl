@@ -65,7 +65,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
         </div>
         <div>
           <h1 className="sm-h1">Pomoc</h1>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Masz pytanie? Odpowiadamy zazwyczaj w 24h.</p>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Masz pytanie? Odpowiemy szybko.</p>
         </div>
       </motion.div>
 
@@ -102,7 +102,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
               <div>
                 <label className="sm-label">Czego dotyczy zgłoszenie?</label>
                 <div className="grid grid-cols-2 gap-3">
-                  {['Sugerowana funkcja', 'Błąd na stronie', 'Pytanie ogólne', 'Inne'].map((item, idx) => (
+                  {['Nowa funkcja', 'Problem', 'Pytanie', 'Inne'].map((item, idx) => (
                     <label key={idx} className="sm-card-quiet flex min-h-[52px] cursor-pointer items-center gap-3 p-3 text-[15px] transition-colors hover:border-[var(--sm-border-strong)]">
                       <input type="radio" name="category" defaultChecked={idx === 0} className="h-5 w-5 accent-[var(--sm-accent)]" />
                       {item}

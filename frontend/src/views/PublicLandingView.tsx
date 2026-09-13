@@ -42,7 +42,7 @@ export const LANDING_HOW_STEPS = [
 
 export const LANDING_FEATURE_TABS: Array<{ label: string; icon: any; title: string; desc: string; statBig: string; statSmall: string }> = [
   { label: 'Kreator AI', icon: Sparkles, title: 'Cała strona z jednego zdania', desc: 'AI dobiera układ, paletę i treści pod branżę klienta. Ty zatwierdzasz efekt.', statBig: '1 zdanie', statSmall: 'od pomysłu do projektu' },
-  { label: 'Lead Finder', icon: Search, title: 'Firmy, które potrzebują strony', desc: 'Wyszukaj lokalne firmy i od razu filtruj te bez własnej witryny.', statBig: 'OSM', statSmall: 'dane publiczne' },
+  { label: 'Lead Finder', icon: Search, title: 'Firmy, które potrzebują strony', desc: 'Wyszukaj lokalne firmy i od razu filtruj te bez własnej witryny.', statBig: '100+', statSmall: 'branż' },
 ];
 
 // ============================================================================
@@ -469,7 +469,7 @@ export const PublicLandingView = ({
                 {[
                   { icon: MapPin, text: 'Lokalne firmy z adresem i telefonem' },
                   { icon: Search, text: 'Filtr firm bez własnej strony' },
-                  { icon: Info, text: 'Dane z OpenStreetMap — przed kontaktem potwierdź informacje o firmie' },
+                  { icon: Info, text: 'Dane mogą nie być w pełni aktualne — sprawdź firmę przed kontaktem' },
                 ].map((row) => (
                   <div key={row.text} className="flex items-start gap-2.5 text-[15px] text-[var(--sm-text-2)]">
                     <row.icon size={17} className="mt-0.5 shrink-0 text-[var(--sm-accent)]" /> {row.text}
