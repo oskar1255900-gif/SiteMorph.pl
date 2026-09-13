@@ -173,11 +173,11 @@ export const FinanceSection = () => {
       animate="visible"
       className="max-w-5xl mx-auto py-8 px-6 space-y-6 pb-24 text-[var(--sm-text)]"
     >
-      <div className="flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
+      <div className="flex items-center justify-between pb-4" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
         <div>
-          <h2 className="text-xl font-semibold">Finanse i Księgowość</h2>
-          <p className="text-[13px] font-bold opacity-80">
-            {isProfileSet ? `Firma: ${businessName}` : 'Rejestracja profilu płatniczego i firmy'}
+          <h2 className="sm-h1">Finanse</h2>
+          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>
+            {isProfileSet ? `${businessName}` : 'Rejestracja profilu płatniczego i firmy'}
           </p>
         </div>
         {isProfileSet && (
@@ -190,11 +190,11 @@ export const FinanceSection = () => {
       {!isProfileSet ? (
         <motion.div variants={itemVariants} className="max-w-xl mx-auto space-y-6 pt-4 text-center">
           <div>
-            <h3 className="text-2xl font-semibold">Załóż profil firmy</h3>
-            <p className="text-[13px] font-bold mt-1 opacity-80">Wprowadź dane swojej działalności, aby wystawiać faktury.</p>
+            <h3 className="text-[28px] font-semibold">Załóż profil firmy</h3>
+            <p className="text-[15px] mt-2" style={{ color: 'var(--sm-text-secondary)' }}>Wprowadź dane swojej działalności, aby wystawiać faktury.</p>
           </div>
 
-          <div className="flex items-center justify-center gap-6 text-[13px] font-bold py-2">
+          <div className="flex items-center justify-center gap-6 text-[15px] font-medium py-2">
             {[
               { n: 1, label: 'Dane firmy' },
               { n: 2, label: 'Metody płatności' },
@@ -214,31 +214,31 @@ export const FinanceSection = () => {
 
           <motion.div
             layout
-            className="p-6 rounded-[16px] text-left space-y-4" style={{ background: 'var(--sm-surface)' }}
+            className="p-8 rounded-[16px] text-left space-y-5" style={{ background: 'var(--sm-surface)' }}
           >
             {setupStep === 1 && (
               <div className="space-y-3">
-                <h4 className="font-semibold text-sm">Krok 1: Wprowadź dane firmy</h4>
+                <h4 className="font-semibold text-[16px]">Krok 1: Wprowadź dane firmy</h4>
                 <div>
-                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Nazwa firmy *</label>
+                  <label className="sm-label">Nazwa firmy *</label>
                   <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="np. Studio Projektowe" className={inputClasses} />
                 </div>
                 <div>
-                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Imię i nazwisko właściciela</label>
+                  <label className="sm-label">Imię i nazwisko właściciela</label>
                   <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="np. Jan Kowalski" className={inputClasses} />
                 </div>
                 <div>
-                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Email firmowy do faktur *</label>
+                  <label className="sm-label">Email firmowy do faktur *</label>
                   <input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} placeholder="jan@studio.pl" className={inputClasses} />
-                  <p className="text-[13px] font-bold opacity-60 mt-1">Ten adres pojawi się na fakturach jako wystawca - odpowiedzi klientów trafią prosto do Ciebie.</p>
+                  <p className="sm-hint mt-1">Ten adres pojawi się na fakturach jako wystawca — odpowiedzi klientów trafią prosto do Ciebie.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Adres firmy</label>
+                    <label className="sm-label">Adres firmy</label>
                     <input type="text" value={sellerAddress} onChange={(e) => setSellerAddress(e.target.value)} placeholder="ul. Prosta 1, 00-001 Warszawa" className={inputClasses} />
                   </div>
                   <div>
-                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">NIP (opcjonalnie)</label>
+                    <label className="sm-label">NIP (opcjonalnie)</label>
                     <input type="text" value={sellerNip} onChange={(e) => setSellerNip(e.target.value)} placeholder="0000000000" className={inputClasses} />
                   </div>
                 </div>
@@ -247,22 +247,22 @@ export const FinanceSection = () => {
 
             {setupStep === 2 && (
               <div className="space-y-4">
-                <h4 className="font-semibold text-sm">Krok 2: Metody rozliczeń</h4>
-                <p className="text-[13px] font-bold opacity-80">Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
+                <h4 className="font-semibold text-[16px]">Krok 2: Metody rozliczeń</h4>
+                <p className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Zaznacz, jak klienci mogą Ci płacić, i uzupełnij dane dla zaznaczonych metod.</p>
 
                 <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
-                  <span className="text-[13px] font-semibold">Przelew bankowy (IBAN)</span>
+                  <span className="text-[15px] font-medium">Przelew bankowy (IBAN)</span>
                   <input type="checkbox" className="sm-check" checked={usePrzelew} onChange={(e) => setUsePrzelew(e.target.checked)} />
                 </label>
                 {usePrzelew && (
                   <div>
                     <input type="text" value={iban} onChange={(e) => setIban(e.target.value)} placeholder="PL00 0000 0000 0000 0000 0000 0000" className={inputClasses} />
-                    <p className="text-[13px] font-bold opacity-60 mt-1">Numer IBAN jest bezpieczny - służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
+                    <p className="sm-hint mt-1">Numer IBAN jest bezpieczny — służy wyłącznie do odbierania przelewów i nie daje nikomu dostępu do Twojego konta.</p>
                   </div>
                 )}
 
                 <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
-                  <span className="text-[13px] font-semibold">BLIK na telefon</span>
+                  <span className="text-[15px] font-medium">BLIK na telefon</span>
                   <input type="checkbox" className="sm-check" checked={useBlik} onChange={(e) => setUseBlik(e.target.checked)} />
                 </label>
                 {useBlik && (
@@ -270,7 +270,7 @@ export const FinanceSection = () => {
                 )}
 
                 <label className="flex items-center justify-between p-4 rounded-[12px] cursor-pointer" style={{ background: 'var(--sm-surface)' }}>
-                  <span className="text-[13px] font-semibold">PayPal</span>
+                  <span className="text-[15px] font-medium">PayPal</span>
                   <input type="checkbox" className="sm-check" checked={usePaypal} onChange={(e) => setUsePaypal(e.target.checked)} />
                 </label>
                 {usePaypal && (
@@ -281,7 +281,7 @@ export const FinanceSection = () => {
 
             {setupStep === 3 && (
               <div className="space-y-3 text-[13px]">
-                <h4 className="font-semibold text-sm">Krok 3: Podsumowanie danych</h4>
+                <h4 className="font-semibold text-[16px]">Krok 3: Podsumowanie</h4>
                 {[
                   ['Nazwa firmy', businessName || '-'],
                   ['Właściciel', userName || '-'],
@@ -333,27 +333,28 @@ export const FinanceSection = () => {
           </motion.div>
         </motion.div>
       ) : (
-        <motion.div variants={itemVariants} className="space-y-6 pt-2">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <motion.div variants={itemVariants} className="space-y-10 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { title: 'Łączna wartość faktur', value: `${totalRevenue.toFixed(2)} zł`, color: 'text-emerald-500' },
-              { title: 'Wystawione faktury', value: invoices.length, color: 'text-[#2563eb] dark:text-white' },
-              { title: 'Wysłane e-mailem', value: invoices.filter((i) => i.sent_to).length, color: 'text-[#2563eb] dark:text-white' }
-            ].map((stat, i) => (            <motion.div
-            whileHover={{ y: -3 }}
-            key={i}
-            className="p-5 rounded-[14px]"
-            style={{ background: 'var(--sm-surface)' }}
-          >
-                <span className="text-[13px] font-semibold uppercase tracking-wider block mb-1 opacity-70">{stat.title}</span>
-                <span className={`text-xl font-semibold ${stat.color}`}>{stat.value}</span>
+              { title: 'Łączna wartość faktur', value: `${totalRevenue.toFixed(2)} zł`, color: 'var(--sm-success)' },
+              { title: 'Wystawione faktury', value: String(invoices.length), color: 'var(--sm-accent)' },
+              { title: 'Wysłane e-mailem', value: String(invoices.filter((i) => i.sent_to).length), color: 'var(--sm-accent)' }
+            ].map((stat, i) => (
+              <motion.div
+                whileHover={{ y: -3 }}
+                key={i}
+                className="p-6 rounded-[14px]"
+                style={{ background: 'var(--sm-surface)' }}
+              >
+                <span className="text-[14px] font-medium block mb-2" style={{ color: 'var(--sm-text-secondary)' }}>{stat.title}</span>
+                <span className="text-[32px] font-semibold leading-none" style={{ color: stat.color }}>{stat.value}</span>
               </motion.div>
             ))}
           </div>
 
-          <div className="p-6 rounded-[16px] space-y-4" style={{ background: 'var(--sm-surface)' }}>
+          <div className="rounded-[16px] space-y-5" style={{ background: 'var(--sm-surface)', padding: '32px' }}>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold">Rejestr faktur</span>
+              <span className="sm-h2">Historia faktur</span>
               <Button variant="primary" size="sm" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }} className="gap-1 text-[13px] font-semibold">
                 <Plus size={14} /> Stwórz nową fakturę
               </Button>
@@ -369,30 +370,30 @@ export const FinanceSection = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-[13px] border-collapse">
+                <table className="w-full text-left text-[15px] border-collapse">
                   <thead>
-                    <tr className="font-semibold" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
-                      <th className="py-2.5">Numer</th>
-                      <th className="py-2.5">Klient</th>
-                      <th className="py-2.5">Kwota</th>
-                      <th className="py-2.5">Płatność</th>
-                      <th className="py-2.5">Wysyłka</th>
-                      <th className="py-2.5 text-right">Podgląd</th>
+                    <tr className="font-medium" style={{ borderBottom: '1px solid var(--sm-border-subtle)' }}>
+                      <th className="py-3">Numer</th>
+                      <th className="py-3">Klient</th>
+                      <th className="py-3">Kwota</th>
+                      <th className="py-3">Płatność</th>
+                      <th className="py-3">Wysyłka</th>
+                      <th className="py-3 text-right">Podgląd</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-blue-50 dark:divide-neutral-900 font-bold">
+                  <tbody className="font-medium">
                     {invoices.map((inv) => (
                       <tr key={inv.id} className="hover:bg-[#F7F6F3]/50 dark:hover:bg-neutral-900/40">
-                        <td className="py-3 font-semibold font-mono">{inv.number}</td>
-                        <td className="py-3">{inv.buyer}</td>
-                        <td className="py-3 font-semibold text-emerald-500">{(inv.total || 0).toFixed(2)} zł</td>
-                        <td className="py-3">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
-                        <td className="py-3">
+                        <td className="py-3.5 font-mono">{inv.number}</td>
+                        <td className="py-3.5">{inv.buyer}</td>
+                        <td className="py-3.5 font-semibold" style={{ color: 'var(--sm-success)' }}>{(inv.total || 0).toFixed(2)} zł</td>
+                        <td className="py-3.5">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
+                        <td className="py-3.5">
                           {inv.sent_to
                             ? <span className="px-2.5 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(22,163,74,0.08)', color: 'var(--sm-success)' }}>Wysłana</span>
                             : <span className="px-2.5 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>Oczekująca</span>}
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="py-3.5 text-right">
                           <a
                             href="#"
                             onClick={async (e) => {
@@ -438,32 +439,32 @@ export const FinanceSection = () => {
                 <X size={16} />
               </motion.button>
 
-              <h3 className="font-semibold text-base">Nowa faktura</h3>
+              <h3 className="text-[20px] font-semibold">Nowa faktura</h3>
 
               <form onSubmit={handleCreateInvoice} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
                   <div>
-                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Nazwa klienta *</label>
+                    <label className="sm-label">Nazwa klienta *</label>
                     <input type="text" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Jan Kowalski" required className={inputClasses} />
                   </div>
                   <div>
-                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Email klienta *</label>
+                    <label className="sm-label">Email klienta *</label>
                     <input type="email" value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="jan@firma.pl" required className={inputClasses} />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Nazwa usługi</label>
+                  <label className="sm-label">Nazwa usługi</label>
                   <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className={inputClasses} />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
                   <div>
-                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Kwota brutto (PLN) *</label>
+                    <label className="sm-label">Kwota brutto (PLN) *</label>
                     <input type="number" min="1" step="0.01" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="4500" required className={inputClasses} />
                   </div>
                   <div>
-                    <label className="text-[13px] font-semibold block mb-1 uppercase opacity-75">Metoda płatności</label>
+                    <label className="sm-label">Metoda płatności</label>
                     <select value={newMethod} onChange={(e) => setNewMethod(e.target.value)} className={inputClasses + ' cursor-pointer'}>
                       {(enabledMethods.length ? enabledMethods : ['przelew']).map((m) => (
                         <option key={m} value={m}>{METHOD_LABEL[m]}</option>
@@ -473,20 +474,20 @@ export const FinanceSection = () => {
                 </div>
 
                 {newMethod === 'przelew' && (
-                  <p className="text-[13px] font-bold opacity-60">Na fakturze pojawi się Twój numer IBAN: <span className="font-semibold">{iban || '-'}</span>. Numer IBAN jest bezpieczny - służy wyłącznie do przelewu.</p>
+                  <p className="sm-hint">Na fakturze pojawi się Twój numer IBAN: <span className="font-semibold">{iban || '-'}</span>.</p>
                 )}
                 {newMethod === 'blik' && (
-                  <p className="text-[13px] font-bold opacity-60">BLIK na telefon: <span className="font-semibold">{blikPhone || '-'}</span></p>
+                  <p className="sm-hint">BLIK na telefon: <span className="font-semibold">{blikPhone || '-'}</span></p>
                 )}
                 {newMethod === 'paypal' && (
-                  <p className="text-[13px] font-bold opacity-60">Link PayPal: <span className="font-semibold">{paypalLink || '-'}</span></p>
+                  <p className="sm-hint">Link PayPal: <span className="font-semibold">{paypalLink || '-'}</span></p>
                 )}
 
-                {formErr && <p className="text-[13px] font-semibold text-rose-500">{formErr}</p>}
-                {formMsg && <p className="text-[13px] font-semibold text-emerald-500">{formMsg}</p>}
+                {formErr && <p className="text-[14px] font-medium" style={{ color: 'var(--sm-danger)' }}>{formErr}</p>}
+                {formMsg && <p className="text-[14px] font-medium" style={{ color: 'var(--sm-success)' }}>{formMsg}</p>}
 
                 <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
-                  <span className="font-semibold text-sm">Suma: {newAmount || '0'} zł</span>
+                  <span className="font-semibold text-[16px]">Suma: {newAmount || '0'} zł</span>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
                       Anuluj
