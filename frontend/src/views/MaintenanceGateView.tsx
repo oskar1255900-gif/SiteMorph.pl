@@ -69,7 +69,7 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
             135deg,
             var(--sm-accent) 0%,
             #7FE3C4 45%,
-            var(--sm-accent-2) 100%
+            var(--sm-accent) 100%
           );
           background-size: 200% 200%;
           animation: gradient-shift 10s ease infinite;

@@ -224,7 +224,7 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           <div className="lg:col-span-2 rounded-2xl border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 overflow-hidden">
             <div className="p-4 border-b border-[#EAEAEA] dark:border-neutral-900 flex items-center justify-between">
               <h3 className="text-sm font-semibold">Ostatni użytkownicy</h3>
-              <Badge type="lime">{liveUsers.length} kont</Badge>
+              <Badge type="blue">{liveUsers.length} kont</Badge>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px] border-collapse">

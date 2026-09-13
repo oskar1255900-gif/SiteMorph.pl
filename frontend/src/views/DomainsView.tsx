@@ -214,7 +214,7 @@ export const DomainsView = ({ theme }: { theme: 'light' | 'dark' }) => {
                   {(dnsInfo.records || []).map((r, i) => (
                     <div key={i} className="rounded-xl border p-3 bg-white dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800">
                       <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-widest opacity-60 mb-1.5">
-                        <Badge type="lime">{r.type}</Badge> {r.desc}
+                        <Badge type="blue">{r.type}</Badge> {r.desc}
                       </div>
                       <div className="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[13px] font-bold">
                         <span className="opacity-60">Nazwa:</span>

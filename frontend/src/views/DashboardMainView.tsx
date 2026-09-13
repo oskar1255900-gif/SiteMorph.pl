@@ -24,7 +24,7 @@ import { API_BASE } from '../lib/api';
 const COMPOSER_CSS = `
 .dm-root { position: relative; min-height: 100%; }
 
-/* Spokojne tło: jeden bardzo subtelny, neutralno-turkusowy oddech. Bez magenty. */
+/* Subtle background: one very faint accent glow. */
 .dm-glow { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .dm-glow::before {
   content: ''; position: absolute; width: 70%; height: 60%; top: -30%; left: 50%;

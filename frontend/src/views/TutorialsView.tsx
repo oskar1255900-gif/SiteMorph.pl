@@ -743,7 +743,7 @@ export const TutorialsView = () => {
               className="relative w-full max-w-2xl max-h-[86vh] overflow-hidden rounded-2xl bg-white dark:bg-neutral-950 border border-[#EAEAEA] dark:border-neutral-800 shadow-2xl flex flex-col"
               style={{ perspective: 1200 }}
             >
-              <div className="pointer-events-none absolute -top-24 -right-24 w-[340px] h-[340px] bg-gradient-to-tr from-lime-200 via-emerald-200 to-lime-100 opacity-25 blur-2xl legal-blob" />
+              
               <div className="relative flex items-center justify-between p-6 border-b border-[#EAEAEA] dark:border-neutral-900 bg-white/85 dark:bg-neutral-950/85 backdrop-blur sticky top-0">
                 <div className="pr-4">
                   <div className="text-[13px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 w-fit">{ACADEMY_GUIDES[activeGuide].category} - {ACADEMY_GUIDES[activeGuide].time}</div>

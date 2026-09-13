@@ -20,7 +20,7 @@ const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4';
 
 // ============================================================================
-// EKSPORTOWANE STAŁE (używane też przez inne widoki)
+// EXPORTED CONSTANTS (used by other views)
 // ============================================================================
 export const LANDING_HOW_STEPS = [
   {
@@ -91,8 +91,7 @@ export const LEGAL_DOCS: Record<'regulamin' | 'prywatnosc' | 'cookies', { title:
 };
 
 // ============================================================================
-// STYLE LANDINGU — spokojne, niemal czarne tło. Bez różu, magenty i fioletu.
-// Jeden akcent: turkus przechodzący w limonkę, używany oszczędnie.
+// LANDING STYLES — clean, true white/black, single blue accent
 // ============================================================================
 const LANDING_CSS = `
 .sm-landing {
@@ -102,7 +101,6 @@ const LANDING_CSS = `
   color: var(--sm-text);
 }
 
-/* Subtelna siatka prowadząca — neutralna, bez świecących plam. */
 .sm-landing-grid {
   position: absolute; inset: 0; pointer-events: none;
   background-image:
@@ -111,7 +109,7 @@ const LANDING_CSS = `
   background-size: 64px 64px;
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 75%);
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 75%);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .sm-landing-preview {
@@ -132,7 +130,7 @@ const LANDING_CSS = `
 `;
 
 // ============================================================================
-// LOGOMARK — abstrakcyjny znak 4-ćwiartkowy (SiteMorph)
+// LOGOMARK
 // ============================================================================
 const LogoMark = ({ className = '' }: { className?: string }) => (
   <svg viewBox="0 0 256 256" className={className} fill="currentColor" aria-hidden>
@@ -147,37 +145,38 @@ const Wordmark = ({ size = 'base' }: { size?: 'base' | 'lg' }) => (
 );
 
 // ============================================================================
-// PODGLĄD PRODUKTU — czytelne okno zamiast dekoracyjnego mockupu
+// PRODUCT PREVIEW — clean mockup showing the builder interface
 // ============================================================================
 const ProductPreview = () => (
-  <div className="sm-landing-preview shadow-2xl">
-    {/* pasek okna */}
+  <div className="sm-landing-preview">
     <div className="flex items-center gap-3 border-b border-[var(--sm-border)] px-4 py-3">
-      <Monitor size={16} className="text-[var(--sm-text-3)]" />
-      <span className="text-[14px] font-medium text-[var(--sm-text-2)]">sitemorph.pl / kreator</span>
-      <span className="sm-pill ml-auto">Gotowa</span>
+      <div className="flex gap-1.5">
+        <span className="h-3 w-3 rounded-full bg-[var(--sm-surface-3)]" />
+        <span className="h-3 w-3 rounded-full bg-[var(--sm-surface-3)]" />
+        <span className="h-3 w-3 rounded-full bg-[var(--sm-surface-3)]" />
+      </div>
+      <span className="flex-1 text-center text-[13px] font-medium text-[var(--sm-text-3)]">sitemorph.pl/kreator</span>
+      <span className="sm-pill text-[12px]">Gotowa</span>
     </div>
-    <div className="grid gap-0 md:grid-cols-[minmax(0,320px)_1fr]">
-      {/* panel sterowania */}
+    <div className="grid gap-0 md:grid-cols-[minmax(0,300px)_1fr]">
       <div className="space-y-4 border-b border-[var(--sm-border)] p-5 md:border-b-0 md:border-r">
         <div className="sm-label">Opis strony</div>
-        <div className="rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] p-3.5 text-[15px] leading-relaxed text-[var(--sm-text-2)]">
+        <div className="rounded-[8px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] p-3.5 text-[15px] leading-relaxed text-[var(--sm-text-2)]">
           Restauracja z menu, galerią i rezerwacją online
         </div>
         <div className="flex items-center justify-between text-[14px]">
           <span className="text-[var(--sm-text-2)]">Tryb</span>
-          <span className="font-medium">S1 · Ultra · Ultra+</span>
+          <span className="font-medium">Ultra+</span>
         </div>
         <div className="flex items-center justify-between text-[14px]">
           <span className="text-[var(--sm-text-2)]">Koszt</span>
           <span className="font-medium">15 kredytów</span>
         </div>
-        <div className="flex items-center gap-2 rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] px-3.5 py-3 text-[14px]">
+        <div className="flex items-center gap-2 rounded-[8px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)] px-3.5 py-3 text-[14px]">
           <Check size={16} className="text-[var(--sm-success)]" />
           <span>Projekt gotowy w 1 pliku React</span>
         </div>
       </div>
-      {/* wynik */}
       <div className="p-5">
         <div className="flex flex-wrap items-center gap-2 text-[14px] text-[var(--sm-text-2)]">
           <Sparkles size={15} className="text-[var(--sm-accent)]" />
@@ -194,7 +193,7 @@ const ProductPreview = () => (
         </div>
         <div className="mt-5 grid grid-cols-3 gap-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]" />
+            <div key={i} className="h-16 rounded-[8px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]" />
           ))}
         </div>
       </div>
@@ -203,7 +202,7 @@ const ProductPreview = () => (
 );
 
 // ============================================================================
-// GŁÓWNY WIDOK
+// MAIN VIEW
 // ============================================================================
 export const PublicLandingView = ({
   onEnterApp,
@@ -261,23 +260,23 @@ export const PublicLandingView = ({
     <div className="sm-landing relative min-h-screen overflow-x-hidden">
       <style>{LANDING_CSS}</style>
 
-      {/* tło: mocno wygaszony materiał wideo + neutralna siatka */}
+      {/* Background: muted video + dark overlay + subtle grid */}
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
         <video
           autoPlay loop muted playsInline
-          className="h-full w-full object-cover opacity-[0.28]"
+          className="h-full w-full object-cover opacity-[0.25]"
           src={VIDEO_URL}
         />
-        <div className="absolute inset-0 bg-[#070809]/85" />
+        <div className="absolute inset-0 bg-[var(--sm-bg)]/88" />
         <div className="sm-landing-grid" />
       </div>
 
-      {/* ================= NAWIGACJA (jedyna na tej stronie) ================= */}
+      {/* NAVIGATION — single nav, all actions preserved */}
       <header
         ref={headerRef}
-        className="sticky top-0 z-40 border-b border-[var(--sm-border)] bg-[var(--sm-bg)]/85 backdrop-blur-xl"
+        className="sticky top-0 z-40 border-b border-[var(--sm-border)] bg-[var(--sm-bg)]/90 backdrop-blur-xl"
       >
-        <div className="mx-auto flex h-[68px] max-w-[1200px] items-center gap-4 px-5">
+        <div className="mx-auto flex h-[64px] max-w-[1200px] items-center gap-4 px-5">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="flex min-h-[44px] items-center gap-2.5 bg-transparent border-none cursor-pointer text-[var(--sm-text)]"
@@ -292,7 +291,7 @@ export const PublicLandingView = ({
               <button
                 key={id}
                 onClick={() => scrollToId(id)}
-                className="min-h-[44px] rounded-[10px] px-3.5 text-[15px] font-medium text-[var(--sm-text-2)] hover:bg-[var(--sm-surface-2)] hover:text-[var(--sm-text)] transition-colors cursor-pointer border-none bg-transparent"
+                className="min-h-[44px] rounded-[8px] px-3.5 text-[15px] font-medium text-[var(--sm-text-2)] hover:bg-[var(--sm-surface-2)] hover:text-[var(--sm-text)] transition-colors cursor-pointer border-none bg-transparent"
               >
                 {label}
               </button>
@@ -313,7 +312,7 @@ export const PublicLandingView = ({
               <div className="hidden items-center gap-2 sm:flex">
                 <span className="hidden max-w-[160px] truncate text-[14px] text-[var(--sm-text-2)] lg:block">{session.user?.email}</span>
                 <button onClick={onLogout} className="sm-btn">Wyloguj</button>
-                <button onClick={() => onEnterApp('dashboard')} className="sm-btn sm-btn-primary">Wróć do aplikacji</button>
+                <button onClick={() => onEnterApp('dashboard')} className="sm-btn sm-btn-primary">Panel</button>
               </div>
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
@@ -351,7 +350,7 @@ export const PublicLandingView = ({
                   {session ? (
                     <>
                       <button onClick={onLogout} className="sm-btn">Wyloguj</button>
-                      <button onClick={() => onEnterApp('dashboard')} className="sm-btn sm-btn-primary">Wróć do aplikacji</button>
+                      <button onClick={() => onEnterApp('dashboard')} className="sm-btn sm-btn-primary">Panel</button>
                     </>
                   ) : (
                     <>
@@ -366,20 +365,20 @@ export const PublicLandingView = ({
         </AnimatePresence>
       </header>
 
-      {/* ================= HERO ================= */}
-      <section id="hero" className="relative z-10 mx-auto max-w-[1200px] scroll-mt-24 px-5 pb-16 pt-14 md:pb-24 md:pt-20">
+      {/* HERO — big typography, clear message, single CTA */}
+      <section id="hero" className="relative z-10 mx-auto max-w-[1200px] scroll-mt-24 px-5 pb-16 pt-20 md:pb-24 md:pt-28">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-3xl"
         >
-          <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.035em] text-[var(--sm-text)] sm:text-[44px] md:text-[56px]">
+          <h1 className="text-[38px] font-bold leading-[1.06] tracking-[-0.04em] text-[var(--sm-text-strong)] sm:text-[48px] md:text-[62px]">
             Buduj strony.<br />
             <span className="sm-brand-gradient">Zarabiaj.</span>
           </h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-[1.6] text-[var(--sm-text-2)]">
-            SiteMorph to studio AI dla twórców stron. Jedno zdanie o firmie klienta —
+          <p className="mt-6 max-w-xl text-[18px] leading-[1.6] text-[var(--sm-text-2)]">
+            Studio AI dla twórców stron. Jedno zdanie o firmie klienta —
             gotowa witryna z układem, treścią i zdjęciami dobranymi do branży.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -405,7 +404,7 @@ export const PublicLandingView = ({
         </motion.div>
       </section>
 
-      {/* ================= JAK TO DZIAŁA ================= */}
+      {/* HOW IT WORKS */}
       <section id="jak-to-dziala" className="relative z-10 scroll-mt-24 border-t border-[var(--sm-border)]">
         <div className="mx-auto max-w-[1200px] px-5 py-16 md:py-20">
           <h2 className="sm-h1">Jak to działa</h2>
@@ -424,7 +423,7 @@ export const PublicLandingView = ({
         </div>
       </section>
 
-      {/* ================= DWA MODUŁY ================= */}
+      {/* FEATURES — two modules */}
       <section id="funkcje" className="relative z-10 scroll-mt-24 border-t border-[var(--sm-border)]">
         <div className="mx-auto max-w-[1200px] px-5 py-16 md:py-20">
           <h2 className="sm-h1">Dwa moduły, jedna robota</h2>
@@ -433,7 +432,6 @@ export const PublicLandingView = ({
           </p>
 
           <div className="mt-10 grid gap-8 lg:grid-cols-2">
-            {/* Kreator AI */}
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
                 <span className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]">
@@ -455,7 +453,6 @@ export const PublicLandingView = ({
               </ul>
             </div>
 
-            {/* Lead Finder */}
             <div className="flex flex-col lg:border-l lg:border-[var(--sm-border)] lg:pl-8">
               <div className="flex items-center gap-3">
                 <span className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--sm-border)] bg-[var(--sm-surface-2)]">
@@ -484,7 +481,7 @@ export const PublicLandingView = ({
         </div>
       </section>
 
-      {/* ================= CENNIK ================= */}
+      {/* PRICING */}
       <section id="cennik" className="relative z-10 scroll-mt-24 border-t border-[var(--sm-border)]">
         <div className="mx-auto max-w-[1200px] px-5 py-16 md:py-20">
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -507,7 +504,7 @@ export const PublicLandingView = ({
                   className={`relative block h-7 w-12 rounded-full border transition-colors ${yearly ? 'border-transparent bg-[var(--sm-accent)]' : 'border-[var(--sm-border-strong)] bg-[var(--sm-surface-2)]'}`}
                 >
                   <span
-                    className={`absolute top-1 h-5 w-5 rounded-full transition-all ${yearly ? 'left-6 bg-[var(--sm-accent-ink)]' : 'left-1 bg-[var(--sm-text-3)]'}`}
+                    className={`absolute top-1 h-5 w-5 rounded-full transition-all ${yearly ? 'left-6 bg-white' : 'left-1 bg-[var(--sm-text-3)]'}`}
                   />
                 </span>
               </button>
@@ -519,13 +516,13 @@ export const PublicLandingView = ({
             {plans.map((p) => (
               <div
                 key={p.tier}
-                className={`flex flex-col rounded-[14px] border p-6 ${p.pro ? 'border-[var(--sm-accent)]' : 'border-[var(--sm-border)]'} bg-[var(--sm-surface)]`}
+                className={`flex flex-col rounded-[14px] border p-6 ${p.pro ? 'border-[var(--sm-accent)] ring-1 ring-[var(--sm-accent)]/20' : 'border-[var(--sm-border)]'} bg-[var(--sm-surface)]`}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-[19px] font-semibold tracking-[-0.02em]">{p.tier}</h3>
                   {p.pro && <span className="sm-pill">Najczęściej wybierany</span>}
                 </div>
-                <div className="mt-4 text-[30px] font-semibold tracking-[-0.03em] leading-none">
+                <div className="mt-4 text-[32px] font-bold tracking-[-0.03em] leading-none">
                   {yearly ? p.yearly : p.monthly}
                 </div>
                 <p className="mt-3 text-[15px] leading-[1.6] text-[var(--sm-text-2)]">{p.desc}</p>
@@ -548,7 +545,7 @@ export const PublicLandingView = ({
         </div>
       </section>
 
-      {/* ================= KOŃCOWE CTA ================= */}
+      {/* FINAL CTA */}
       <section className="relative z-10 border-t border-[var(--sm-border)]">
         <div className="mx-auto max-w-[1200px] px-5 py-16 md:py-24">
           <motion.div
@@ -574,7 +571,7 @@ export const PublicLandingView = ({
         </div>
       </section>
 
-      {/* ================= FOOTER ================= */}
+      {/* FOOTER */}
       <footer className="relative z-10 border-t border-[var(--sm-border)]">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
@@ -589,7 +586,7 @@ export const PublicLandingView = ({
               <button
                 key={key}
                 onClick={() => setLegalDoc(key)}
-                className="min-h-[44px] rounded-[10px] px-3 text-left text-[14px] text-[var(--sm-text-2)] hover:bg-[var(--sm-surface-2)] hover:text-[var(--sm-text)] transition-colors cursor-pointer border-none bg-transparent"
+                className="min-h-[44px] rounded-[8px] px-3 text-left text-[14px] text-[var(--sm-text-2)] hover:bg-[var(--sm-surface-2)] hover:text-[var(--sm-text)] transition-colors cursor-pointer border-none bg-transparent"
               >
                 {label}
               </button>
@@ -598,7 +595,7 @@ export const PublicLandingView = ({
         </div>
       </footer>
 
-      {/* ================= MODAL PRAWNY ================= */}
+      {/* LEGAL MODAL */}
       <AnimatePresence>
         {legalDoc && (
           <motion.div
@@ -644,5 +641,5 @@ export const PublicLandingView = ({
   );
 };
 
-// re-eksport dla kompatybilności (używane w innych miejscach)
+// re-export for compatibility
 export { cineChild, cineParent, cineSoft, springTransition };

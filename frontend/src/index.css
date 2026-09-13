@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ============================================================================
-   SF Pro Display — local font faces (panel typography)
+   SF Pro Display — local font faces
    ========================================================================== */
 @font-face {
   font-family: 'SF Pro Display';
@@ -29,86 +29,124 @@
 
 /* ============================================================================
    DESIGN SYSTEM — SiteMorph
-   Jeden język wizualny dla całego panelu: paleta, promienie, rozmiary kontrolek.
-   Motyw jasny: białe tło + niebieski tekst (zgodnie z ustaleniem produktu).
-   Motyw ciemny: prawie czarne tło, ciepła biel tekstu, akcent turkus → limonka.
-   Czerwień tylko dla błędów, bursztyn tylko dla ostrzeżeń.
+   One visual language: true white/black, single blue accent (#2563EB).
+   Light: pure white. Dark: true black. No teal, lime, pink, or purple.
+   Red only for errors. Amber only for warnings.
    ========================================================================== */
 :root {
-  /* surfaces */
+  /* Light mode — snow white */
   --sm-bg: #FFFFFF;
-  --sm-surface: #FFFFFF;
-  --sm-surface-2: #F6F6F7;
-  --sm-surface-3: #EFEFF1;
-  /* text */
-  --sm-text: #2563EB;
-  --sm-text-strong: #111827;
-  --sm-text-2: #5B6472;
-  --sm-text-3: #8A93A1;
-  /* lines */
-  --sm-border: #E4E4E7;
+  --sm-surface: #FAFAFA;
+  --sm-surface-2: #F4F4F5;
+  --sm-surface-3: #E4E4E7;
+  --sm-text: #09090B;
+  --sm-text-strong: #09090B;
+  --sm-text-2: #52525B;
+  --sm-text-3: #A1A1AA;
+  --sm-border: #E7E7E9;
   --sm-border-strong: #D4D4D8;
-  /* brand accent: turkus przechodzący w limonkę */
-  --sm-accent: #14B8A6;
-  --sm-accent-2: #A3E635;
+  /* Brand accent — single controlled blue */
+  --sm-accent: #2563EB;
+  --sm-accent-hover: #1D4ED8;
   --sm-accent-ink: #FFFFFF;
-  /* semantics */
+  --sm-accent-muted: rgba(37, 99, 235, 0.08);
+  /* Semantics */
   --sm-danger: #DC2626;
-  --sm-warning: #B45309;
-  --sm-success: #059669;
-  /* shape + motion (spójny system form) */
-  --sm-radius: 10px;
-  --sm-radius-lg: 14px;
-  --sm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --sm-warning: #D97706;
+  --sm-success: #16A34A;
+  /* Shape */
+  --sm-radius: 12px;
+  --sm-radius-lg: 16px;
+  --sm-radius-sm: 8px;
+  /* Motion */
+  --sm-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --sm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  /* control sizes — 44/48px minimum touch targets */
+  /* Control sizes */
   --sm-control: 44px;
   --sm-control-lg: 48px;
 }
 
 html.dark {
-  --sm-bg: #070809;
-  --sm-surface: #0F1114;
-  --sm-surface-2: #14171B;
-  --sm-surface-3: #1B1F24;
-  --sm-text: #F3F4F2;          /* ciepła biel */
+  /* Dark mode — true black */
+  --sm-bg: #000000;
+  --sm-surface: #080808;
+  --sm-surface-2: #101010;
+  --sm-surface-3: #1A1A1A;
+  --sm-text: #FAFAFA;
   --sm-text-strong: #FFFFFF;
-  --sm-text-2: #9BA1A0;        /* czytelna neutralna szarość */
-  --sm-text-3: #6E7473;
-  --sm-border: rgba(255, 255, 255, 0.08);
-  --sm-border-strong: rgba(255, 255, 255, 0.14);
-  --sm-accent: #2DD4BF;
-  --sm-accent-2: #A3E635;
-  --sm-accent-ink: #05201C;
-  --sm-danger: #F87171;
-  --sm-warning: #FBBF24;
-  --sm-success: #34D399;
-}
-
-body {
-  font-family: 'SF Pro Display', 'Geist Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 16px;              /* podstawa min. 16px */
-  line-height: 1.5;
-  background-color: var(--sm-bg);
-  color: var(--sm-text);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.6s var(--sm-ease-out) forwards;
+  --sm-text-2: #A1A1AA;
+  --sm-text-3: #71717A;
+  --sm-border: rgba(255, 255, 255, 0.10);
+  --sm-border-strong: rgba(255, 255, 255, 0.16);
+  --sm-accent: #3B82F6;
+  --sm-accent-hover: #60A5FA;
+  --sm-accent-ink: #FFFFFF;
+  --sm-accent-muted: rgba(59, 130, 246, 0.12);
+  --sm-danger: #EF4444;
+  --sm-warning: #F59E0B;
+  --sm-success: #22C55E;
 }
 
 /* ============================================================================
-   PRYMITYWY UI — używane na KAŻDYM ekranie (pulpit, kreator, leady, cennik...)
+   BASE
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: -0.011em;
+  background-color: var(--sm-bg);
+  color: var(--sm-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+  color: var(--sm-text-strong);
+}
+
+::selection {
+  background: var(--sm-accent);
+  color: var(--sm-accent-ink);
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ========================================================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s var(--sm-ease) forwards;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============================================================================
+   PRIMITIVES — used on every screen
    ========================================================================== */
 
-/* Karta: jedno tło, jedna obwódka, jeden promień. Bez kart w kartach. */
+/* Card */
 .sm-card {
   background: var(--sm-surface);
   border: 1px solid var(--sm-border);
@@ -121,137 +159,190 @@ body {
   border-radius: var(--sm-radius);
 }
 
-/* Pola formularzy: zawsze 48px wysokości i 16px tekstu (klawiatura iOS nie zoomuje) */
+/* Form controls — always 48px height, 16px text (prevents iOS zoom) */
 .sm-input,
 .sm-select,
 .sm-textarea {
   width: 100%;
   min-height: var(--sm-control-lg);
   padding: 12px 14px;
-  border-radius: var(--sm-radius);
+  border-radius: var(--sm-radius-sm);
   border: 1px solid var(--sm-border);
   background: var(--sm-surface);
   color: var(--sm-text);
   font-size: 16px;
   font-family: inherit;
-  line-height: 1.4;
+  line-height: 1.45;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.sm-textarea { min-height: 112px; resize: vertical; }
+.sm-textarea {
+  min-height: 112px;
+  resize: vertical;
+}
 .sm-input::placeholder,
-.sm-textarea::placeholder { color: var(--sm-text-3); }
+.sm-textarea::placeholder {
+  color: var(--sm-text-3);
+}
 .sm-input:hover:not(:disabled),
 .sm-select:hover:not(:disabled),
-.sm-textarea:hover:not(:disabled) { border-color: var(--sm-border-strong); }
+.sm-textarea:hover:not(:disabled) {
+  border-color: var(--sm-border-strong);
+}
 .sm-input:focus-visible,
 .sm-select:focus-visible,
 .sm-textarea:focus-visible {
   border-color: var(--sm-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sm-accent) 22%, transparent);
+  box-shadow: 0 0 0 3px var(--sm-accent-muted);
 }
 .sm-input:disabled,
 .sm-select:disabled,
-.sm-textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+.sm-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-/* Etykieta 12px, podpowiedź 13px */
+/* Labels */
 .sm-label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--sm-text-2);
   margin-bottom: 6px;
+  letter-spacing: 0.01em;
 }
-.sm-hint { font-size: 13px; line-height: 1.5; color: var(--sm-text-3); }
+.sm-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--sm-text-3);
+}
 
-/* Przyciski: 44px zwykły, 48px główne CTA */
+/* Buttons — 44px standard, 48px CTA */
 .sm-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: var(--sm-control);
-  padding: 0 16px;
+  padding: 0 18px;
   border: 1px solid var(--sm-border);
-  border-radius: var(--sm-radius);
+  border-radius: var(--sm-radius-sm);
   background: var(--sm-surface);
   color: var(--sm-text);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   font-family: inherit;
   line-height: 1;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+  user-select: none;
 }
-.sm-btn:hover:not(:disabled) { background: var(--sm-surface-2); border-color: var(--sm-border-strong); }
-.sm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.sm-btn-lg { min-height: var(--sm-control-lg); padding: 0 22px; font-size: 16px; }
+.sm-btn:hover:not(:disabled) {
+  background: var(--sm-surface-2);
+  border-color: var(--sm-border-strong);
+}
+.sm-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.sm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sm-btn-lg {
+  min-height: var(--sm-control-lg);
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+}
 .sm-btn-primary {
   background: var(--sm-accent);
   border-color: transparent;
   color: var(--sm-accent-ink);
+  font-weight: 600;
 }
-.sm-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--sm-accent) 88%, white); }
+.sm-btn-primary:hover:not(:disabled) {
+  background: var(--sm-accent-hover);
+}
+.sm-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--sm-text);
+}
+.sm-btn-ghost:hover:not(:disabled) {
+  background: var(--sm-surface-2);
+}
 .sm-btn-danger {
   background: transparent;
-  border-color: color-mix(in srgb, var(--sm-danger) 40%, transparent);
+  border-color: rgba(220, 38, 38, 0.3);
   color: var(--sm-danger);
 }
-/* Przycisk z samą ikoną: min. 44×44 */
+.sm-btn-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* Icon-only button: 44×44 minimum */
 .sm-icon-btn {
   display: inline-grid;
   place-items: center;
   width: var(--sm-control);
   height: var(--sm-control);
-  border-radius: var(--sm-radius);
+  min-width: var(--sm-control);
+  min-height: var(--sm-control);
+  border-radius: var(--sm-radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: inherit;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
-.sm-icon-btn:hover { background: var(--sm-surface-2); }
+.sm-icon-btn:hover {
+  background: var(--sm-surface-2);
+}
 
-/* Focus widoczny z klawiatury — jeden styl w całej aplikacji */
+/* Focus visible — one style across the app */
 :focus-visible {
   outline: 2px solid var(--sm-accent);
   outline-offset: 2px;
 }
 .sm-btn:focus-visible,
-.sm-icon-btn:focus-visible { outline-offset: 2px; }
+.sm-icon-btn:focus-visible {
+  outline-offset: 2px;
+}
 
-/* Nawigacja: jeden styl aktywnej pozycji */
+/* Nav item — one active style */
 .sm-nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   min-height: var(--sm-control);
-  padding: 0 12px;
+  padding: 0 14px;
   border: 1px solid transparent;
-  border-radius: var(--sm-radius);
+  border-radius: var(--sm-radius-sm);
   font-size: 14px;
   font-weight: 500;
   color: var(--sm-text-2);
   background: transparent;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
 }
-.sm-nav-item:hover { background: var(--sm-surface-2); color: var(--sm-text); }
-.sm-nav-item[aria-current='page'] {
+.sm-nav-item:hover {
   background: var(--sm-surface-2);
-  border-color: var(--sm-border);
   color: var(--sm-text);
+}
+.sm-nav-item[aria-current='page'] {
+  background: var(--sm-accent-muted);
+  color: var(--sm-accent);
   font-weight: 600;
 }
 
-/* Status / filtr / przełącznik — jedyne miejsce na pill */
+/* Pill — only for statuses, filters, toggles */
 .sm-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--sm-border);
   background: var(--sm-surface-2);
@@ -260,40 +351,75 @@ body {
   font-weight: 500;
 }
 
-/* Sekcja nagłówka widoku */
+/* Headings */
 .sm-h1 {
-  font-size: clamp(28px, 3.2vw, 40px);
+  font-size: clamp(28px, 3.2vw, 38px);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: var(--sm-text);
+  color: var(--sm-text-strong);
 }
-.sm-h2 { font-size: clamp(20px, 2vw, 26px); font-weight: 600; letter-spacing: -0.02em; }
-.sm-sub { font-size: 15px; line-height: 1.55; color: var(--sm-text-2); }
+.sm-h2 {
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--sm-text-strong);
+}
+.sm-sub {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--sm-text-2);
+}
 
-/* Nowoczesne checkboxy (zamiast systemowych kwadratów) */
+/* Brand gradient — blue only */
+.sm-brand-gradient {
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Scrollbar */
+.sm-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sm-border-strong) transparent;
+}
+.sm-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.sm-scroll::-webkit-scrollbar-thumb {
+  background: var(--sm-border-strong);
+  border-radius: 999px;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Checkbox */
 input[type="checkbox"].sm-check {
   appearance: none;
   -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   border: 1.5px solid var(--sm-border-strong);
   background: var(--sm-surface);
   display: inline-grid;
   place-content: center;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   flex-shrink: 0;
 }
-input[type="checkbox"].sm-check:hover { border-color: var(--sm-accent); }
-input[type="checkbox"].sm-check:active { transform: scale(0.94); }
+input[type="checkbox"].sm-check:hover {
+  border-color: var(--sm-accent);
+}
+input[type="checkbox"].sm-check:active {
+  transform: scale(0.94);
+}
 input[type="checkbox"].sm-check::before {
   content: "";
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   transform: scale(0);
-  transition: transform 0.16s ease-in-out;
+  transition: transform 0.15s ease;
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 84% 4%, 39% 70%);
   background: var(--sm-accent-ink);
 }
@@ -301,12 +427,28 @@ input[type="checkbox"].sm-check:checked {
   background: var(--sm-accent);
   border-color: var(--sm-accent);
 }
-input[type="checkbox"].sm-check:checked::before { transform: scale(1); }
+input[type="checkbox"].sm-check:checked::before {
+  transform: scale(1);
+}
 
-/* Subtelny scrollbar zamiast ukrytego — użytkownik wie, że treść się przewija */
-.sm-scroll { scrollbar-width: thin; scrollbar-color: var(--sm-border-strong) transparent; }
-.sm-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.sm-scroll::-webkit-scrollbar-thumb { background: var(--sm-border-strong); border-radius: 999px; }
+/* Divider */
+.sm-divider {
+  height: 1px;
+  background: var(--sm-border);
+  border: none;
+  margin: 0;
+}
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+/* ============================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

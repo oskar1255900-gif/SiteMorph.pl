@@ -389,7 +389,7 @@ export const FinanceSection = () => {
                         <td className="py-3">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
                         <td className="py-3">
                           {inv.sent_to
-                            ? <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-lime-50 text-lime-700 dark:bg-neutral-900 dark:text-lime-300 border border-lime-400">Wysłana</span>
+                            ? <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-[rgba(22,163,74,0.08)] text-[var(--sm-success)] border border-[rgba(22,163,74,0.2)]">Wysłana</span>
                             : <span className="px-2.5 py-1 rounded-full text-[13px] font-semibold bg-amber-100 text-amber-800 dark:bg-neutral-900 dark:text-amber-300 border border-amber-400">Oczekująca</span>}
                         </td>
                         <td className="py-3 text-right">

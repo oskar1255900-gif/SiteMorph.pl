@@ -52,15 +52,15 @@ export const DashboardSidebar = ({
   session: any;
 }) => {
   return (
-    <motion.aside
-      layout
-      className="hidden lg:flex w-[264px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 border-r border-[var(--sm-border)] bg-[var(--sm-surface)] text-[var(--sm-text)]"
+    <aside
+      className="hidden lg:flex w-[260px] shrink-0 select-none h-screen sticky top-0 flex-col justify-between z-30 border-r border-[var(--sm-border)] bg-[var(--sm-surface)] text-[var(--sm-text)]"
     >
       <div>
+        {/* Header */}
         <div className="h-16 flex items-center justify-between gap-2 border-b border-[var(--sm-border)] px-4">
           <button
             onClick={onExit}
-            className="flex min-h-[44px] items-center gap-2 rounded-[10px] border-none bg-transparent px-1.5 cursor-pointer text-[var(--sm-text)]"
+            className="flex min-h-[44px] items-center gap-2 rounded-[8px] border-none bg-transparent px-1.5 cursor-pointer text-[var(--sm-text)]"
             aria-label="SiteMorph — strona główna"
           >
             <Logo />
@@ -77,9 +77,10 @@ export const DashboardSidebar = ({
           </motion.button>
         </div>
 
-        <nav className="p-3 space-y-1" aria-label="Menu główne">
-          <div className="px-3 pb-2 pt-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
-            Menu główne
+        {/* Main nav */}
+        <nav className="p-3 space-y-0.5" aria-label="Menu główne">
+          <div className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
+            Menu
           </div>
           {SIDEBAR_MENU.map((item) => (
             <button
@@ -94,8 +95,9 @@ export const DashboardSidebar = ({
           ))}
         </nav>
 
-        <nav className="px-3 space-y-1" aria-label="Konto">
-          <div className="px-3 pb-2 pt-3 text-[12px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
+        {/* Account nav */}
+        <nav className="px-3 space-y-0.5" aria-label="Konto">
+          <div className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--sm-text-3)]">
             Konto
           </div>
           <button
@@ -109,38 +111,38 @@ export const DashboardSidebar = ({
         </nav>
       </div>
 
-      <div className="space-y-3 border-t border-[var(--sm-border)] p-3">
-        <div className="sm-card-quiet flex items-center justify-between gap-2 p-3">
+      {/* Bottom: credits + user */}
+      <div className="space-y-2 border-t border-[var(--sm-border)] p-3">
+        {/* Credits */}
+        <div className="flex items-center justify-between gap-2 rounded-[8px] bg-[var(--sm-surface-2)] border border-[var(--sm-border)] p-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-[var(--sm-surface-3)]">
-              <Coins size={17} />
+              <Coins size={16} className="text-[var(--sm-text-2)]" />
             </span>
             <div className="min-w-0">
-              <div className="text-[14px] font-semibold">{credits} kredytów</div>
+              <div className="text-[14px] font-semibold leading-tight">{credits} kredytów</div>
               <div className="text-[12px] text-[var(--sm-text-3)]">
-                {credits > 0 ? 'Pakiet aktywny' : 'Darmowy pakiet'}
+                {credits > 0 ? 'Aktywny pakiet' : 'Darmowy plan'}
               </div>
             </div>
           </div>
           <button
             onClick={() => setActiveTab('pricing')}
-            className="shrink-0 min-h-[44px] rounded-[8px] px-3 text-[14px] font-medium text-[var(--sm-accent)] hover:bg-[var(--sm-surface-3)] cursor-pointer border-none bg-transparent"
+            className="shrink-0 min-h-[36px] rounded-[8px] px-3 text-[13px] font-medium text-[var(--sm-accent)] hover:bg-[var(--sm-accent-muted)] cursor-pointer border-none bg-transparent transition-colors"
           >
             Doładuj
           </button>
         </div>
 
+        {/* User */}
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-3)] text-[14px] font-semibold">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--sm-surface-3)] text-[13px] font-semibold text-[var(--sm-text-2)]">
               {(session?.user?.email?.[0] || 'U').toUpperCase()}
             </span>
             <div className="min-w-0">
               <div className="truncate text-[14px] font-medium">
                 {session?.user?.email?.split('@')[0] || 'Użytkownik'}
-              </div>
-              <div className="text-[12px] text-[var(--sm-text-3)]">
-                {credits > 0 ? 'Pakiet aktywny' : 'Darmowy plan'}
               </div>
             </div>
           </div>
@@ -154,6 +156,6 @@ export const DashboardSidebar = ({
           </button>
         </div>
       </div>
-    </motion.aside>
+    </aside>
   );
 };

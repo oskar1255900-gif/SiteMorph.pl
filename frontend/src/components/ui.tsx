@@ -2,13 +2,11 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 
 /* ============================================================================
-   GLOBALNE STYLE — jeden język wizualny dla całego panelu.
-   Paleta i prymitywy żyją w index.css (tokeny --sm-*), tutaj tylko to,
-   czego nie da się wyrazić klasami Tailwinda.
+   GLOBAL STYLES — one visual language across the app.
+   Tokens live in index.css (--sm-*). Here: base reset + global effects.
    ========================================================================== */
 export const GlobalStyles = () => (
   <style>{`
-    /* SF PRO DISPLAY (pliki lokalne z /fonts) */
     @font-face {
       font-family: 'SF Pro Display';
       src: url('/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
@@ -36,13 +34,13 @@ export const GlobalStyles = () => (
       padding: 0;
       width: 100%;
       min-height: 100%;
-      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
       font-size: 16px;
       letter-spacing: -0.011em;
       overflow-x: hidden;
       background: var(--sm-bg);
       color: var(--sm-text);
-      transition: background-color 0.25s ease, color 0.25s ease;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     h1, h2, h3, h4 {
@@ -55,17 +53,14 @@ export const GlobalStyles = () => (
     ::selection { background: var(--sm-accent); color: var(--sm-accent-ink); }
     .sm-scroll { scrollbar-width: thin; scrollbar-color: var(--sm-border-strong) transparent; }
 
-    /* Akcent marki: turkus przechodzący subtelnie w limonkę.
-       Używany oszczędnie — tylko logotyp i jedna akcentowana fraza. */
     .sm-brand-gradient {
-      background: linear-gradient(100deg, var(--sm-accent) 0%, var(--sm-accent-2) 100%);
+      background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
       color: transparent;
     }
 
-    /* Ukryty scrollbar tam, gdzie scroll jest techniczny (listy w dropdownach) */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -81,10 +76,9 @@ export const GlobalStyles = () => (
 );
 
 /* ============================================================================
-   BUTTON — 44px zwykły, 48px główne CTA. Bez font-black, bez poświat.
+   BUTTON — 44px standard, 48px CTA. Clean, no excessive shadows.
    ========================================================================== */
-
-type ButtonVariant = 'primary' | 'lime' | 'outline' | 'ghost' | 'blue';
+type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'blue' | 'lime';
 
 export const Button = ({
   children,
@@ -103,17 +97,16 @@ export const Button = ({
   disabled?: boolean;
   type?: 'button' | 'submit';
 }) => {
-  // Wszystkie rozmiary trzymają minimum 44px wysokości (wygodne dotykowo).
   const sizeStyles = {
-    sm: 'min-h-[44px] px-4 text-[14px] gap-2 rounded-[10px] font-semibold',
-    md: 'min-h-[44px] px-5 text-[15px] gap-2 rounded-[10px] font-semibold',
+    sm: 'min-h-[44px] px-4 text-[14px] gap-2 rounded-[8px] font-medium',
+    md: 'min-h-[44px] px-5 text-[15px] gap-2 rounded-[8px] font-medium',
     lg: 'min-h-[48px] px-6 text-[16px] gap-2.5 rounded-[10px] font-semibold'
   };
 
   const variantStyles: Record<ButtonVariant, string> = {
-    primary: 'border border-transparent text-[var(--sm-accent-ink)] bg-[var(--sm-accent)] hover:brightness-[1.06]',
-    blue: 'border border-transparent text-[var(--sm-accent-ink)] bg-[var(--sm-accent)] hover:brightness-[1.06]',
-    lime: 'border border-transparent text-[var(--sm-accent-ink)] bg-[var(--sm-accent)] hover:brightness-[1.06]',
+    primary: 'border border-transparent text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#3B82F6] dark:hover:bg-[#60A5FA]',
+    blue: 'border border-transparent text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#3B82F6] dark:hover:bg-[#60A5FA]',
+    lime: 'border border-transparent text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#3B82F6] dark:hover:bg-[#60A5FA]',
     outline:
       'border border-[var(--sm-border)] text-[var(--sm-text)] bg-[var(--sm-surface)] hover:bg-[var(--sm-surface-2)] hover:border-[var(--sm-border-strong)]',
     ghost:
@@ -123,11 +116,11 @@ export const Button = ({
   return (
     <motion.button
       whileTap={disabled ? undefined : { scale: 0.98 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.12 }}
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center transition-colors duration-150 cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center transition-colors duration-150 cursor-pointer select-none disabled:opacity-45 disabled:cursor-not-allowed ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
     >
       {children}
     </motion.button>
@@ -135,23 +128,21 @@ export const Button = ({
 };
 
 /* ============================================================================
-   BADGE — pill tylko dla statusów i filtrów.
+   BADGE — pill only for statuses, filters, toggles.
    ========================================================================== */
-
 export const Badge = ({
   children,
   type = 'default'
 }: {
   children: React.ReactNode;
-  type?: 'default' | 'lime' | 'blue';
+  type?: 'default' | 'blue' | 'success' | 'warning' | 'danger';
 }) => {
-  const styles = {
-    default:
-      'bg-[var(--sm-surface-2)] text-[var(--sm-text-2)] border-[var(--sm-border)] font-medium',
-    lime:
-      'bg-[color-mix(in_srgb,var(--sm-accent-2)_22%,transparent)] text-[var(--sm-text)] border-[color-mix(in_srgb,var(--sm-accent-2)_35%,transparent)] font-semibold',
-    blue:
-      'bg-[var(--sm-surface-2)] text-[var(--sm-text)] border-[var(--sm-border)] font-medium'
+  const styles: Record<string, string> = {
+    default: 'bg-[var(--sm-surface-2)] text-[var(--sm-text-2)] border-[var(--sm-border)] font-medium',
+    blue: 'bg-[rgba(37,99,235,0.1)] text-[#2563EB] border-[rgba(37,99,235,0.2)] font-medium dark:bg-[rgba(59,130,246,0.12)] dark:text-[#60A5FA] dark:border-[rgba(59,130,246,0.2)]',
+    success: 'bg-[rgba(22,163,74,0.08)] text-[var(--sm-success)] border-[rgba(22,163,74,0.2)] font-medium',
+    warning: 'bg-[rgba(217,119,6,0.08)] text-[var(--sm-warning)] border-[rgba(217,119,6,0.2)] font-medium',
+    danger: 'bg-[rgba(220,38,38,0.08)] text-[var(--sm-danger)] border-[rgba(220,38,38,0.2)] font-medium',
   };
 
   return (
