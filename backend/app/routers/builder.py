@@ -61,10 +61,10 @@ AI_TIMEOUT = int(os.getenv("SITEMORPH_AI_TIMEOUT", "280" if _IS_VERCEL else "450
 FAST_AI_TIMEOUT = int(os.getenv("SITEMORPH_FAST_AI_TIMEOUT", "60" if _IS_VERCEL else "180"))
 MODEL_CONNECT_TIMEOUT = max(1.0, float(os.getenv("SITEMORPH_MODEL_CONNECT_TIMEOUT", "5")))
 MODEL_FIRST_TOKEN_TIMEOUT = max(3.0, float(os.getenv("SITEMORPH_MODEL_FIRST_TOKEN_TIMEOUT", "12")))
-MODEL_ROUTING_BUDGET = max(15.0, float(os.getenv("SITEMORPH_MODEL_ROUTING_BUDGET", "55")))
-MODEL_ATTEMPT_TIMEOUT = max(6.0, float(os.getenv("SITEMORPH_MODEL_ATTEMPT_TIMEOUT", "18")))
+MODEL_ROUTING_BUDGET = max(15.0, float(os.getenv("SITEMORPH_MODEL_ROUTING_BUDGET", "60")))
+MODEL_ATTEMPT_TIMEOUT = max(6.0, float(os.getenv("SITEMORPH_MODEL_ATTEMPT_TIMEOUT", "40")))
 MODEL_COOLDOWN_SECONDS = max(0.0, float(os.getenv("SITEMORPH_MODEL_COOLDOWN_SECONDS", "45")))
-MAX_MODEL_ATTEMPTS = max(1, min(6, int(os.getenv("SITEMORPH_MAX_MODEL_ATTEMPTS", "3"))))
+MAX_MODEL_ATTEMPTS = max(1, min(6, int(os.getenv("SITEMORPH_MAX_MODEL_ATTEMPTS", "2"))))
 # Compatibility only: the AI standalone-preview path is disabled (GENERATE_STANDALONE_PREVIEW=False)
 # and never runs inside /generate.
 PREVIEW_MAX_TOKENS = int(os.getenv("SITEMORPH_PREVIEW_MAX_TOKENS", "16000"))
@@ -79,11 +79,17 @@ DEEPSEEK_MODEL = os.getenv(
 )
 FABLE_MODEL = "anthropic/claude-fable-5"
 
-# XKIRO removed these identifiers from its live catalogue. Normalising them
-# also repairs deployments that still have the old lists saved in Vercel env.
-XKIRO_MODEL_ALIASES = {
-    "deepseek/deepseek-v4-pro": "deepseek/deepseek-v3.2",
-    "deepseek/deepseek-v4-flash": "deepseek/deepseek-v3.2",
+# Confirmed as missing by XKIRO. Ignore them even when an old Vercel model list
+# still contains one of these identifiers.
+XKIRO_UNAVAILABLE_MODELS = {
+    "deepseek/deepseek-v4-pro",
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v3.2",
+}
+
+GEMINI_EXPRESS_MODEL_ALIASES = {
+    "gemini-3.5-flash": "gemini-2.5-flash",
+    "gemini-3.5-flash-lite": "gemini-2.5-flash-lite",
 }
 
 
@@ -106,32 +112,35 @@ def _model_targets_env(name: str, defaults: List[Tuple[str, str]]) -> List[Dict[
     for provider, model in candidates:
         if provider not in {"xkiro", "openrouter", "gemini"} or not model:
             continue
-        if provider == "xkiro":
-            model = XKIRO_MODEL_ALIASES.get(model, model)
+        if provider == "xkiro" and model in XKIRO_UNAVAILABLE_MODELS:
+            continue
+        if provider == "gemini" and GEMINI_API_KEY.startswith("AQ."):
+            model = GEMINI_EXPRESS_MODEL_ALIASES.get(model, model)
         key = (provider, model)
         if key not in seen:
             seen.add(key)
             targets.append({"provider": provider, "model": model})
+    prefer_gemini = os.getenv("SITEMORPH_PREFER_GEMINI", "1").strip().lower() in {"1", "true", "yes", "on"}
+    if prefer_gemini and name in {
+        "SITEMORPH_NORMAL_MODELS", "SITEMORPH_ULTRA_MODELS", "SITEMORPH_ULTRA_PLUS_MODELS",
+    }:
+        targets.sort(key=lambda target: 0 if target["provider"] == "gemini" else 1)
     return targets
 
 
-# Keep the default route deliberately short. DeepSeek and Mistral remain the
-# primary XKIRO models; Google's native Gemini API is an independent last-resort
-# provider. Custom provider|model lists can still be supplied through env vars.
+# Google Cloud Express provides the stable free path. Mistral remains an
+# independent XKIRO fallback; confirmed-missing DeepSeek IDs are not called.
 NORMAL_MODEL_TARGETS = _model_targets_env("SITEMORPH_NORMAL_MODELS", [
-    ("xkiro", "deepseek/deepseek-v3.2"),
+    ("gemini", "gemini-2.5-flash-lite"),
     ("xkiro", "mistralai/mistral-small-2603"),
-    ("gemini", "gemini-3.5-flash"),
 ])
 ULTRA_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_MODELS", [
-    ("xkiro", DEEPSEEK_MODEL),
+    ("gemini", "gemini-2.5-flash"),
     ("xkiro", "mistralai/mistral-large-2512"),
-    ("gemini", "gemini-3.5-flash"),
 ])
 ULTRA_PLUS_MODEL_TARGETS = _model_targets_env("SITEMORPH_ULTRA_PLUS_MODELS", [
-    ("xkiro", DEEPSEEK_MODEL),
+    ("gemini", "gemini-2.5-flash"),
     ("xkiro", "mistralai/mistral-large-2512"),
-    ("gemini", "gemini-3.5-flash"),
 ])
 MODEL_TARGETS = {
     "normal": NORMAL_MODEL_TARGETS,
