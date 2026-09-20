@@ -42,7 +42,19 @@
   --sm-text: #09090B;
   --sm-text-secondary: #52525B;
   --sm-text-quiet: #71717A;
+  /* Aliases kept so the older views that were written against the previous
+     token names keep rendering real colours instead of an invalid value. */
+  --sm-text-strong: var(--sm-text);
+  --sm-text-2: var(--sm-text-secondary);
+  --sm-text-3: var(--sm-text-quiet);
+  --sm-surface-2: var(--sm-surface-elevated);
+  --sm-surface-3: var(--sm-surface-hover);
+  /* Control surfaces: distinct from the canvas (#FFF), from a card
+     (#F5F5F6) and from an elevated surface (#FFF). */
+  --sm-control-bg: #E8E8EC;
+  --sm-control-bg-hover: #DEDEE4;
   --sm-border: transparent;
+  --sm-border-strong: rgba(0, 0, 0, 0.14);
   --sm-border-subtle: rgba(0, 0, 0, 0.06);
   /* Accent */
   --sm-accent: #2563EB;
@@ -56,13 +68,13 @@
   /* Shape */
   --sm-radius-sm: 8px;
   --sm-radius: 12px;
-  --sm-radius-lg: 16px;
-  --sm-radius-xl: 20px;
+  --sm-radius-lg: 14px;
+  --sm-radius-xl: 18px;
   /* Motion */
   --sm-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  /* Control sizes */
+  /* Control sizes — 44 px to minimum dotyku, 46 px dla głównych akcji */
   --sm-control: 44px;
-  --sm-control-lg: 48px;
+  --sm-control-lg: 46px;
   /* Shadows — only for elevated surfaces */
   --sm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --sm-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -79,7 +91,15 @@ html.dark {
   --sm-text: #FAFAFA;
   --sm-text-secondary: #A1A1AA;
   --sm-text-quiet: #71717A;
+  --sm-text-strong: var(--sm-text);
+  --sm-text-2: var(--sm-text-secondary);
+  --sm-text-3: var(--sm-text-quiet);
+  --sm-surface-2: var(--sm-surface-elevated);
+  --sm-surface-3: var(--sm-surface-hover);
+  --sm-control-bg: #1F1F24;
+  --sm-control-bg-hover: #2A2A30;
   --sm-border: transparent;
+  --sm-border-strong: rgba(255, 255, 255, 0.16);
   --sm-border-subtle: rgba(255, 255, 255, 0.06);
   --sm-accent: #3B82F6;
   --sm-accent-hover: #60A5FA;
@@ -164,26 +184,47 @@ h1, h2, h3, h4, h5 {
   box-shadow: var(--sm-shadow-sm);
 }
 
+/* Quiet surface — for secondary blocks inside a card. */
+.sm-card-quiet {
+  background: var(--sm-surface-hover);
+  border-radius: var(--sm-radius);
+}
+
+/* Functional divider, used where spacing alone cannot separate content. */
+.sm-divider {
+  height: 1px;
+  width: 100%;
+  border: 0;
+  background: var(--sm-border-subtle);
+}
+
 /* Form controls — no borders, surface difference */
 .sm-input,
 .sm-select,
 .sm-textarea {
   width: 100%;
-  min-height: var(--sm-control-lg);
-  padding: 12px 16px;
+  min-height: var(--sm-control);
+  padding: 10px 14px;
   border-radius: var(--sm-radius);
   border: none;
-  background: var(--sm-surface);
+  /* A control must stay visible on the page background AND inside a .sm-card,
+     so it uses its own surface rather than the card's. */
+  background: var(--sm-control-bg);
   color: var(--sm-text);
-  font-size: 16px;
+  font-size: 15px;
   font-family: inherit;
   line-height: 1.45;
   outline: none;
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 .sm-textarea {
-  min-height: 112px;
+  min-height: 96px;
   resize: vertical;
+}
+/* Input with a leading icon. Two classes so it always outranks the base
+   padding, whichever order the utilities end up in the bundle. */
+.sm-input.sm-input-icon {
+  padding-left: 40px;
 }
 .sm-input::placeholder,
 .sm-textarea::placeholder {
@@ -192,12 +233,12 @@ h1, h2, h3, h4, h5 {
 .sm-input:hover,
 .sm-select:hover,
 .sm-textarea:hover {
-  background: var(--sm-surface-hover);
+  background: var(--sm-control-bg-hover);
 }
 .sm-input:focus-visible,
 .sm-select:focus-visible,
 .sm-textarea:focus-visible {
-  background: var(--sm-surface-elevated);
+  background: var(--sm-control-bg-hover);
   box-shadow: 0 0 0 2px var(--sm-accent);
 }
 .sm-input:disabled,
@@ -210,14 +251,14 @@ h1, h2, h3, h4, h5 {
 /* Labels */
 .sm-label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--sm-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   letter-spacing: 0.01em;
 }
 .sm-hint {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--sm-text-quiet);
 }
@@ -227,14 +268,14 @@ h1, h2, h3, h4, h5 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   min-height: var(--sm-control);
-  padding: 0 18px;
+  padding: 0 16px;
   border: none;
   border-radius: var(--sm-radius-sm);
   background: var(--sm-surface);
   color: var(--sm-text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   font-family: inherit;
   line-height: 1;
@@ -254,8 +295,8 @@ h1, h2, h3, h4, h5 {
 }
 .sm-btn-lg {
   min-height: var(--sm-control-lg);
-  padding: 0 24px;
-  font-size: 16px;
+  padding: 0 20px;
+  font-size: 15px;
   font-weight: 600;
 }
 .sm-btn-primary {
@@ -314,13 +355,13 @@ h1, h2, h3, h4, h5 {
 .sm-nav-item {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 12px;
   border: none;
   border-radius: var(--sm-radius-sm);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--sm-text-secondary);
   background: transparent;
@@ -343,30 +384,30 @@ h1, h2, h3, h4, h5 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: var(--sm-surface);
   color: var(--sm-text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
 }
 
 /* Headings */
 .sm-h1 {
-  font-size: clamp(30px, 3.5vw, 42px);
+  font-size: clamp(24px, 2.6vw, 31px);
   font-weight: 600;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--sm-text);
 }
 .sm-h2 {
-  font-size: clamp(22px, 2.2vw, 30px);
+  font-size: clamp(17.5px, 1.75vw, 23px);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--sm-text);
 }
 .sm-sub {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--sm-text-secondary);
 }
@@ -397,8 +438,8 @@ h1, h2, h3, h4, h5 {
 input[type="checkbox"].sm-check {
   appearance: none;
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 6px;
   border: none;
   background: var(--sm-surface);

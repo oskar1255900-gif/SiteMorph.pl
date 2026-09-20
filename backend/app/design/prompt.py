@@ -20,6 +20,7 @@ Motion: use one hero reveal plus at most one supporting reveal. Select an approp
 Images: prefer user-provided media with matching description. Otherwise src='asset:<request-id>'; never fabricate an image URL or choose a known generic Unsplash photo. Request the exact subject with coherent camera distance, light and style. Mark unrelated products as negatives. A failed match will be omitted and the hero will become type-led. In that case the copy and remaining sections must still form a complete site. Do not repeat a hero photograph in subsequent sections. Avoid claiming cultural or food details that are not supported. Metadata confidence is not visual verification.
 
 SERIALIZATION RULE: EVERY field declared as string[] MUST be a JSON array, even when it contains only one item. Never serialize string[] as a plain string.
+LIST LIMITS: culturalSignalsDesired and culturalSignalsAvoid take at most 6 items each, ordered most important first. Put the strongest signals first so a shorter list still reads as complete.
 
 ENUM RULES:
 pagePlan.sections[*].rhythm.paceRole must be exactly one of: accelerate, stabilize, pause, peak, resolve.
@@ -32,7 +33,7 @@ Return EXACTLY the following root keys (unknown keys are rejected):
 meta: {schemaVersion:'2.0',locale:'pl-PL',siteType:'single-page-business-site',confidence:0..1,assumptions:string[],unknowns:string[]}
 businessBrief: {name,category,positioning,audience,primaryConversion,secondaryConversions:string[],keySignals:string[],risks:string[]}
 creative: {conceptTitle,visualThesis,heroFamily,visualSignature:{type,description,scope},forbiddenPatterns:string[],justifications:{decision:shortRationale}}
-semanticProfile: {materiality:string[],brandTempo:string[],formality:string[],culturalSignalsDesired:string[],culturalSignalsAvoid:string[]}
+semanticProfile: {materiality:string[],brandTempo:string[],formality:string[],culturalSignalsDesired:string[<=6],culturalSignalsAvoid:string[<=6]}
 tokens: {colorStrategy,typographyStrategy,shapeStrategy,motionStrategy,spacingStrategy}
 assetPlan: {assetConfidence:'low'|'medium'|'high',requests:AssetRequest[],requiredShotTypes:string[],consistencyRules:string[],fallbackMode:'type-led'|'media-light'}
 pagePlan: {rhythmArc:string,sections:Section[]}

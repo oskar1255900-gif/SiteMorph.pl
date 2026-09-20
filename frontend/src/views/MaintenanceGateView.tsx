@@ -3,14 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { sha256Hex } from '../lib/shared';
 
-const VIDEO_URL =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260820_010308_b1636845-4c15-4ab6-b0c9-9a29bfb0c6e3.mp4';
-
 /**
- * Brama "Strona w budowie" - premium cinematic landing.
- * - Password verified server-side via SHA-256 hash
- * - Background: Palomar lake landscape video with blur + tint
- * - Headline: subtelny gradient w akcencie SiteMorph (turkus → limonka)
+ * Brama "Strona w budowie".
+ * - Hasło weryfikowane po stronie serwera przez SHA-256
+ * - Czyste tło i powierzchnie z tokenów motywu — bez dekoracyjnego wideo
+ *   i bez gradientów
  * - Font: SF Pro Display (Apple system font fallback)
  */
 export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
@@ -56,47 +53,23 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
     }
   };
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070709] text-white font-sans">
-      {/* Gradient keyframe styles */}
-      <style>{`
-        @keyframes gradient-shift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .gradient-word {
-          background: linear-gradient(
-            135deg,
-            var(--sm-accent) 0%,
-            #7FE3C4 45%,
-            var(--sm-accent) 100%
-          );
-          background-size: 200% 200%;
-          animation: gradient-shift 10s ease infinite;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-      `}</style>
-
-      {/* Background video with subtle blur */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover pointer-events-none"
-          style={{ filter: 'blur(3px) brightness(0.55) saturate(0.9)' }}
-          src={VIDEO_URL}
+  // Zanim poznamy wynik `/api/admin/gate/check`, nie pokazujemy ani komunikatu
+  // „Strona w budowie”, ani treści aplikacji — użytkownik z ważnym dostępem
+  // nie może zobaczyć błęnego ekranu przy każdym wejściu czy po logowaniu.
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--sm-bg)] text-[var(--sm-text)]" role="status" aria-live="polite">
+        <span
+          className="h-5 w-5 animate-spin rounded-full"
+          style={{ border: '2px solid var(--sm-surface-hover)', borderTopColor: 'var(--sm-accent)' }}
+          aria-label="Sprawdzam dostęp"
         />
-        {/* Dark tint */}
-        <div className="absolute inset-0 bg-[#070709]/40" />
-        {/* Subtle vignette */}
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(7,7,9,0.5) 100%)'
-        }} />
       </div>
+    );
+  }
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-[var(--sm-bg)] font-sans text-[var(--sm-text)]">
 
       {/* Wejście do panelu — celowo dyskretne, ale z pełnym obszarem dotyku 44px */}
       <div className="absolute right-4 top-3 z-20">
@@ -104,7 +77,7 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
           type="button"
           onClick={() => setPanelOpen(true)}
           aria-label="Dostęp do panelu"
-          className="inline-flex min-h-[44px] cursor-pointer items-center border-none bg-transparent px-3 text-[13px] font-medium uppercase tracking-[0.2em] text-white/20 transition-colors duration-500 hover:text-white/60"
+          className="inline-flex min-h-[44px] cursor-pointer items-center border-none bg-transparent px-3 text-[13px] font-medium uppercase tracking-[0.2em] text-[var(--sm-text-quiet)] transition-colors duration-300 hover:text-[var(--sm-text)]"
         >
           Panel
         </button>
@@ -118,24 +91,22 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center max-w-2xl"
         >
-          {/* Headline: 'Budowa' has gradient */}
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.02] text-white"
+            transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] text-[var(--sm-text)] md:text-[54px]"
           >
-            Strona w <span className="gradient-word">budowie</span>
+            Strona w budowie
           </motion.h1>
 
-          {/* Subtitle: 'nowego' has gradient */}
           <motion.p
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-8 max-w-md text-base md:text-lg leading-[1.6] text-white/40"
+            transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-5 max-w-md text-[16px] leading-[1.6] text-[var(--sm-text-secondary)]"
           >
-            Składamy coś <span className="gradient-word">nowego</span>. Wróć za chwilę.
+            Wracamy za chwilę. Odśwież stronę za kilka minut.
           </motion.p>
 
         </motion.div>
@@ -145,7 +116,7 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
       <AnimatePresence>
         {panelOpen && (
           <motion.div
-            className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+            className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -157,15 +128,15 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
               exit={{ scale: 0.96, y: 8, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 26 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#111118]/95 p-7 shadow-2xl backdrop-blur-xl"
+              className="w-full max-w-sm rounded-[18px] bg-[var(--sm-surface-elevated)] p-7 shadow-[var(--sm-shadow-lg)]"
             >
               <div className="mb-5 flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5">
-                  <Lock size={16} className="text-white/80" />
+                <div className="grid h-11 w-11 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
+                  <Lock size={18} className="text-[var(--sm-text-secondary)]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold">Dostęp do panelu</h3>
-                  <p className="text-[13px] text-white/50">Wprowadź hasło, aby kontynuować</p>
+                  <h3 className="text-[17px] font-semibold text-[var(--sm-text)]">Dostęp do panelu</h3>
+                  <p className="text-[14px] text-[var(--sm-text-secondary)]">Wprowadź hasło, aby kontynuować</p>
                 </div>
               </div>
               <input
@@ -175,17 +146,17 @@ export const MaintenanceGateView = ({ onUnlock }: { onUnlock: () => void }) => {
                 onChange={(e) => setPass(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submit()}
                 placeholder="Hasło"
-                className="min-h-[48px] w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white outline-none transition-colors placeholder:text-white/40 focus:border-cyan-300/60"
+                className="min-h-[48px] w-full rounded-[14px] border-none bg-[var(--sm-control-bg)] px-4 py-3 text-[16px] text-[var(--sm-text)] outline-none transition-shadow placeholder:text-[var(--sm-text-quiet)] focus-visible:ring-2 focus-visible:ring-[var(--sm-accent)]"
               />
               {err && (
-                <p className="mt-3 flex items-center gap-1.5 text-[13px] text-red-400">
-                  <AlertTriangle size={12} /> {err}
+                <p className="mt-3 flex items-center gap-1.5 text-[14px] text-[var(--sm-danger)]">
+                  <AlertTriangle size={14} /> {err}
                 </p>
               )}
               <button
                 onClick={submit}
                 disabled={busy || !pass.trim()}
-                className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-white px-5 text-base font-semibold text-black transition-all hover:bg-white/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--sm-accent)] px-5 text-[15px] font-semibold text-[var(--sm-accent-ink)] transition-all hover:bg-[var(--sm-accent-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
                 Wejdź

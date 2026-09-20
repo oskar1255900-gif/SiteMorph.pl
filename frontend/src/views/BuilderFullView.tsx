@@ -5,12 +5,12 @@ import { compileReactProject, warmPreviewCompiler, sourceHash, COMPILER_VERSION 
 import {
   Sparkles,
   CheckCircle2,
-  Globe,
-  Paperclip,
   Send,
   Monitor,
+  Tablet,
+  Smartphone,
+  RefreshCw,
   Code as CodeIcon,
-
   Zap,
   Briefcase,
   X,
@@ -18,19 +18,9 @@ import {
   Coffee,
   ArrowLeft,
   Image as ImageIcon,
-
   Save,
-
-
-
-
-
-
-
-
-
+  AlertTriangle,
   Check,
-
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { springTransition } from '../lib/shared';
@@ -38,217 +28,10 @@ import { apiFetch, API_BASE } from '../lib/api';
 import { GeneratedWebsite } from '../types';
 import { ThinkingSteps } from './ThinkingSteps';
 
-// Fetch AI-generated questions from backend (DeepSeek V4 Pro)
-async function fetchWizardQuestions(businessName: string, description: string, fullPrompt: string): Promise<{questions: WizardQuestion[], detectedNiche?: string}> {
-  try {
-    const res = await apiFetch('/api/builder/generate-questions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business_name: businessName, description: description, full_prompt: fullPrompt }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data.questions)) {
-        const mapped = data.questions.map((q: any) => ({
-          question: q.question || 'Pytanie?',
-          placeholder: q.placeholder || '',
-          options: q.options || [],
-          stateKey: q.stateKey || 'extras',
-          multi: q.multi || false,
-        }));
-        return { questions: mapped.slice(0, 6), detectedNiche: data.detected_niche };
-      }
-    }
-  } catch (e) {
-    console.warn('[Wizard] Failed to fetch AI questions, using defaults');
-  }
-  return { questions: DEFAULT_WIZARD_QUESTIONS };
-}
+// Legacy wizard scaffolding — the wizard never opened in the redesigned
+// UI (the prompt is typed directly). Kept as dead code only so we do not
+// duplicate the questions endpoint logic here.
 
-// ============================================================================
-// BORDER BEAM CSS (animowany gradient naokolo karty)
-// ============================================================================
-
-
-// Thinking steps removed — generation is silent
-
-// ============================================================================
-// WIZARD QUESTIONNAIRE DATA
-// ============================================================================
-interface WizardQuestion {
-  question: string;
-  placeholder: string;
-  options?: string[];
-  stateKey: string;
-  multi?: boolean;
-}
-
-const DEFAULT_WIZARD_QUESTIONS: WizardQuestion[] = [
-  {
-    question: 'Czy chcesz wskazać konkretny styl?',
-    placeholder: '',
-    options: ['Dobierz automatycznie', 'Minimalistyczny', 'Editorial', 'Ciepły i przytulny', 'Odważny i energiczny'],
-    stateKey: 'layout',
-  },
-  {
-    question: 'Które sekcje są dla Ciebie najważniejsze?',
-    placeholder: '',
-    options: ['Menu', 'Oferta', 'Cennik', 'Galeria', 'Opinie', 'O nas', 'Kontakt', 'FAQ'],
-    stateKey: 'sections',
-    multi: true,
-  },
-];
-
-// ============================================================================
-// INLINE WIZARD (pojawia sie nad inputem, nie jako modal)
-// ============================================================================
-const InlineWizard = ({
-  step, setStep, answers, setAnswers, onGenerate, onClose, questions, loading, theme,
-}: {
-  step: number; setStep: (s: number) => void;
-  answers: Record<string, string | string[]>;
-  setAnswers: (a: Record<string, string | string[]>) => void;
-  onGenerate: () => void; onClose: () => void;
-  questions: WizardQuestion[];
-  loading: boolean;
-  theme: 'light' | 'dark';
-}) => {
-  const dk = theme === 'dark';
-  // Theme colors
-  const bgColor = dk ? '#111111' : '#ffffff';
-  const borderColor = dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
-  const textPrimary = dk ? '#ffffff' : '#111827';
-  const textSecondary = dk ? 'rgba(255,255,255,0.7)' : '#374151';
-  const textMuted = dk ? 'rgba(255,255,255,0.4)' : '#9ca3af';
-  const hoverBg = dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6';
-  const optionBorder = dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
-  const accentBlue = '#2563eb';
-  const accentGreen = '#10b981';
-
-  const current = questions[step];
-  // Show the loading state even while the question list is still empty (Design Agent is generating it).
-  if (!current && !loading) return null;
-  const total = questions.length;
-  const isLast = step === total - 1;
-
-  const handleNext = () => {
-    if (isLast) onGenerate();
-    else setStep(step + 1);
-  };
-  const handleAuto = () => {
-    // "Auto" means: do not force a visual decision. Let Brand Strategist + Art Director infer it.
-    setAnswers({
-      ...answers,
-      [current.stateKey]: current.multi ? [] : '',
-    });
-    setTimeout(handleNext, 200);
-  };
-  const toggleOption = (opt: string) => {
-    if (current.multi) {
-      const arr = (answers[current.stateKey] as string[]) || [];
-      setAnswers({ ...answers, [current.stateKey]: arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt] });
-    } else {
-      setAnswers({ ...answers, [current.stateKey]: opt });
-      setTimeout(handleNext, 300);
-    }
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-      className="mx-3 mb-2 rounded-2xl overflow-hidden"
-      style={{ background: bgColor, border: `1px solid ${borderColor}` }}>
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: `1px solid ${dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: dk ? 'rgba(16,185,129,0.15)' : '#ecfdf5' }}>
-            <Sparkles size={12} className={dk ? 'text-emerald-400' : 'text-emerald-600'} />
-          </div>
-          <span className="text-xs font-semibold" style={{ color: textSecondary }}>Agent ma pytania</span>
-        </div>
-        <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer border-none bg-transparent" style={{ color: textMuted }}><X size={12} /></button>
-      </div>
-      {loading ? (
-        <div className="px-4 py-8 flex flex-col items-center gap-3">
-          <div className="relative w-6 h-6">
-            <div className="absolute inset-0 rounded-full border-2 animate-spin" style={{ borderColor: accentGreen + '30', borderTopColor: accentGreen }} />
-            <Sparkles size={10} className="absolute inset-0 m-auto" style={{ color: accentGreen }} />
-          </div>
-          <span className="text-xs font-semibold" style={{ color: textSecondary }}>Design Agent generuje formularz…</span>
-          <span className="text-[10px] text-center leading-relaxed" style={{ color: textMuted }}>
-            Analizuję Twój prompt i układam pytania dopasowane do tego biznesu. To potrwa chwilę.
-          </span>
-        </div>
-      ) : (
-      <div>
-      <div className="px-4 pt-3">
-        <div className="flex gap-1">{questions.map((_: any, i: number) => <div key={i} className="h-[2px] flex-1 rounded-full transition-all" style={{ background: i <= step ? accentGreen : dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }} />)}</div>
-      </div>
-      <div className="px-4 pt-3 pb-3">
-        <h3 className="text-base font-bold mb-4" style={{ color: textPrimary }}>{current.question}</h3>
-        <div className="space-y-2">
-          {current.options?.map((opt) => {
-            const isSelected = current.multi
-              ? Array.isArray(answers[current.stateKey]) && (answers[current.stateKey] as string[]).includes(opt)
-              : answers[current.stateKey] === opt;
-            return (
-              <label key={opt} onClick={() => toggleOption(opt)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all"
-                style={{
-                  background: isSelected ? (dk ? 'rgba(255,255,255,0.06)' : '#eff6ff') : 'transparent',
-                  border: `1px solid ${isSelected ? (dk ? 'rgba(255,255,255,0.12)' : '#bfdbfe') : optionBorder}`,
-                  color: isSelected ? textPrimary : textMuted,
-                }}>
-                <div className="w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-all"
-                  style={{
-                    border: `2px solid ${isSelected ? accentBlue : (dk ? 'rgba(255,255,255,0.2)' : '#d1d5db')}`,
-                    background: isSelected ? (dk ? 'rgba(16,185,129,0.2)' : '#dbeafe') : 'transparent',
-                  }}>
-                  {isSelected && <Check size={10} className={dk ? 'text-emerald-400' : 'text-blue-600'} />}
-                </div>
-                {(() => {
-                  const hexMatch = opt.match(/#[0-9a-fA-F]{6}/);
-                  if (hexMatch && current.stateKey === 'accent') {
-                    const label = opt.replace(/#[0-9a-fA-F]{6}/, '').trim();
-                    return (
-                      <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-md shrink-0 border border-white/10" style={{ background: hexMatch[0] }} />
-                        {label}
-                      </span>
-                    );
-                  }
-                  return opt;
-                })()}
-              </label>
-            );
-          })}
-          {!current.options?.length && (              <input autoFocus value={(answers[current.stateKey] as string) || ''} onChange={(e) => setAnswers({ ...answers, [current.stateKey]: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && handleNext()} placeholder={current.placeholder}
-              className="w-full px-3 py-2.5 rounded-lg text-[11px] outline-none"
-              style={{ background: dk ? 'rgba(255,255,255,0.03)' : '#f9fafb', border: `1px solid ${dk ? 'rgba(255,255,255,0.08)' : '#e5e7eb'}`, color: dk ? '#fff' : '#111827' }} />
-          )}
-        </div>
-      </div>
-      </div>
-      )}
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: `1px solid ${dk ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
-        <div className="flex items-center gap-1">
-          <button disabled={step === 0} onClick={() => setStep(step - 1)} className="text-[10px] cursor-pointer border-none bg-transparent disabled:opacity-30" style={{ color: textMuted }}>&lt; {step + 1} / {total} &gt;</button>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleAuto} className="px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer"
-            style={{ background: 'transparent', border: `1px solid ${dk ? 'rgba(255,255,255,0.1)' : '#d1d5db'}`, color: textMuted }}>Auto-odpowiedz</button>
-          <button onClick={handleNext} className="px-4 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer border-none"
-            style={{ background: dk ? '#fff' : accentBlue, color: dk ? '#000' : '#fff' }}>
-            {isLast ? 'Generuj' : 'Dalej'}
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// ============================================================================
-// THINKING STATE (pokazuje co agent robi)
-// ============================================================================
 
 
 // ============================================================================
@@ -272,6 +55,12 @@ function cleanAutoValue(value: unknown): string {
   return text;
 }
 
+const MODE_OPTIONS: { value: 'normal' | 'ultra' | 'ultra+'; label: string; hint: string }[] = [
+  { value: 'normal', label: 'S1', hint: 'S1 — ten sam model i jedno żądanie, 15 kredytów' },
+  { value: 'ultra', label: 'S1+', hint: 'S1+ — ten sam model i jedno żądanie, 45 kredytów' },
+  { value: 'ultra+', label: 'S1 Pro', hint: 'S1 Pro — ten sam model i jedno żądanie, 150 kredytów' },
+];
+
 // ============================================================================
 // MAIN BUILDER VIEW
 // ============================================================================
@@ -288,7 +77,6 @@ export const BuilderFullView = ({
   credits: number;
   setCredits: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const dk = theme === 'dark';
   const [activeMode, setActiveMode] = useState<'preview' | 'code'>('preview');
   const [builderPrompt, setBuilderPrompt] = useState(initialPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -296,10 +84,7 @@ export const BuilderFullView = ({
   const [generationErr, setGenerationErr] = useState('');
   const [generatedSite, setGeneratedSite] = useState<GeneratedWebsite | null>(null);
   const [showWizard, setShowWizard] = useState(false);
-  const [wizardStep, setWizardStep] = useState(0);
   const [builderMode, setBuilderMode] = useState<'normal' | 'ultra' | 'ultra+'>('normal');
-  const [wizardQuestions, setWizardQuestions] = useState<WizardQuestion[]>(DEFAULT_WIZARD_QUESTIONS);
-  const [wizardLoading, setWizardLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState('main/frontend/index.html');
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -363,8 +148,13 @@ export const BuilderFullView = ({
     return () => window.removeEventListener('message', onMessage);
   }, [setCredits]);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
-  const [leftW, setLeftW] = useState(400);
+  // Panel roboczy 320–360 px; preview zawsze dostaje resztę szerokości.
+  const [leftW, setLeftW] = useState(340);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'editor' | 'preview'>('editor');
+  // Realna kontrola kadru podglądu — zmienia szerokość ramki, nic więcej.
+  const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const deviceWidth = device === 'mobile' ? 390 : device === 'tablet' ? 834 : 0;
   const splitRef = useRef<HTMLDivElement>(null);
 
   // Wizard answers
@@ -396,7 +186,7 @@ export const BuilderFullView = ({
     const move = (e: MouseEvent) => {
       if (!splitRef.current) return;
       const rect = splitRef.current.getBoundingClientRect();
-      setLeftW(Math.min(Math.max(e.clientX - rect.left, 320), Math.floor(rect.width * 0.55)));
+      setLeftW(Math.min(Math.max(e.clientX - rect.left, 320), Math.max(320, Math.min(360, Math.floor(rect.width * 0.45)))));
     };
     const up = () => setIsDraggingSplit(false);
     window.addEventListener('mousemove', move);
@@ -467,18 +257,15 @@ export const BuilderFullView = ({
       });
       const data = await res.json().catch(() => ({ detail: `Niepoprawna odpowiedź serwera (HTTP ${res.status})` }));
       if (!res.ok) {
-        const raw = typeof data.detail === 'string' ? data.detail : '';
-        // Hide technical backend details from user
-        if (raw.includes('normalized') || raw.includes('invalid design spec') || raw.includes('openrouter') || raw.includes('SiteMorph')) {
-          throw new Error('Model miał problem z projektem. Spróbuj opisać inaczej.');
-        }
-        if (raw.includes('429') || raw.includes('rate') || raw.includes('limit')) {
-          throw new Error('Model jest chwilowo przeciążony. Poczekaj chwilę i spróbuj ponownie.');
-        }
-        if (raw.includes('timeout') || raw.includes('Timeout')) {
-          throw new Error('Generowanie trwało za długo. Spróbuj krótszy opis.');
-        }
-        throw new Error(raw || `Coś poszło nie tak (HTTP ${res.status}). Spróbuj ponownie.`);
+        const raw = typeof data.detail === 'string' ? data.detail.trim() : '';
+        // Backend rozróżnia kategorie błędów (niedostępny dostawca, przekroczony
+        // czas, niepoprawna odpowiedź AI, nieudany podgląd) i zwraca gotowy
+        // komunikat. Pokazujemy go wprost; ucinamy wyłącznie teksty techniczne,
+        // które nie mówią użytkownikowi, co zrobić dalej.
+        const technical = !raw || /traceback|pydantic|openrouter|normaliz|validation error|\.py\b/i.test(raw);
+        throw new Error(technical
+          ? `Nie udało się wygenerować strony (HTTP ${res.status}). Spróbuj ponownie.`
+          : raw);
       }
       setThinkingPhase('compile');
       const files: Record<string, string> = data.files || {};
@@ -577,17 +364,90 @@ export const BuilderFullView = ({
   };
 
   const handleSaveProject = async () => {
-    try { await persistProject(); setSaveMsg('Zapisano projekt wraz z podglądem ✓'); }
+    try { await persistProject(); setSaveMsg('Zapisano projekt wraz z podglądem'); }
     catch (error: any) { setSaveMsg(error.message || 'Nie udało się zapisać projektu.'); }
   };
 
-  // Quick prompts for badges
+  // Tryby mają nazwy prezentacyjne (S1 / S1+ / S1 Pro); do API nadal idą
+  // dotychczasowe wartości. Wszystkie tryby używają tego samego modelu i
+  // dokładnie jednego żądania — dlatego opis mówi tylko o koszcie.
   const quickPrompts = [
     { icon: Coffee, label: 'Restauracja', prompt: 'Restauracja z menu i galerią zdjęć' },
     { icon: Briefcase, label: 'Startup', prompt: 'Nowoczesna strona dla startupu z cennikiem' },
     { icon: Home, label: 'Nieruchomości', prompt: 'Agencja nieruchomości z ofertami mieszkań' },
     { icon: Zap, label: 'Usługi', prompt: 'Firma usługowa z cennikiem i kontaktem' },
   ];
+
+  /** Pole opisu jest jednym komponentem dla obu stanów panelu — przed i po
+   *  wygenerowaniu strony — więc zostaje dokładnie tam, gdzie użytkownik
+   *  wpisał tekst, także po błędzie. */
+  const promptPanel = (
+    <div className="shrink-0 p-3">
+      <div className="rounded-[16px] p-2.5" style={{ background: 'var(--sm-surface)' }}>
+        <label htmlFor="builder-prompt" className="sr-only">Opis strony</label>
+        <textarea
+          id="builder-prompt"
+          value={builderPrompt}
+          onChange={(e) => setBuilderPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (builderPrompt.trim() && !generatedSite) generateWithAnswers(answers, builderPrompt);
+            }
+          }}
+          rows={3}
+          placeholder="Np. strona dla kawiarni w Łodzi z menu i kontaktem…"
+          className="w-full resize-none border-none bg-transparent px-1.5 pt-1.5 text-[14px] leading-[1.5] outline-none placeholder:text-[var(--sm-text-quiet)]"
+          style={{ maxHeight: 176, overflowY: 'auto', minHeight: 68, color: 'var(--sm-text)' }}
+        />
+        <div className="mt-1 flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-1.5">
+            <button
+              aria-label="Dodaj własne zdjęcia"
+              title="Dodaj własne zdjęcia"
+              onClick={() => fileInput.current?.click()}
+              disabled={uploading || isGenerating || uploadedAssets.length >= 8}
+              className="sm-icon-btn shrink-0 disabled:opacity-40"
+              style={{ color: 'var(--sm-text-quiet)', width: 44, height: 44, minWidth: 44, minHeight: 44 }}
+            >
+              <ImageIcon size={17} />
+            </button>
+            {uploadedAssets.length > 0 ? (
+              <span className="truncate text-[12px]" style={{ color: 'var(--sm-text-quiet)' }}>{uploadedAssets.length} zdjęć</span>
+            ) : null}
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="hidden whitespace-nowrap text-[12px] font-medium sm:inline" style={{ color: 'var(--sm-text-quiet)' }}>{cost} kr.</span>
+            <button
+              onClick={() => { if (builderPrompt.trim()) generateWithAnswers(answers, builderPrompt); }}
+              disabled={!builderPrompt.trim() || isGenerating || previewBuilding}
+              aria-label={generatedSite ? 'Zbuduj nową stronę' : 'Zbuduj stronę'}
+              title={generatedSite ? 'Zbuduj nową stronę' : 'Zbuduj stronę'}
+              className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-[10px] border-none transition-all hover:brightness-110 active:scale-95 disabled:cursor-default disabled:opacity-30"
+              style={{ background: 'var(--sm-accent)' }}
+            >
+              <Send size={17} color="#fff" />
+            </button>
+          </div>
+        </div>
+        {/* Tryby SiteMorph: nazwy prezentacyjne, te same wartości w API. */}
+        <div className="mt-2 flex items-center gap-0.5 rounded-[10px] p-0.5" style={{ background: 'var(--sm-surface-hover)' }} role="group" aria-label="Tryb generowania">
+          {MODE_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              onClick={() => setBuilderMode(option.value)}
+              aria-pressed={builderMode === option.value}
+              title={option.hint}
+              className={`relative min-h-[44px] flex-1 cursor-pointer rounded-[8px] border-none text-[12.5px] font-semibold transition-colors ${builderMode === option.value ? 'text-[var(--sm-text)]' : 'text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)]'}`}
+            >
+              {builderMode === option.value && <motion.span layoutId="builderQualityMode" transition={springTransition} className="absolute inset-0 rounded-[8px]" style={{ background: 'var(--sm-surface-elevated)' }} />}
+              <span className="relative z-10">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -599,28 +459,38 @@ export const BuilderFullView = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`h-screen flex flex-col overflow-hidden select-none ${theme === 'dark' ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-[#111827]'}`}
+        className="flex flex-col overflow-hidden select-none h-[100dvh] bg-[var(--sm-bg)] text-[var(--sm-text)]"
       >
-        {/* Header */}
-        <header className={`h-14 px-5 flex items-center justify-between shrink-0 ${theme === 'dark' ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}>
-          <motion.button whileHover={{ x: -2 }} onClick={onBack} className={`flex items-center gap-2.5 font-semibold text-[14px] transition-colors cursor-pointer bg-transparent border-none ${theme === 'dark' ? 'text-[var(--sm-text-secondary)] hover:text-white' : 'text-[var(--sm-text-secondary)] hover:text-gray-900'}`}>
-            <ArrowLeft size={14} />
-            <img src="/logo.svg" alt="SiteMorph" width="20" height="20" className="rounded-md" />
-            Kreator
-          </motion.button>
-          <div className={`flex items-center gap-0.5 p-1 rounded-[10px] ${theme === 'dark' ? 'bg-[#0A0A0B]' : 'bg-[#F5F5F6]'}`}>
-            {(['preview', 'code'] as const).map((mode) => (
-              <button key={mode} onClick={() => setActiveMode(mode)} className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[14px] font-medium transition-colors cursor-pointer border-none ${activeMode === mode ? (theme === 'dark' ? 'text-white' : 'text-gray-900') : (theme === 'dark' ? 'text-white/40 hover:text-white/60' : 'text-gray-400 hover:text-gray-600')}`}>
-                {activeMode === mode && <motion.div layoutId="builderMode" transition={springTransition} className={`absolute inset-0 rounded-[8px] ${theme === 'dark' ? 'bg-[#18181B]' : 'bg-white'}`} />}
-                <span className="relative z-10 flex items-center gap-1.5">
-                  {mode === 'preview' ? <Monitor size={15} /> : <CodeIcon size={15} />}
-                  {mode === 'preview' ? 'Podgląd' : 'Kod'}
-                </span>
-              </button>
-            ))}
+        {/* Header — 56 px, jedna hierarchia: projekt, widok, akcje */}
+        <header className="h-14 shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 bg-[var(--sm-sidebar)]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <button onClick={onBack} className="sm-icon-btn shrink-0" aria-label="Wróć do panelu" title="Wróć do panelu">
+              <ArrowLeft size={18} />
+            </button>
+            <div className="min-w-0">
+              <div className="truncate text-[14px] font-semibold leading-tight">{generatedSite?.title || 'Nowy projekt'}</div>
+              <div className="hidden truncate text-[12px] leading-tight sm:block" style={{ color: 'var(--sm-text-quiet)' }}>
+                {isGenerating ? 'Tworzę stronę…' : generatedSite && previewReady ? 'Strona gotowa' : 'Szkic w Kreatorze'}
+              </div>
+            </div>
           </div>
+
+          {isDesktop ? (
+            <div className="flex items-center gap-0.5 rounded-[10px] p-0.5" style={{ background: 'var(--sm-surface)' }}>
+              {(['preview', 'code'] as const).map((mode) => (
+                <button key={mode} onClick={() => setActiveMode(mode)} aria-pressed={activeMode === mode} className={`relative flex min-h-[44px] items-center gap-1.5 rounded-[8px] px-3 text-[13px] font-medium transition-colors cursor-pointer border-none ${activeMode === mode ? 'text-[var(--sm-text)]' : 'text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)]'}`}>
+                  {activeMode === mode && <motion.span layoutId="builderMode" transition={springTransition} className="absolute inset-0 rounded-[8px]" style={{ background: 'var(--sm-surface-hover)' }} />}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    {mode === 'preview' ? <Monitor size={15} /> : <CodeIcon size={15} />}
+                    {mode === 'preview' ? 'Podgląd' : 'Kod'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-2">
-            <span className="text-[14px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>{credits} kr.</span>
+            <span className="hidden text-[13px] font-medium sm:inline" style={{ color: 'var(--sm-text-quiet)' }}>{credits} kr.</span>
             <Button variant="primary" size="sm" disabled={isSaving || publishing || isGenerating || previewBuilding || !previewReady || Boolean(previewRuntimeErr) || !generatedSite || !compiledPreviewHtml} onClick={async () => {
               if (!generatedSite) return;
               setPublishing(true); setPublishErr('');
@@ -641,202 +511,186 @@ export const BuilderFullView = ({
           </div>
         </header>
 
-        {generationErr && generatedSite && <div role="alert" className="px-4 py-2.5 text-[14px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>{generationErr}</div>}
-        {publishErr && <div role="alert" className="px-4 py-2.5 text-[14px] font-medium" style={{ background: 'rgba(220,38,38,0.08)', color: 'var(--sm-danger)' }}>{publishErr}</div>}
-        <div className="px-5 py-2.5 flex flex-wrap gap-2 text-[13px]" style={{ background: 'var(--sm-surface)' }}>
-          <button disabled={uploading || isGenerating || uploadedAssets.length >= 8} onClick={() => fileInput.current?.click()} className="disabled:opacity-40">{uploading ? 'Dodaję zdjęcia…' : 'Dodaj własne zdjęcia'}</button>
-          {uploadedAssets.map(asset => <button key={asset.url} disabled={isGenerating} onClick={() => setUploadedAssets(list => list.filter(a => a.url !== asset.url))} title="Usuń zdjęcie z następnej generacji" className="rounded bg-gray-500/10 px-2 py-1">{asset.name} ×</button>)}
-        </div>
-        {/* Main */}          <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          {/* Left Panel — Agent Chat */}
-          <div style={isDesktop ? { width: leftW } : undefined} className={`h-[45vh] md:h-auto flex flex-col overflow-hidden shrink-0 ${theme === 'dark' ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}>
+        {generationErr && generatedSite && (
+          <div role="alert" className="flex shrink-0 flex-wrap items-center gap-3 px-4 py-2 text-[13px] font-medium" style={{ background: 'color-mix(in srgb, var(--sm-warning) 12%, transparent)', color: 'var(--sm-warning)' }}>
+            <AlertTriangle size={15} className="shrink-0" />
+            <span className="min-w-0 flex-1">{generationErr}</span>
+            <button
+              type="button"
+              onClick={() => generateWithAnswers(answers, builderPrompt)}
+              disabled={!builderPrompt.trim() || isGenerating || previewBuilding || publishing}
+              className="min-h-[44px] cursor-pointer rounded-[8px] border-none px-3 text-[13px] font-semibold disabled:opacity-50"
+              style={{ background: 'var(--sm-warning)', color: '#fff' }}
+            >
+              Spróbuj ponownie
+            </button>
+          </div>
+        )}
+        {publishErr && <div role="alert" className="shrink-0 px-4 py-2 text-[13px] font-medium" style={{ background: 'rgba(220,38,38,0.08)', color: 'var(--sm-danger)' }}>{publishErr}</div>}
+        {/* Mobile: edytor i podgląd to dwa widoki, nie dwie ściśnięte kolumny. */}
+        {!isDesktop ? (
+          <div className="flex shrink-0 items-center gap-0.5 p-0.5 mx-3 mt-2 rounded-[10px]" style={{ background: 'var(--sm-surface)' }} role="group" aria-label="Widok Kreatora">
+            {(['editor', 'preview'] as const).map((pane) => (
+              <button
+                key={pane}
+                type="button"
+                onClick={() => setMobilePane(pane)}
+                aria-pressed={mobilePane === pane}
+                className={`relative min-h-[44px] flex-1 cursor-pointer rounded-[8px] border-none text-[13px] font-medium transition-colors ${mobilePane === pane ? 'text-[var(--sm-text)]' : 'text-[var(--sm-text-quiet)]'}`}
+              >
+                {mobilePane === pane && <motion.span layoutId="builderMobilePane" transition={springTransition} className="absolute inset-0 rounded-[8px]" style={{ background: 'var(--sm-surface-hover)' }} />}
+                <span className="relative z-10 inline-flex items-center gap-1.5">
+                  {pane === 'editor' ? <Sparkles size={14} /> : <Monitor size={14} />}
+                  {pane === 'editor' ? 'Opis i ustawienia' : 'Podgląd'}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Main */}
+        <div ref={splitRef} className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+          {/* Left Panel — Prompt + ustawienia */}
+          <div
+            style={isDesktop ? { width: leftW } : undefined}
+            className={`min-h-0 flex-col overflow-hidden shrink-0 bg-[var(--sm-sidebar)] ${mobilePane === 'editor' ? 'flex flex-1' : 'hidden'} ${isDesktop ? 'md:flex' : ''}`}
+          >
             {isGenerating ? (
               <ThinkingSteps mode={builderMode} phase={thinkingPhase} theme={theme} />
             ) : generatedSite ? (
-              <div className="flex-1 p-5 overflow-y-auto space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'rgba(22,163,74,0.1)' }}>
-                    <CheckCircle2 size={18} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <div className="text-[14px] font-medium" style={{ color: 'var(--sm-text)' }}>{previewRuntimeErr ? 'Podgląd wymaga poprawki' : previewReady ? 'Strona gotowa!' : 'Uruchamiam stronę…'}</div>
-                    <div className="text-[13px]" style={{ color: 'var(--sm-text-secondary)' }}>{generatedSite.title}</div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[14px] font-medium" htmlFor="next-prompt" style={{ color: 'var(--sm-text-secondary)' }}>Napisz o kolejnej stronie</label>
-                  <textarea id="next-prompt" value={builderPrompt} onChange={e => setBuilderPrompt(e.target.value)} className={`w-full rounded-lg p-3 text-xs border ${dk ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`} rows={3} />
-                  <button onClick={() => generateWithAnswers(answers)} disabled={!builderPrompt.trim() || isGenerating || previewBuilding || (!previewReady && !previewRuntimeErr) || publishing} className="w-full py-2.5 rounded-[10px] text-[15px] font-medium disabled:opacity-40" style={{ background: 'var(--sm-accent)', color: 'white' }}>Zbuduj nową stronę · {cost} kr.</button>
-                  <button onClick={handleSaveProject} disabled={isSaving || publishing || !previewReady} className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none disabled:opacity-40 ${theme === 'dark' ? 'bg-white text-black hover:bg-white/90' : 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'}`}>
-                    <Save size={12} className="inline mr-1.5" />
-                    {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
-                  </button>
-
-                  {saveMsg && <p className="text-[13px] text-center" style={{ color: 'var(--sm-success)' }}>{saveMsg}</p>}
-                </div>
-
-                {generatorWarnings.length > 0 && (
-                  <div className={`rounded-lg border p-3 space-y-1.5 ${theme === 'dark' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
-                    <div className="text-[14px] font-medium" style={{ color: 'var(--sm-warning)' }}>
-                      ⚠ Uwagi do uzupełnienia
-                    </div>
-                    {generatorWarnings.map((w, i) => (
-                      <p key={i} className="text-[14px] leading-relaxed" style={{ color: 'var(--sm-text-secondary)' }}>{w}</p>
-                    ))}
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-white/[0.06]">
-                  <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--sm-text-quiet)' }}>Projekty</div>
-                  {savedProjects.length === 0 ? (
-                    <p className="text-[14px]" style={{ color: 'var(--sm-text-quiet)' }}>Brak zapisanych projektów</p>
-                  ) : savedProjects.slice(0, 5).map((p) => (
-                    <button key={p.id} onClick={() => openProject(p)} className="w-full text-left px-3 py-2 rounded-[8px] text-[14px] transition-colors cursor-pointer border-none bg-transparent truncate" style={{ color: 'var(--sm-text-secondary)' }}>
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              /* Empty State — Agent Chat */
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 p-5 overflow-y-auto space-y-5">
-                  {savedProjects.length > 0 && <div className="space-y-1">
-                    <p className="text-xs opacity-60">Wróć do projektu</p>
-                    {savedProjects.slice(0, 5).map(project => <button key={project.id} disabled={previewBuilding} onClick={() => openProject(project)} className="block w-full truncate rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors disabled:opacity-40" style={{ background: 'var(--sm-surface)' }}>{project.name}</button>)}
-                  </div>}
+              <div className="flex flex-1 flex-col min-h-0">
+                <div className="flex-1 space-y-4 overflow-y-auto p-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-12 h-12 rounded-[12px] flex items-center justify-center" style={{ background: 'var(--sm-accent-muted)' }}>
-                      <svg fill="none" height="24" viewBox="0 0 48 48" width="24">
-                        <path d="m6 24c11.4411 0 18-6.5589 18-18 0 11.4411 6.5589 18 18 18-11.4411 0-18 6.5589-18 18 0-11.4411-6.5589-18-18-18z" fill="url(#sm-grad)" fillRule="evenodd" />
-                        <defs><linearGradient id="sm-grad" x1="24" x2="24" y1="6" y2="42" gradientUnits="userSpaceOnUse"><stop stopColor="#22c55e" stopOpacity=".8" /><stop offset="1" stopColor="#3b82f6" stopOpacity=".5" /></linearGradient></defs>
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-[16px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>Cześć!</h2>
-                      <h3 className="text-[20px] font-semibold" style={{ color: 'var(--sm-text)' }}>Opisz swoją stronę, a ja ją zbuduję.</h3>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px]" style={{ background: previewRuntimeErr ? 'color-mix(in srgb, var(--sm-warning) 14%, transparent)' : 'color-mix(in srgb, var(--sm-success) 12%, transparent)' }}>
+                      {previewRuntimeErr
+                        ? <AlertTriangle size={16} style={{ color: 'var(--sm-warning)' }} />
+                        : <CheckCircle2 size={16} style={{ color: 'var(--sm-success)' }} />}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-[13.5px] font-semibold">
+                        {previewRuntimeErr ? 'Podgląd wymaga poprawki' : previewReady ? 'Strona jest gotowa' : 'Przygotowuję podgląd…'}
+                      </div>
+                      <div className="truncate text-[12.5px]" style={{ color: 'var(--sm-text-quiet)' }}>{generatedSite.title}</div>
                     </div>
                   </div>
 
-                  <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
-                    Napisz czym zajmuje się firma, a ja zaprojektuję stronę. Możesz też dodać własne zdjęcia.
-                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    <button onClick={handleSaveProject} disabled={isSaving || publishing || !previewReady} className="min-h-[44px] w-full cursor-pointer rounded-[10px] border-none text-[13px] font-medium transition-colors disabled:opacity-40" style={{ background: 'var(--sm-surface-hover)', color: 'var(--sm-text)' }}>
+                      <Save size={15} className="mr-2 inline" />
+                      {currentProjectId ? 'Zapisz zmiany' : 'Zapisz projekt'}
+                    </button>
+                    {saveMsg && <p className="text-center text-[12.5px]" style={{ color: 'var(--sm-success)' }}>{saveMsg}</p>}
+                  </div>
 
-                  <div className="flex flex-wrap gap-1.5">
-                    {quickPrompts.map((qp) => (
-                      <button key={qp.label} onClick={() => setBuilderPrompt(qp.prompt)} className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[14px] font-medium transition-colors cursor-pointer ${theme === 'dark' ? 'bg-[#0A0A0B] text-[var(--sm-text-secondary)] hover:text-white hover:bg-[#18181B]' : 'bg-[#F5F5F6] text-[var(--sm-text-secondary)] hover:text-[var(--sm-text)] hover:bg-[#ECECEF]'}`}>
-                        <qp.icon size={14} className="" style={{ color: 'var(--sm-text-quiet)' }} />
-                        {qp.label}
+                  {generatorWarnings.length > 0 && (
+                    <div className="space-y-1 rounded-[12px] p-3" style={{ background: 'color-mix(in srgb, var(--sm-warning) 10%, transparent)' }}>
+                      <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: 'var(--sm-warning)' }}>
+                        <AlertTriangle size={15} /> Uwagi do uzupełnienia
+                      </div>
+                      {generatorWarnings.map((w, i) => (
+                        <p key={i} className="text-[12.5px] leading-[1.55]" style={{ color: 'var(--sm-text-secondary)' }}>{w}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <p className="px-1 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--sm-text-quiet)' }}>Projekty</p>
+                    {savedProjects.length === 0 ? (
+                      <p className="px-1 text-[12.5px]" style={{ color: 'var(--sm-text-quiet)' }}>Brak zapisanych projektów</p>
+                    ) : savedProjects.slice(0, 4).map((p) => (
+                      <button key={p.id} onClick={() => openProject(p)} className="block w-full min-h-[44px] cursor-pointer truncate rounded-[10px] border-none px-2.5 text-left text-[13px] transition-colors hover:bg-[var(--sm-surface-hover)]" style={{ color: 'var(--sm-text-secondary)' }}>
+                        {p.name}
                       </button>
                     ))}
                   </div>
                 </div>
+                {promptPanel}
+              </div>
+            ) : (
+              /* Empty State — wejście do pracy */
+              <div className="flex flex-1 flex-col min-h-0">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {savedProjects.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="px-1 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--sm-text-quiet)' }}>Ostatnie projekty</p>
+                      {savedProjects.slice(0, 4).map(project => (
+                        <button key={project.id} disabled={previewBuilding} onClick={() => openProject(project)} className="block w-full min-h-[44px] cursor-pointer truncate rounded-[10px] border-none px-2.5 text-left text-[13px] transition-colors hover:bg-[var(--sm-surface-hover)] disabled:opacity-40" style={{ color: 'var(--sm-text-secondary)' }}>{project.name}</button>
+                      ))}
+                    </div>
+                  )}
 
-                {/* Inline Questionnaire — nad inputem */}
-                {showWizard && (
-                  <InlineWizard
-                    step={wizardStep}
-                    setStep={setWizardStep}
-                    answers={answers}
-                    setAnswers={setAnswers}
-                    onGenerate={() => { setShowWizard(false); handleWizardComplete(answers); }}
-                    onClose={() => setShowWizard(false)}
-                    questions={wizardQuestions}
-                    loading={wizardLoading}
-                    theme={theme}
-                  />
-                )}
-
-                {/* Chat Input — Border Beam */}
-                <div className="p-3 border-t border-white/[0.06]">
-                  <div>
-                    <div className="relative rounded-[14px] overflow-hidden" style={{ background: 'var(--sm-surface)' }}>
-                      <textarea
-                        rows={3}
-                        value={builderPrompt}
-                        onChange={(e) => setBuilderPrompt(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            generateWithAnswers(answers, builderPrompt);
-                          }
-                        }}
-                        placeholder="Napisz czym zajmuje się firma..."
-                        className={`w-full bg-transparent border-none outline-none resize-none px-5 pt-4 pb-2 min-h-[80px] text-[15px] ${theme === 'dark' ? 'text-white placeholder:text-[var(--sm-text-quiet)]' : 'text-[var(--sm-text)] placeholder:text-[var(--sm-text-quiet)]'}`}
-                      />                        <div className="flex items-center justify-between px-4 pb-4">
-                        <div className="flex items-center gap-1">
-                          <button aria-label="Dodaj zdjęcie" onClick={() => fileInput.current?.click()} disabled={uploading} className={`p-1.5 rounded-md transition-colors cursor-pointer border-none bg-transparent ${theme === 'dark' ? 'hover:bg-white/5 text-white/30 hover:text-white/60' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}>
-                            <Paperclip size={14} />
-                          </button>
-                          <button aria-label="Wybierz zdjęcia" onClick={() => fileInput.current?.click()} disabled={uploading} className="p-1.5 rounded-md hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors cursor-pointer border-none bg-transparent">
-                            <ImageIcon size={14} />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`flex gap-0.5 p-0.5 rounded-[10px] ${theme === 'dark' ? 'bg-[#0A0A0B]' : 'bg-[#F5F5F6]'}`}>
-                            {(['normal', 'ultra', 'ultra+'] as const).map(m => (
-                              <button key={m} onClick={() => setBuilderMode(m)}
-                                className={`px-3 py-1.5 rounded-[8px] text-[13px] font-medium cursor-pointer border-none transition-all ${builderMode === m ? (m === 'ultra' ? 'bg-purple-500/20 text-purple-300' : m === 'ultra+' ? 'bg-amber-500/20 text-amber-300' : (theme === 'dark' ? 'bg-[#18181B] text-white' : 'bg-white text-[#2563EB] shadow-sm')) : (theme === 'dark' ? 'text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)] bg-transparent' : 'text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)] bg-transparent')}`}>
-                                {m === 'normal' ? 'Szybki' : m === 'ultra' ? 'Dobry' : 'Najlepszy'}
-                              </button>
-                            ))}
-                          </div>
-                          <span className="text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>{cost} kr.</span>                            <button
-                            onClick={() => {
-                              if (!builderPrompt.trim()) return;
-                              generateWithAnswers(answers, builderPrompt);
-                            }}
-                            disabled={!builderPrompt.trim()}
-                            className="w-10 h-10 rounded-[10px] flex items-center justify-center cursor-pointer border-none disabled:opacity-30 disabled:cursor-default transition-all hover:brightness-110 active:scale-95"
-                            style={{ background: 'var(--sm-accent)' }}
-                          >
-                            <Send size={16} className="text-white" />
-                          </button>
-                        </div>
-                      </div>
+                  <div className="flex items-start gap-3 pt-1">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px]" style={{ background: 'var(--sm-accent-muted)' }}>
+                      <Sparkles size={17} style={{ color: 'var(--sm-accent)' }} />
+                    </span>
+                    <div className="min-w-0">
+                      <h1 className="text-[17px] font-semibold leading-snug">Co chcesz stworzyć?</h1>
+                      <p className="mt-1 text-[13px] leading-[1.55]" style={{ color: 'var(--sm-text-secondary)' }}>
+                        Opisz firmę i stronę, której potrzebujesz.
+                      </p>
                     </div>
                   </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {quickPrompts.map((qp) => (
+                      <button key={qp.label} onClick={() => setBuilderPrompt(qp.prompt)} className="flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[9px] border-none px-3 text-[13px] font-medium transition-colors bg-[var(--sm-surface)] hover:bg-[var(--sm-surface-hover)]" style={{ color: 'var(--sm-text-secondary)' }}>
+                        <qp.icon size={14} style={{ color: 'var(--sm-text-quiet)' }} />
+                        {qp.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {uploadedAssets.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {uploadedAssets.map(asset => (
+                        <button key={asset.url} disabled={isGenerating} onClick={() => setUploadedAssets(list => list.filter(a => a.url !== asset.url))} title="Usuń zdjęcie z kolejnej generacji" className="min-h-[44px] max-w-full cursor-pointer truncate rounded-[8px] border-none px-2.5 text-[12px]" style={{ background: 'var(--sm-surface-hover)', color: 'var(--sm-text-secondary)' }}>
+                          {asset.name} ×
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {promptPanel}
               </div>
             )}
           </div>
 
-          {/* Split Handle */}
+          {/* Split Handle — tylko desktop, kontrastowa krawędź zamiast ramki */}
           <div
             onMouseDown={(e) => { e.preventDefault(); setIsDraggingSplit(true); }}
-            className={`hidden md:flex w-2 shrink-0 cursor-col-resize items-center justify-center transition-colors ${isDraggingSplit ? 'bg-green-500/10' : (theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100')}`}
+            className={`hidden md:flex w-1.5 shrink-0 cursor-col-resize items-center justify-center transition-colors ${isDraggingSplit ? 'bg-[var(--sm-accent-muted)]' : 'hover:bg-[var(--sm-surface-hover)]'}`}
+            title="Przeciągnij, aby zmienić szerokość"
           >
-            <div className={`w-0.5 h-12 rounded-full transition-colors ${isDraggingSplit ? 'bg-green-500/40' : (theme === 'dark' ? 'bg-white/10' : 'bg-gray-300')}`} />
+            <div className="h-8 w-0.5 rounded-full" style={{ background: 'var(--sm-border-subtle)' }} />
           </div>
 
           {/* Right Panel — Preview / Code */}
-          <div className={`flex-1 min-h-0 overflow-hidden flex p-2 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-[#f8f9fa]'}`}>
+          <div className={`flex-1 min-h-0 overflow-hidden ${mobilePane === 'preview' ? 'flex' : 'hidden'} ${isDesktop ? 'md:flex' : ''} bg-[var(--sm-bg)]`}>
             <AnimatePresence mode="wait">
               {isGenerating ? (
-                <motion.div key="loading" initial={{ opacity: 0, filter: 'blur(8px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center rounded-[16px]" style={{ background: 'var(--sm-surface)' }}>
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="w-12 h-12 rounded-[12px] grid place-items-center mb-4" style={{ background: 'var(--sm-accent-muted)' }}>
-                    <Sparkles size={18} className="text-green-400" />
-                  </motion.div>                    <div className="text-[14px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>Generuję stronę...</div>
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex items-center justify-center">
+                  <div className="w-full max-w-sm">
+                    <ThinkingSteps mode={builderMode} phase={thinkingPhase} theme={theme} />
+                  </div>
                 </motion.div>
               ) : !generatedSite ? (
-                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center rounded-[16px]" style={{ background: 'var(--sm-surface)' }}>
-                  <div role={generationErr ? 'alert' : undefined} className="text-center space-y-3 p-8 max-w-lg">
-                    <div className="w-16 h-16 rounded-[14px] flex items-center justify-center mx-auto" style={{ background: generationErr ? 'rgba(220,38,38,0.08)' : 'var(--sm-surface-hover)' }}>
-                      {generationErr ? <X size={24} className="text-red-400" /> : <Monitor size={24} className={theme === 'dark' ? 'text-white/20' : 'text-gray-300'} />}
-                    </div>
-                    <h3 className="text-[16px] font-medium" style={{ color: generationErr ? 'var(--sm-danger)' : 'var(--sm-text-secondary)' }}>
-                      {generationErr ? 'Nie udało się wygenerować strony' : 'Podgląd strony'}
-                    </h3>
-                    <p className="text-[14px]" style={{ color: 'var(--sm-text-secondary)' }}>
-                      {generationErr || 'Napisz po lewej, co ma być na stronie, a ja ją zbuduję.'}
+                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center">
+                  <div role={generationErr ? 'alert' : undefined} className="max-w-md space-y-2 px-8 text-center">
+                    {generationErr
+                      ? <X size={26} className="mx-auto" style={{ color: 'var(--sm-danger)' }} strokeWidth={1.75} />
+                      : <Monitor size={26} className="mx-auto" style={{ color: 'var(--sm-text-quiet)' }} strokeWidth={1.75} />}
+                    <h2 className="text-[15px] font-semibold" style={{ color: generationErr ? 'var(--sm-danger)' : 'var(--sm-text)' }}>
+                      {generationErr ? 'Nie udało się wygenerować strony' : 'Tutaj zobaczysz swoją stronę'}
+                    </h2>
+                    <p className="text-[13px] leading-[1.6]" style={{ color: 'var(--sm-text-secondary)' }}>
+                      {generationErr || 'Opisz firmę po lewej stronie i wybierz „Zbuduj stronę”.'}
                     </p>
                     {generationErr && (
                       <button
                         type="button"
                         onClick={() => generateWithAnswers(answers, builderPrompt)}
                         disabled={!builderPrompt.trim() || isGenerating || previewBuilding || publishing}
-                        className="mt-2 min-h-11 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="mt-1 min-h-[44px] rounded-[10px] border-none bg-[var(--sm-accent)] px-4 text-[13px] font-semibold text-[var(--sm-accent-ink)] transition-colors hover:bg-[var(--sm-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         Spróbuj ponownie
                       </button>
@@ -844,57 +698,97 @@ export const BuilderFullView = ({
                   </div>
                 </motion.div>
               ) : activeMode === 'preview' ? (
-                <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col min-h-0 rounded-[16px] overflow-hidden" style={{ background: 'var(--sm-surface)' }}>
-                  <div className="h-9 flex items-center justify-between px-4 shrink-0" style={{ background: 'var(--sm-surface-elevated)' }}>                      <span className="text-[14px] font-medium truncate" style={{ color: 'var(--sm-text-secondary)' }}>{generatedSite.domain}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 rounded-full text-[12px] font-medium" style={{ background: 'rgba(22,163,74,0.1)', color: 'var(--sm-success)' }}>{previewReady ? 'LIVE' : 'Ładowanie…'}</span>
+                <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} className="flex-1 flex flex-col min-h-0">
+                  <div className="flex h-11 shrink-0 items-center justify-between gap-2 px-3" style={{ background: 'var(--sm-sidebar)' }}>
+                    <span data-testid="preview-status" className="min-w-0 truncate text-[12.5px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>
+                      {previewBuilding ? 'Kompiluję podgląd…' : previewReady ? 'Podgląd gotowy' : 'Uruchamiam podgląd…'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <div className="hidden items-center gap-0.5 rounded-[9px] p-0.5 sm:flex" style={{ background: 'var(--sm-surface)' }} role="group" aria-label="Szerokość podglądu">
+                        {([['desktop', 'Desktop'], ['tablet', 'Tablet'], ['mobile', 'Telefon']] as const).map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setDevice(value)}
+                            aria-pressed={device === value}
+                            aria-label={label}
+                            title={label}
+                            className={`relative min-h-[44px] cursor-pointer rounded-[7px] border-none px-2.5 text-[12px] font-medium transition-colors ${device === value ? 'text-[var(--sm-text)]' : 'text-[var(--sm-text-quiet)]'}`}
+                          >
+                            {device === value && <motion.span layoutId="builderDevice" transition={springTransition} className="absolute inset-0 rounded-[7px]" style={{ background: 'var(--sm-surface-hover)' }} />}
+                            <span className="relative z-10">{value === 'desktop' ? <Monitor size={14} /> : value === 'tablet' ? <Tablet size={14} /> : <Smartphone size={14} />}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewReady(false); setPreviewEpoch(value => value + 1); }}
+                        className="sm-icon-btn"
+                        style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
+                        aria-label="Odśwież podgląd"
+                        title="Odśwież podgląd"
+                        disabled={!compiledPreviewHtml}
+                      >
+                        <RefreshCw size={15} />
+                      </button>
                     </div>
                   </div>
                   {previewBuilding ? (
-                    <div className="flex-1 flex flex-col items-center justify-center bg-white text-gray-700 gap-3">
-                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} className="w-7 h-7 rounded-full border-2 border-gray-200 border-t-gray-700" />
-                      <span className="text-xs font-medium">Kompiluję prawdziwy projekt React…</span>
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3">
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} className="h-6 w-6 rounded-full" style={{ border: '2px solid var(--sm-surface-hover)', borderTopColor: 'var(--sm-accent)' }} />
+                      <span className="text-[13px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>Kompiluję prawdziwy projekt React…</span>
                     </div>
                   ) : previewBuildErr ? (
-                    <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
+                    <div className="flex flex-1 items-center justify-center p-6">
                       <div className="max-w-lg text-center">
-                        <X size={28} className="mx-auto mb-3 text-red-400" />
-                        <h3 className="text-sm font-semibold text-white mb-2">Błąd kompilacji React</h3>
-                        <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewBuildErr}</p>                          <p className="text-[13px] mt-3" style={{ color: 'var(--sm-text-quiet)' }}>Kod strony dostępny jest w zakładce Kod.</p>
+                        <X size={26} className="mx-auto mb-2" style={{ color: 'var(--sm-danger)' }} strokeWidth={1.75} />
+                        <h2 className="mb-1.5 text-[14px] font-semibold">Nie udało się przygotować podglądu</h2>
+                        <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: 'var(--sm-text-secondary)' }}>{previewBuildErr}</p>
+                        <p className="mt-2 text-[12.5px]" style={{ color: 'var(--sm-text-quiet)' }}>Kod strony dostępny jest w widoku „Kod”.</p>
                       </div>
                     </div>
                   ) : compiledPreviewHtml ? (
                     previewRuntimeErr ? (
-                      <div className="flex-1 flex items-center justify-center p-8 bg-[#111111]">
+                      <div className="flex flex-1 items-center justify-center p-6">
                         <div className="max-w-lg text-center">
-                          <X size={28} className="mx-auto mb-3 text-amber-400" />
-                          <h3 className="text-sm font-semibold text-white mb-2">Błąd podglądu</h3>
-                          <p className="text-xs leading-relaxed text-white/50 whitespace-pre-wrap">{previewRuntimeErr}</p>
-                          <p className="text-[13px] mt-3" style={{ color: 'var(--sm-text-quiet)' }}>Kod strony dostępny jest w zakładce Kod.</p>
+                          <AlertTriangle size={26} className="mx-auto mb-2" style={{ color: 'var(--sm-warning)' }} strokeWidth={1.75} />
+                          <h2 className="mb-1.5 text-[14px] font-semibold">Nie udało się uruchomić strony w podglądzie</h2>
+                          <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: 'var(--sm-text-secondary)' }}>{previewRuntimeErr}</p>
+                          <p className="mt-2 text-[12.5px]" style={{ color: 'var(--sm-text-quiet)' }}>Kod strony dostępny jest w widoku „Kod”.</p>
                         </div>
                       </div>
                     ) : (
-                    <iframe
-                      key={`${generatedSite.artifact?.buildId || generatedSite.domain}:${previewEpoch}`}
-                      ref={iframeRef}
-                      title={`Podgląd ${generatedSite.title}`}
-                      className="flex-1 w-full border-0 bg-white"
-                      sandbox="allow-scripts allow-popups allow-forms allow-modals"
-                      srcDoc={compiledPreviewHtml}
-                    />
+                    <div className="flex flex-1 items-center justify-center overflow-hidden p-2 sm:p-3">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.995 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        className="mx-auto h-full overflow-hidden rounded-[10px] bg-white"
+                        style={{ width: deviceWidth ? Math.min(deviceWidth, 1200) : '100%', maxWidth: '100%', boxShadow: 'var(--sm-shadow)' }}
+                      >
+                        <iframe
+                          key={`${generatedSite.artifact?.buildId || 'site'}:${previewEpoch}`}
+                          ref={iframeRef}
+                          title={`Podgląd ${generatedSite.title}`}
+                          className="h-full w-full border-0 bg-white"
+                          sandbox="allow-scripts allow-popups allow-forms allow-modals"
+                          srcDoc={compiledPreviewHtml}
+                        />
+                      </motion.div>
+                    </div>
                     )
                   ) : (
-                    <div className="flex-1 flex items-center justify-center bg-[#111111] text-white/40 text-xs">
+                    <div className="flex flex-1 items-center justify-center text-[13px]" style={{ color: 'var(--sm-text-quiet)' }}>
                       Brak skompilowanego podglądu.
                     </div>
                   )}
                 </motion.div>
               ) : (
                 <motion.div key="code" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex rounded-[16px] overflow-hidden" style={{ background: 'var(--sm-surface)' }}>
-                  <div className="w-52 p-3 space-y-0.5 overflow-y-auto" style={{ background: 'var(--sm-surface)' }}>
-                    <span className={`text-[9px] font-semibold block mb-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Pliki</span>
+                  <div className="w-56 p-3 space-y-0.5 overflow-y-auto" style={{ background: 'var(--sm-surface)' }}>
+                    <span className="mb-2 block px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--sm-text-quiet)' }}>Pliki</span>
                     {Object.keys(generatedSite.files).map((fname) => (
-                      <button key={fname} onClick={() => setSelectedFile(fname)} className={`w-full text-left px-3 py-1.5 rounded-[8px] text-[13px] font-medium truncate border-none cursor-pointer ${selectedFile === fname ? (theme === 'dark' ? 'bg-[#18181B] text-white' : 'bg-white text-[#2563EB] shadow-sm') : (theme === 'dark' ? 'bg-transparent text-[var(--sm-text-quiet)] hover:text-[var(--sm-text-secondary)] hover:bg-[#18181B]' : 'bg-transparent text-[var(--sm-text-secondary)] hover:text-[var(--sm-text)] hover:bg-white')}`}>
+                      <button key={fname} onClick={() => setSelectedFile(fname)} className={`w-full min-h-[44px] truncate rounded-[8px] border-none px-3 py-2 text-left text-[14px] font-medium cursor-pointer transition-colors ${selectedFile === fname ? 'bg-[var(--sm-surface-hover)] text-[var(--sm-text)]' : 'bg-transparent text-[var(--sm-text-secondary)] hover:bg-[var(--sm-surface-hover)] hover:text-[var(--sm-text)]'}`}>
                         {fname.split('/').pop()}
                       </button>
                     ))}
@@ -919,12 +813,12 @@ export const BuilderFullView = ({
                     <CheckCircle2 size={18} className="text-green-400" />
                     <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Opublikowano!</span>
                   </div>
-                  <button aria-label="Zamknij publikację" onClick={() => setPublishedUrl(null)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/10 text-white/40 cursor-pointer border-none bg-transparent"><X size={14} /></button>
+                  <button aria-label="Zamknij publikację" onClick={() => setPublishedUrl(null)} className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-white/10 text-white/40 cursor-pointer border-none bg-transparent"><X size={16} /></button>
                 </div>
                 <div className="p-5 space-y-3 flex-1">
                   <div className="flex items-center gap-2 p-3 rounded-[10px]" style={{ background: 'var(--sm-surface)' }}>
                     <input readOnly value={publishedUrl} onFocus={(e) => e.currentTarget.select()} className={`flex-1 bg-transparent text-xs font-medium outline-none min-w-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`} />
-                    <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className="px-3 py-1.5 rounded-[8px] text-[13px] font-medium shrink-0 cursor-pointer border-none" style={{ background: 'var(--sm-accent)', color: 'white' }}>Kopiuj</button>
+                    <button onClick={() => navigator.clipboard?.writeText(publishedUrl)} className="px-3 min-h-[44px] rounded-[8px] text-[13px] font-medium shrink-0 cursor-pointer border-none" style={{ background: 'var(--sm-accent)', color: 'white' }}>Kopiuj</button>
                   </div>
                   {publishErr && <p className="text-xs text-red-400">{publishErr}</p>}
                   <a href={publishedUrl} target="_blank" rel="noreferrer" className="block"><Button variant="primary" size="sm" className="w-full">Otwórz stronę</Button></a>

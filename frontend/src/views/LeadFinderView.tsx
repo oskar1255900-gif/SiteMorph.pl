@@ -9,11 +9,16 @@ import {
   X,
   ChevronRight,
   Info,
+  Lock,
   Copy as CopyIcon,
 } from 'lucide-react';
 import { cineChild, cineParent, cineSoft } from '../lib/shared';
 import { apiFetch } from '../lib/api';
 import { Lead } from '../types';
+
+/** Stan uprawnień konta wobec Lead Findera. `unknown` to brak odpowiedzi
+ *  serwera — wtedy pokazujemy ponowienie, a nie blokadę płatną. */
+type AccessState = 'checking' | 'unknown' | 'locked' | 'allowed';
 
 export const LEAD_COUNTRIES = ['Polska','USA','UK'] as const
 export const LEAD_INDUSTRIES = ['Restauracje','Kawiarnie','Bary i puby','Fast food','Piekarnie i cukiernie','Salony fryzjerskie','Salony kosmetyczne','Salony piękności','Manicure','Spa','Stomatolog','Przychodnia lekarska','Fizjoterapeuta','Weterynarz','Restauracja','Kawiarnia','Piekarnia','Pizzeria','Bar szybkiej obsługi','Catering','Hotel','Siłownia','Studio jogi','Trener personalny','Nieruchomości','Kancelaria prawna','Księgowość','Ubezpieczenia','Warsztat samochodowy','Salon samochodowy','Myjnia samochodowa','Fotograf','Usługi ślubne','Sprzątanie','Budownictwo','Hydraulik','Elektryk','Dekarz','Malarz','Przeprowadzki','Agencja marketingowa','Usługi IT','Serwis komputerowy','Sklep osiedlowy','Sklep odzieżowy','Sklep meblowy','Kwiaciarnia','Sklep zoologiczny','Fryzjer męski','Korepetycje','Szkoła muzyczna','Nauka jazdy']
@@ -24,11 +29,31 @@ type CityOption = { display_name: string; name: string; lat: string; lon: string
 const foldPl = (s: string) => (s || '').toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
 export const LeadFinderView = ({
-  onGenerateSiteForLead
+  onGenerateSiteForLead,
+  onSeePlans,
 }: {
   theme: 'light' | 'dark';
   onGenerateSiteForLead: (lead: Lead, opts?: { withImages?: boolean }) => void;
+  onSeePlans?: () => void;
 }) => {
+  // Uprawnienia pochodzą z serwera (UserSettings.data.plan). localStorage ani
+  // żądanie klienta ich nie przyznają — serwer i tak zwraca 403.
+  const [access, setAccess] = useState<AccessState>('checking')
+  const [planName, setPlanName] = useState<string | null>(null)
+  const loadAccess = React.useCallback(() => {
+    setAccess('checking')
+    apiFetch('/api/entitlements')
+      .then(async (res) => {
+        if (res.status === 401) { setAccess('locked'); return }
+        if (!res.ok) { setAccess('unknown'); return }
+        const data = await res.json().catch(() => null)
+        if (!data) { setAccess('unknown'); return }
+        setPlanName(typeof data.plan === 'string' ? data.plan : null)
+        setAccess(data.lead_finder ? 'allowed' : 'locked')
+      })
+      .catch(() => setAccess('unknown'))
+  }, [])
+  useEffect(() => { loadAccess() }, [loadAccess])
   const [country, setCountry] = useState<string>('')
   const [industry, setIndustry] = useState<string>('')
   const [onlyWithoutWebsite, setOnlyWithoutWebsite] = useState(true)
@@ -145,7 +170,9 @@ export const LeadFinderView = ({
     if (!q) return LEAD_INDUSTRIES as unknown as string[]
     return (LEAD_INDUSTRIES as unknown as string[]).filter(i => i.toLowerCase().includes(q))
   }, [industryQuery])
-  const MAX_CITY_ROWS = 3000
+  // Renderujemy tylko widoczny fragment długiej listy — tysiące wierszy w DOM
+  // blokowały wpisywanie w filtrze.
+  const MAX_CITY_ROWS = 60
   // Lista miast w dropdownie: pelna lista (filtr lokalnie, bez ogonkow) + zdalne
   // podpowiedzi mniejszych miejscowosci doklejone na koniec
   const cityDisplayList = React.useMemo(() => {
@@ -194,7 +221,6 @@ export const LeadFinderView = ({
     setSearchWarning(null)
     setLeads([])
     try {
-      const plan = (() => { try { return localStorage.getItem('sitemorph-plan') || 'Starter' } catch { return 'Starter' } })()
       const body: any = {
         country,
         city: citySelected,
@@ -214,7 +240,6 @@ export const LeadFinderView = ({
       try {
         res = await apiFetch('/api/leads/search', {
           method: 'POST',
-          headers: { 'X-User-Plan': plan },
           body: JSON.stringify(body),
           signal: controller.signal,
         })
@@ -222,6 +247,12 @@ export const LeadFinderView = ({
         clearTimeout(searchTimeout)
       }
       const data = await res.json()
+      if (res.status === 403) {
+        // Uprawnienia sprawdzane na serwerze — brak pakietu blokuje moduł
+        // również wtedy, gdy widok był już otwarty.
+        setAccess('locked')
+        return
+      }
       if (!res.ok) {
         const msg = data?.detail || data?.warning || data?.message || `Błąd ${res.status}`
         setSearchError(msg)
@@ -235,7 +266,7 @@ export const LeadFinderView = ({
       else setLeads([])
     } catch (e: any) {
       if (e?.name === 'AbortError') {
-        setSearchError('Wyszukiwanie trwało za długo (>35s). Overpass API może być przeciążony — spróbuj mniejsze miasto lub inną branżę.')
+        setSearchError('Wyszukiwanie trwało zbyt długo. Spróbuj ponownie albo wybierz mniejsze miasto.')
       } else {
         setSearchError('Błąd połączenia z serwerem - spróbuj ponownie')
       }
@@ -342,6 +373,65 @@ export const LeadFinderView = ({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+  /* Zanim wiemy, czy konto ma pakiet, nie pokazujemy ani wyszukiwarki,
+     ani blokady płatnej — jedno i drugie byłoby nieprawdą. */
+  if (access !== 'allowed') {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto flex min-h-[70vh] max-w-[860px] items-center justify-center px-4 py-8 sm:px-6"
+      >
+        {access === 'checking' ? (
+          <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+              className="h-5 w-5 rounded-full"
+              style={{ border: '2px solid var(--sm-surface-hover)', borderTopColor: 'var(--sm-accent)' }}
+            />
+            <p className="text-[13px]" style={{ color: 'var(--sm-text-secondary)' }}>Sprawdzam dostęp do Lead Findera…</p>
+          </div>
+        ) : access === 'unknown' ? (
+          <div className="max-w-sm text-center">
+            <p className="text-[15px] font-semibold">Nie udało się sprawdzić dostępu</p>
+            <p className="mt-1.5 text-[13px] leading-[1.55]" style={{ color: 'var(--sm-text-secondary)' }}>
+              Sprawdzenie uprawnień nie doszło do skutku. Spróbuj ponownie.
+            </p>
+            <button
+              type="button"
+              onClick={loadAccess}
+              className="mt-4 min-h-[44px] cursor-pointer rounded-[10px] border-none bg-[var(--sm-accent)] px-4 text-[13px] font-semibold"
+              style={{ color: 'var(--sm-accent-ink)' }}
+            >
+              Sprawdź ponownie
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-md text-center">
+            <span className="mx-auto grid h-11 w-11 place-items-center rounded-[12px]" style={{ background: 'var(--sm-surface-hover)' }}>
+              <Lock size={18} style={{ color: 'var(--sm-text-secondary)' }} />
+            </span>
+            <h1 className="mt-4 text-[19px] font-semibold tracking-[-0.02em]">Lead Finder wymaga pakietu</h1>
+            <p className="mx-auto mt-2 max-w-sm text-[13.5px] leading-[1.6]" style={{ color: 'var(--sm-text-secondary)' }}>
+              Wybierz pakiet z dostępem do Lead Findera, aby wyszukiwać potencjalnych klientów.
+            </p>
+            <button
+              type="button"
+              onClick={onSeePlans}
+              disabled={!onSeePlans}
+              className="mt-5 min-h-[44px] cursor-pointer rounded-[10px] border-none bg-[var(--sm-accent)] px-5 text-[13.5px] font-semibold transition-colors hover:bg-[var(--sm-accent-hover)] disabled:opacity-50"
+              style={{ color: 'var(--sm-accent-ink)' }}
+            >
+              Zobacz pakiety
+            </button>
+          </div>
+        )}
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       variants={cineParent}
@@ -361,9 +451,14 @@ export const LeadFinderView = ({
             <Info size={18} />
           </span>
         </div>
-        <p className="max-w-xl text-[16px] leading-[1.55] text-[var(--sm-text-2)]">
+        <p className="max-w-xl text-[15px] leading-[1.55] text-[var(--sm-text-2)]">
           Znajdź firmy w Twojej okolicy. Wybierz kraj, miasto i branżę.
         </p>
+        {planName ? (
+          <p className="text-[12.5px]" style={{ color: 'var(--sm-text-3)' }}>
+            Pakiet {planName.charAt(0).toUpperCase() + planName.slice(1)}{searchRemaining !== null ? ` · pozostało ${searchRemaining} wyszukiwań w tym miesiącu` : ''}
+          </p>
+        ) : null}
       </div>
       <motion.div variants={cineChild} className="sm-card space-y-6 p-5 sm:p-6">
         <div>
@@ -415,18 +510,18 @@ export const LeadFinderView = ({
                         ref={cityInputRef}
                         value={cityQuery}
                         onChange={(e) => setCityQuery(e.target.value)}
-                        placeholder="Filtruj lub wybierz z listy..."
-                        className="sm-input pl-10 text-[15px]"
+                        placeholder="Wpisz nazwę miasta..."
+                        className="sm-input sm-input-icon"
                       />
                     </div>
-                    <p className="mt-2 px-1 text-[13px] text-[var(--sm-text-3)]">{country ? (citiesLoading ? 'Pobieram pełną listę miejscowości...' : `${allCities.length} miejscowości - przewiń lub wpisz nazwę, aby zawęzić`) : 'Pełna lista miast - najpierw wybierz kraj'}</p>
+                    <p className="mt-2 px-1 text-[13px] text-[var(--sm-text-3)]">{country ? (citiesLoading ? 'Wczytuję listę miast…' : 'Wpisz nazwę, aby zawęzić listę') : 'Najpierw wybierz kraj'}</p>
                   </div>
                   <div className="sm-scroll max-h-[320px] overflow-y-auto">
-                    {!country && <div className="p-4 text-center text-xs font-bold opacity-50">Najpierw wybierz kraj</div>}
-                    {country && citiesLoading && <div className="p-4 text-center text-xs font-bold opacity-60 flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Pobieram pełną listę miejscowości...</div>}
-                    {country && !citiesLoading && cityError && cityDisplayList.length === 0 && <div className="p-3 text-xs font-bold text-rose-600">{cityError}</div>}
+                    {!country && <div className="p-4 text-center text-[14px] font-medium opacity-60">Najpierw wybierz kraj</div>}
+                    {country && citiesLoading && <div className="p-4 text-center text-[14px] font-medium opacity-70 flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-[var(--sm-accent)] border-t-transparent rounded-full animate-spin" /> Wczytuję listę miast…</div>}
+                    {country && !citiesLoading && cityError && cityDisplayList.length === 0 && <div className="p-3 text-[14px] font-medium text-[var(--sm-danger)]">{cityError}</div>}
                     {country && !citiesLoading && cityDisplayList.length === 0 && (
-                      <div className="p-4 text-center text-xs font-bold opacity-50">Brak wyników{cityQuery.trim() ? ` dla „${cityQuery.trim()}"` : ''} - spróbuj innej pisowni</div>
+                      <div className="p-4 text-center text-[14px] font-medium opacity-60">Brak wyników{cityQuery.trim() ? ` dla „${cityQuery.trim()}"` : ''}</div>
                     )}
                     {country && !citiesLoading && cityDisplayList.slice(0, MAX_CITY_ROWS).map((r) => (
                       <button
@@ -436,11 +531,11 @@ export const LeadFinderView = ({
                       >
                         <div className="text-[15px] font-medium leading-tight">{r.name}</div>
                         <div className="truncate text-[13px] leading-tight text-[var(--sm-text-2)]">{r.display_name}</div>
-                        <div className="text-[12px] text-[var(--sm-text-3)]">{r.place_type}{(r as any).importance ? ` • ${Number((r as any).importance).toLocaleString('pl-PL')} mieszk.` : ''}</div>
+                        <div className="text-[13px] text-[var(--sm-text-3)]">{r.place_type}</div>
                       </button>
                     ))}
                     {country && !citiesLoading && hiddenCityCount > 0 && (
-                      <div className="p-3 text-center text-[11px] font-bold opacity-50">+{hiddenCityCount} więcej - wpisz nazwę, aby zawęzić</div>
+                      <div className="p-3 text-center text-[13px] font-medium opacity-60">+{hiddenCityCount} więcej. Wpisz nazwę, aby zawęzić.</div>
                     )}
                   </div>
                 </motion.div>
@@ -480,8 +575,8 @@ export const LeadFinderView = ({
                         ref={industryInputRef}
                         value={industryQuery}
                         onChange={(e) => setIndustryQuery(e.target.value)}
-                        placeholder="Filtruj branżę, np. Stomatolog, Hydraulik..."
-                        className="sm-input pl-10 text-[15px]"
+                        placeholder="Wpisz branżę, np. Stomatolog..."
+                        className="sm-input sm-input-icon"
                       />
                     </div>
                   </div>
@@ -505,7 +600,6 @@ export const LeadFinderView = ({
         <label className="flex min-h-[56px] cursor-pointer items-center gap-3 p-4 rounded-[12px] transition-colors" style={{ background: 'var(--sm-surface)' }}>
           <input type="checkbox" checked={onlyWithoutWebsite} onChange={(e) => setOnlyWithoutWebsite(e.target.checked)} className="sm-check" />
           <span className="text-[15px] font-medium">Tylko firmy bez strony</span>
-          <span className="ml-auto text-[13px] text-[var(--sm-text-3)]">domyślnie zaznaczone</span>
         </label>
         <button
           onClick={handleFind}
@@ -516,16 +610,13 @@ export const LeadFinderView = ({
             ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> Szukam…</>
             : 'Szukaj leadów'}
         </button>
-        <p className="text-center text-[13px] leading-relaxed text-[var(--sm-text-3)]">
-
-        </p>
       </motion.div>
       {!hasSearched ? (
         <motion.div variants={cineSoft} className="sm-card mx-auto flex max-w-2xl items-center gap-3.5 p-5">                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px]" style={{ background: 'var(--sm-surface-hover)' }}>
             <Search size={19} className="text-[var(--sm-text-3)]" />
           </span>
           <p className="text-[15px] leading-[1.55] text-[var(--sm-text-2)]">
-            Ustaw filtry powyżej, aby zobaczyć listę firm.
+            Wybierz kraj, miasto i branżę, potem kliknij „Szukaj leadów”.
           </p>
         </motion.div>
       ) : (
@@ -543,7 +634,7 @@ export const LeadFinderView = ({
           {isSearching && (
             <div className="sm-card flex items-center gap-3.5 p-5">
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--sm-accent)] border-t-transparent" />
-              <span className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Szukam firm w okolicy — to chwilka…</span>
+              <span className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>Szukam firm w okolicy. To chwilka.</span>
             </div>
           )}
           {!isSearching && (
@@ -612,37 +703,32 @@ export const LeadFinderView = ({
                               <div className="mt-1 text-[14px] text-[var(--sm-text-2)]">{l.industry || l.category}</div>
                             </div>
                             <span
-                              title="Punkty: +35 firma, +20 adres, +20 telefon, +20 brak strony, + do 5 bonus za nazwę"
+                              title="Ocena kompletności danych tej firmy"
                               className="sm-pill shrink-0 cursor-help"
                             >
                               Wynik {score}
                             </span>
                           </div>
                           <div className="space-y-1.5 text-[14px] text-[var(--sm-text-2)]">
-                            <div className="flex items-start gap-2"><MapPin size={15} className="mt-0.5 shrink-0 text-[var(--sm-text-3)]" /><span>{cityCountry || 'Brak danych'}</span></div>
-                            <div className="flex items-start gap-2"><MapPin size={15} className="mt-0.5 shrink-0 text-[var(--sm-text-3)]" /><span>{addr || 'Brak danych'}</span></div>
-                            <div className="flex items-center gap-2"><Phone size={15} className="shrink-0 text-[var(--sm-text-3)]" /><span>{phone || 'Brak danych'}</span></div>
-                            <div className="flex items-center gap-2"><Globe size={15} className="shrink-0 text-[var(--sm-text-3)]" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="max-w-[260px] truncate underline">{website}</a> : <span>Brak strony</span>}</div>
+                            <div className="flex items-start gap-2"><MapPin size={16} className="mt-0.5 shrink-0 text-[var(--sm-text-3)]" /><span>{[addr, cityCountry].filter(Boolean).join(', ') || 'Brak adresu'}</span></div>
+                            <div className="flex items-center gap-2"><Phone size={16} className="shrink-0 text-[var(--sm-text-3)]" /><span>{phone || 'Brak telefonu'}</span></div>
+                            <div className="flex items-center gap-2"><Globe size={16} className="shrink-0 text-[var(--sm-text-3)]" />{website ? <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="max-w-[260px] truncate underline">{website}</a> : <span className="text-[var(--sm-text-3)]">Brak strony</span>}</div>
                           </div>
-                          <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
+                          <div className="flex flex-wrap items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
+                            <button onClick={() => onGenerateSiteForLead(l)} className="sm-btn sm-btn-primary">Stwórz stronę</button>
+                            <button onClick={() => copyLeadInfo(l)} className="sm-btn sm-btn-ghost">
+                              <CopyIcon size={16} className="shrink-0" />
+                              {copiedId===String(l.id) ? 'Skopiowano' : 'Kopiuj dane'}
+                            </button>
+                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="sm-btn sm-btn-ghost">Otwórz w mapach</a>
                             <button
                               onClick={() => handleSave(l)}
                               disabled={!!savingId || isSaved}
-                              className="sm-btn"
+                              className="sm-btn sm-btn-ghost ml-auto"
                             >
-                              {isSaved ? '✓ Zapisano' : savingId===String(l.id) ? 'Zapisywanie…' : 'Zapisz lead'}
+                              {isSaved ? 'Zapisano' : savingId===String(l.id) ? 'Zapisywanie…' : 'Zapisz lead'}
                             </button>
-                            <button onClick={() => copyLeadInfo(l)} className="sm-btn">
-                              <CopyIcon size={16} className="shrink-0" />
-                              {copiedId===String(l.id) ? '✓ Skopiowano' : 'Kopiuj dane'}
-                            </button>
-                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="sm-btn">Otwórz w mapach</a>
-                            <button onClick={() => onGenerateSiteForLead(l)} className="sm-btn sm-btn-primary">Stwórz stronę</button>
                           </div>
-                          <p className="text-[13px] leading-[1.5] text-[var(--sm-text-3)]">
-                            Wskazówka: zanim zbudujesz stronę, otwórz firmę w Google Maps i dopisz brakujące dane
-                            (godziny otwarcia, ceny, zdjęcia do galerii).
-                          </p>
                         </motion.div>
                       )
                     })}

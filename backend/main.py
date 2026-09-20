@@ -4,7 +4,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from app.database import engine, Base, SessionLocal
-from app.routers import leads, builder, projects, admin, geocode, domains, invoices, settings, credits
+from app.routers import leads, builder, projects, admin, geocode, domains, invoices, settings, credits, entitlements
 from sqlalchemy import text, inspect
 from app.publishing import require_user, validate_content, published_response
 from app.models import Project
@@ -100,6 +100,7 @@ app.include_router(domains.router)
 app.include_router(invoices.router)
 app.include_router(settings.router)
 app.include_router(credits.router)
+app.include_router(entitlements.router)
 
 # ---------------------------------------------------------------------------
 # WŁASNE DOMENY KLIENTÓW — request z Host: biznesklienta.pl serwuje stronę

@@ -1,13 +1,11 @@
 import { useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Sparkles,
   ArrowRight,
-  Paperclip,
   ArrowUp,
   Search,
   GraduationCap,
-  Clock,
   Wrench,
   Receipt,
   Image as ImageIcon,
@@ -23,26 +21,26 @@ import { API_BASE } from '../lib/api';
 const COMPOSER_CSS = `
 .dm-root { position: relative; min-height: 100%; }
 
-.dm-shell { position: relative; z-index: 1; padding: 32px 24px 48px; }
-@media (min-width: 768px) { .dm-shell { padding: 48px 40px 64px; } }
+.dm-shell { position: relative; z-index: 1; padding: 28px 20px 40px; }
+@media (min-width: 768px) { .dm-shell { padding: 40px 32px 56px; } }
 
 .dm-h1 {
-  font-size: clamp(32px, 4vw, 44px);
+  font-size: clamp(24px, 2.8vw, 32px);
   font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.035em;
+  line-height: 1.15;
+  letter-spacing: -0.032em;
   color: var(--sm-text);
 }
 
 /* Composer — the central element, no border, surface difference */
 .dm-composer {
   width: 100%;
-  border-radius: 16px;
+  border-radius: 15px;
   background: var(--sm-surface);
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 160px;
+  min-height: 144px;
   transition: background-color 0.15s ease;
 }
 .dm-composer:focus-within {
@@ -53,14 +51,14 @@ const COMPOSER_CSS = `
 .dm-input {
   flex: 1;
   width: 100%;
-  min-height: 96px;
-  padding: 20px 20px 8px;
+  min-height: 84px;
+  padding: 16px 16px 6px;
   background: transparent;
   border: 0;
   outline: none;
   color: var(--sm-text);
   font-family: inherit;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.55;
   resize: none;
 }
@@ -76,15 +74,15 @@ const COMPOSER_CSS = `
 .dm-chip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 40px;
-  padding: 0 14px;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
   border-radius: 10px;
   border: none;
   background: var(--sm-surface-hover);
   color: var(--sm-text-secondary);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
@@ -119,9 +117,9 @@ const COMPOSER_CSS = `
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-  padding: 20px;
-  border-radius: 14px;
+  gap: 10px;
+  padding: 17px;
+  border-radius: 13px;
   background: var(--sm-surface);
   border: none;
   text-align: left;
@@ -133,9 +131,9 @@ const COMPOSER_CSS = `
 
 /* Projects section — no border, surface difference */
 .dm-projects {
-  border-radius: 16px;
+  border-radius: 15px;
   background: var(--sm-surface);
-  padding: 24px;
+  padding: 20px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -155,7 +153,6 @@ export const DashboardMainView = ({
   onLaunchBuilderWithPrompt: (prompt: string) => void;
 }) => {
   const [promptInput, setPromptInput] = useState('');
-  const [activeTabSub, setActiveTabSub] = useState<'my' | 'recent'>('my');
   const [attachments, setAttachments] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [styleLabel, setStyleLabel] = useState('Styl dnia');
@@ -193,9 +190,9 @@ export const DashboardMainView = ({
 
   const quickActions = [
     { label: 'Kreator AI', desc: 'Opisz stronę i generuj podgląd', icon: Wrench, tab: 'builder' },
-    { label: 'Lead Finder', desc: 'Firmy bez strony www', icon: Search, tab: 'leadfinder' },
-    { label: 'Faktury', desc: 'Rozliczenia bez prowizji', icon: Receipt, tab: 'finance' },
-    { label: 'Akademia', desc: 'Materiały o sprzedaży', icon: GraduationCap, tab: 'tutorials' },
+    { label: 'Lead Finder', desc: 'Firmy bez strony', icon: Search, tab: 'leadfinder' },
+    { label: 'Płatności', desc: 'Faktury bez prowizji', icon: Receipt, tab: 'finance' },
+    { label: 'Poradniki', desc: 'Materiały o sprzedaży', icon: GraduationCap, tab: 'tutorials' },
   ];
 
   const canSend = Boolean(promptInput.trim()) || attachments.length > 0;
@@ -207,9 +204,8 @@ export const DashboardMainView = ({
         <div className="mx-auto max-w-4xl">
           {/* COMPOSER */}
           <h1 className="dm-h1 dm-a-in">Opisz stronę, a ja ją zbuduję.</h1>
-          <p className="mt-3 max-w-xl text-[16px] leading-[1.6] text-[var(--sm-text-secondary)] dm-a-in">
-            Wklej dane firmy z Map Google albo opisz ją własnymi słowami. Resztę — układ,
-            typografię i treści — dobiorę do tej konkretnej branży.
+          <p className="mt-2.5 max-w-xl text-[14.5px] leading-[1.6] text-[var(--sm-text-secondary)] dm-a-in">
+            Napisz kilka zdań o firmie. Układ, kolory i teksty dobiorę do Twojej branży.
           </p>
 
           <form
@@ -233,21 +229,12 @@ export const DashboardMainView = ({
                 <ImageIcon size={16} />
                 {uploading ? 'Wysyłam…' : attachments.length ? `${attachments.length} zdjęć` : 'Załącz zdjęcia'}
               </button>
-              <button type="button" className="dm-chip" onClick={cycleStyle}>
+              <button type="button" className="dm-chip" onClick={cycleStyle} title="Wybierz nastrój strony">
                 <Palette size={16} /> {styleLabel}
-              </button>
-              <button
-                type="button"
-                className="dm-chip"
-                onClick={() => fileRef.current?.click()}
-                title="Logo lub zdjęcia produktów"
-              >
-                <Paperclip size={16} /> Dodaj logo
               </button>
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={onAttach} />
 
               <div className="ml-auto flex items-center gap-3">
-                <span className="dm-count">15 kredytów</span>
                 <button
                   type="submit"
                   className="dm-send"
@@ -275,12 +262,12 @@ export const DashboardMainView = ({
                 onClick={() => setActiveTab(a.tab)}
                 className="dm-action"
               >
-                <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
-                  <a.icon size={18} className="text-[var(--sm-accent)]" />
+                <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
+                  <a.icon size={17} className="text-[var(--sm-accent)]" />
                 </span>
                 <span className="block">
-                  <span className="block text-[15px] font-semibold tracking-[-0.01em]">{a.label}</span>
-                  <span className="mt-1 block text-[13px] leading-[1.45] text-[var(--sm-text-secondary)]">{a.desc}</span>
+                  <span className="block text-[14px] font-semibold tracking-[-0.01em]">{a.label}</span>
+                  <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-[var(--sm-text-secondary)]">{a.desc}</span>
                 </span>
               </motion.button>
             ))}
@@ -289,55 +276,31 @@ export const DashboardMainView = ({
           {/* PROJECTS — no border, surface difference */}
           <div className="dm-projects mt-6">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex gap-1 bg-[var(--sm-surface-hover)] rounded-[10px] p-1" role="tablist" aria-label="Widok projektów">
-                {(['my', 'recent'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    role="tab"
-                    aria-selected={activeTabSub === tab}
-                    onClick={() => setActiveTabSub(tab)}
-                    className={`relative min-h-[40px] rounded-[8px] px-4 text-[14px] font-medium transition-colors cursor-pointer border-none ${[
-                      activeTabSub === tab
-                        ? 'bg-[var(--sm-surface-elevated)] text-[var(--sm-text)] shadow-sm'
-                        : 'bg-transparent text-[var(--sm-text-secondary)] hover:text-[var(--sm-text)]'
-                    ].join(' ')}`}
-                  >
-                    <span className="relative z-10">{tab === 'my' ? 'Moje projekty' : 'Ostatnio przeglądane'}</span>
-                  </button>
-                ))}
-              </div>
-              <span className="ml-auto inline-flex items-center gap-1.5 text-[13px] text-[var(--sm-text-quiet)]">
-                <Sparkles size={14} /> Gotowe do pracy
-              </span>
+              <h2 className="text-[16px] font-semibold tracking-[-0.01em]">Moje projekty</h2>
+              <button
+                onClick={() => setActiveTab('builder')}
+                className="sm-btn sm-btn-ghost ml-auto min-h-[44px]"
+              >
+                <Wrench size={16} /> Nowy projekt
+              </button>
             </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTabSub}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
-                className="flex flex-col items-start gap-3 pt-5 sm:flex-row sm:items-center"
-              >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
-                  {activeTabSub === 'my' ? <Sparkles size={20} className="text-[var(--sm-text-quiet)]" /> : <Clock size={20} className="text-[var(--sm-text-quiet)]" />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[16px] font-semibold">
-                    {activeTabSub === 'my' ? 'Brak projektów' : 'Nic tu jeszcze nie ma'}
-                  </div>
-                  <p className="mt-0.5 text-[14px] text-[var(--sm-text-secondary)]">
-                    {activeTabSub === 'my'
-                      ? 'Opisz stronę w polu powyżej — projekt pojawi się tutaj po zapisaniu.'
-                      : 'Projekty, które otworzysz, pojawią się na tej liście.'}
-                  </p>
-                </div>
-                <button onClick={() => setActiveTab('builder')} className="sm-btn shrink-0">
-                  <Wrench size={17} /> Otwórz kreator <ArrowRight size={16} />
-                </button>
-              </motion.div>
-            </AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22 }}
+              className="flex flex-col items-start gap-3 pt-5 sm:flex-row sm:items-center"
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[var(--sm-surface-hover)]">
+                <Sparkles size={18} className="text-[var(--sm-text-quiet)]" />
+              </span>
+              <p className="min-w-0 flex-1 text-[14px] leading-[1.55] text-[var(--sm-text-secondary)]">
+                Nie masz jeszcze projektów. Opisz stronę w polu powyżej.
+              </p>
+              <button onClick={() => setActiveTab('builder')} className="sm-btn shrink-0">
+                <Wrench size={16} /> Otwórz kreator <ArrowRight size={15} />
+              </button>
+            </motion.div>
           </div>
         </div>
       </div>

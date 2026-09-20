@@ -165,7 +165,7 @@ export const FinanceSection = () => {
   const paidCount = invoices.filter(i => i.sent_to).length;
   const pendingCount = invoices.filter(i => !i.sent_to).length;
 
-  const inputClasses = "sm-input text-[16px]";
+  const inputClasses = "sm-input text-[15px]";
 
   const enabledMethods = [
     usePrzelew && 'przelew',
@@ -197,8 +197,8 @@ export const FinanceSection = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="sm-h1">Finanse</h1>
-          <p className="text-[16px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>
+          <h1 className="sm-h1">Płatności</h1>
+          <p className="text-[14.5px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>
             {isProfileSet ? businessName : 'Rejestracja profilu płatniczego i firmy'}
           </p>
         </div>
@@ -227,11 +227,11 @@ export const FinanceSection = () => {
             className="rounded-[14px] p-6 relative overflow-hidden"
             style={{ background: 'var(--sm-surface)' }}
           >
-            <span className="text-[15px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>
+            <span className="text-[13.5px] font-medium" style={{ color: 'var(--sm-text-secondary)' }}>
               {stat.label}
             </span>
             <div className="mt-3 flex items-end justify-between">
-              <span className="text-[34px] font-semibold leading-none tracking-tight">
+              <span className="text-[29px] font-semibold leading-none tracking-tight">
                 {stat.value}
               </span>
               <stat.icon size={20} style={{ color: 'var(--sm-text-quiet)' }} />
@@ -243,8 +243,8 @@ export const FinanceSection = () => {
       {/* Monthly chart */}
       <div className="rounded-[14px] p-6 sm:p-8" style={{ background: 'var(--sm-surface)' }}>
         <div className="mb-6">
-          <h3 className="text-[20px] font-semibold">Płatności miesięcznie</h3>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Kwoty w zł</p>
+          <h3 className="text-[18px] font-semibold">Płatności miesięcznie</h3>
+          <p className="text-[13.5px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Kwoty w zł</p>
         </div>
         <div className="relative">
           {/* Y axis */}
@@ -290,8 +290,8 @@ export const FinanceSection = () => {
       {/* History section */}
       <div className="rounded-[14px] p-6 sm:p-8" style={{ background: 'var(--sm-surface)' }}>
         <div className="mb-6">
-          <h3 className="text-[20px] font-semibold">Historia faktur</h3>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Kto, za co i na jaką kwotę</p>
+          <h3 className="text-[18px] font-semibold">Historia faktur</h3>
+          <p className="text-[13.5px] mt-1" style={{ color: 'var(--sm-text-secondary)' }}>Kto, za co i na jaką kwotę</p>
         </div>
 
         {invoices.length === 0 ? (
@@ -299,8 +299,8 @@ export const FinanceSection = () => {
             <div className="w-14 h-14 rounded-[14px] flex items-center justify-center mx-auto" style={{ background: 'var(--sm-surface-hover)' }}>
               <Receipt size={28} style={{ color: 'var(--sm-text-quiet)' }} />
             </div>
-            <h4 className="text-[18px] font-semibold">Brak faktur</h4>
-            <p className="text-[15px] max-w-md mx-auto" style={{ color: 'var(--sm-text-secondary)' }}>
+            <h4 className="text-[16.5px] font-semibold">Brak faktur</h4>
+            <p className="text-[13.5px] max-w-md mx-auto" style={{ color: 'var(--sm-text-secondary)' }}>
               Wyślij klientowi pierwszą fakturę z własnym numerem IBAN lub BLIK.
             </p>
             <Button variant="primary" size="lg" onClick={() => { setShowCreateModal(true); setNewMethod(enabledMethods[0] || 'przelew'); }}>
@@ -309,7 +309,7 @@ export const FinanceSection = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-[15px]">
+            <table className="w-full text-left text-[13.5px]">
               <thead>
                 <tr className="font-medium" style={{ color: 'var(--sm-text-quiet)', borderBottom: '1px solid var(--sm-border-subtle)' }}>
                   <th className="py-3">Numer</th>
@@ -329,8 +329,8 @@ export const FinanceSection = () => {
                     <td className="py-4">{METHOD_LABEL[inv.payment_method] || inv.payment_method}</td>
                     <td className="py-4">
                       {inv.sent_to
-                        ? <span className="px-3 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(22,163,74,0.08)', color: 'var(--sm-success)' }}>Wysłana</span>
-                        : <span className="px-3 py-1 rounded-full text-[13px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>Oczekująca</span>}
+                        ? <span className="rounded-full px-2.5 py-0.5 text-[12px] font-medium" style={{ background: 'rgba(22,163,74,0.08)', color: 'var(--sm-success)' }}>Wysłana</span>
+                        : <span className="rounded-full px-2.5 py-0.5 text-[12px] font-medium" style={{ background: 'rgba(217,119,6,0.08)', color: 'var(--sm-warning)' }}>Oczekująca</span>}
                     </td>
                     <td className="py-4 text-right">
                       <button
@@ -342,7 +342,7 @@ export const FinanceSection = () => {
                             if (w) w.document.write(html);
                           }
                         }}
-                        className="inline-flex items-center gap-1.5 text-[14px] font-medium cursor-pointer border-none bg-transparent hover:underline"
+                        className="inline-flex items-center gap-1.5 text-[13px] font-medium cursor-pointer border-none bg-transparent hover:underline"
                         style={{ color: 'var(--sm-accent)' }}
                       >
                         Otwórz <ExternalLink size={12} />
@@ -377,7 +377,7 @@ export const FinanceSection = () => {
                 <X size={18} />
               </motion.button>
 
-              <h3 className="text-[22px] font-semibold">Nowa faktura</h3>
+              <h3 className="text-[19px] font-semibold">Nowa faktura</h3>
 
               <form onSubmit={handleCreateInvoice} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -425,7 +425,7 @@ export const FinanceSection = () => {
                 {formMsg && <p className="text-[14px] font-medium" style={{ color: 'var(--sm-success)' }}>{formMsg}</p>}
 
                 <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--sm-border-subtle)' }}>
-                  <span className="font-semibold text-[18px]">Suma: {newAmount || '0'} zł</span>
+                  <span className="font-semibold text-[16px]">Suma: {newAmount || '0'} zł</span>
                   <div className="flex gap-3">
                     <Button variant="ghost" size="md" type="button" onClick={() => setShowCreateModal(false)}>
                       Anuluj

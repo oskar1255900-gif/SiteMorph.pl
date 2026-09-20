@@ -278,6 +278,157 @@ def test_overlong_text_is_truncated_to_the_schema_limit():
     validate_spec(normalized, supplied_urls(payload))
 
 
+CULTURAL_DESIRED_8 = [
+    'japanese-dessert', 'matcha-beverage', 'sakura-tree', 'lgbtq-friendly',
+    'outdoor-seating', 'photogenic-food', 'polish-local', 'piotrkowska-street',
+]
+CULTURAL_AVOID_8 = [
+    'geisha', 'samurai', 'torii-gate', 'kanji-overload',
+    'rising-sun-flag', 'fake-japanese-text', 'buddha-statue', 'sushi-roll',
+]
+
+
+def _with_cultural_signals(brand='mochi', desired=None, avoid=None):
+    payload = fixture(brand)
+    if desired is not None:
+        payload['semanticProfile']['culturalSignalsDesired'] = desired
+    if avoid is not None:
+        payload['semanticProfile']['culturalSignalsAvoid'] = avoid
+    return payload
+
+
+def test_cultural_signal_lists_within_the_limit_are_untouched():
+    payload = _with_cultural_signals(desired=['a', 'b', 'c', 'd', 'e', 'f'], avoid=['x', 'y'])
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['semanticProfile']['culturalSignalsDesired'] == ['a', 'b', 'c', 'd', 'e', 'f']
+    assert normalized['semanticProfile']['culturalSignalsAvoid'] == ['x', 'y']
+    assert report.truncated_fields == []
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_only_the_overlong_desired_list_is_trimmed():
+    payload = _with_cultural_signals(desired=CULTURAL_DESIRED_8, avoid=['keep-me'])
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert len(normalized['semanticProfile']['culturalSignalsDesired']) == 6
+    assert normalized['semanticProfile']['culturalSignalsAvoid'] == ['keep-me']
+    assert report.truncated_fields == [
+        {'path': 'semanticProfile.culturalSignalsDesired', 'from_length': 8, 'to_length': 6}
+    ]
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_only_the_overlong_avoid_list_is_trimmed():
+    payload = _with_cultural_signals(desired=['keep-me'], avoid=CULTURAL_AVOID_8)
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert len(normalized['semanticProfile']['culturalSignalsAvoid']) == 6
+    assert normalized['semanticProfile']['culturalSignalsDesired'] == ['keep-me']
+    assert report.truncated_fields == [
+        {'path': 'semanticProfile.culturalSignalsAvoid', 'from_length': 8, 'to_length': 6}
+    ]
+    validate_spec(normalized, supplied_urls(payload))
+
+
+def test_both_overlong_cultural_lists_keep_their_leading_items_in_order():
+    payload = _with_cultural_signals(desired=CULTURAL_DESIRED_8, avoid=CULTURAL_AVOID_8)
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert normalized['semanticProfile']['culturalSignalsDesired'] == CULTURAL_DESIRED_8[:6]
+    assert normalized['semanticProfile']['culturalSignalsAvoid'] == CULTURAL_AVOID_8[:6]
+    assert sorted(item['path'] for item in report.truncated_fields) == [
+        'semanticProfile.culturalSignalsAvoid', 'semanticProfile.culturalSignalsDesired',
+    ]
+    spec, _ = validate_spec(normalized, supplied_urls(payload))
+    assert len(spec.semanticProfile.culturalSignalsDesired) == 6
+    assert len(spec.semanticProfile.culturalSignalsAvoid) == 6
+
+
+def test_a_second_normalization_pass_changes_nothing():
+    payload = _with_cultural_signals(desired=CULTURAL_DESIRED_8, avoid=CULTURAL_AVOID_8)
+    once, first = normalize_model_spec(payload)
+
+    twice, second = normalize_model_spec(once)
+
+    assert twice == once
+    assert first.truncated_fields
+    assert second.truncated_fields == []
+
+
+def test_wrong_typed_element_past_the_limit_is_never_hidden_by_the_cut():
+    payload = _with_cultural_signals(
+        desired=CULTURAL_DESIRED_8[:6] + [{'signal': 'not-a-string'}, 'still-fine'],
+    )
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert len(normalized['semanticProfile']['culturalSignalsDesired']) == 8
+    assert report.truncated_fields == []
+    with pytest.raises(Exception) as exc:
+        validate_spec(normalized, supplied_urls(payload))
+    assert 'culturalSignalsDesired' in str(exc.value)
+
+
+def test_absent_and_empty_cultural_lists_keep_the_existing_contract():
+    absent, _ = normalize_model_spec(fixture('mochi'))
+    assert 'culturalSignalsDesired' not in absent['semanticProfile']
+    validate_spec(absent, supplied_urls(absent))
+
+    empty, report = normalize_model_spec(_with_cultural_signals(desired=[], avoid=[]))
+    assert empty['semanticProfile']['culturalSignalsDesired'] == []
+    assert report.truncated_fields == []
+    validate_spec(empty, supplied_urls(empty))
+
+    a_null, _ = normalize_model_spec(_with_cultural_signals(desired=None, avoid=None))
+    a_null['semanticProfile']['culturalSignalsDesired'] = None
+    with pytest.raises(Exception):
+        validate_spec(a_null, supplied_urls(a_null))
+
+
+def test_other_lists_in_the_specification_are_not_trimmed():
+    payload = fixture('mochi')
+    payload['businessBrief']['keySignals'] = [f'signal-{index}' for index in range(14)]
+    payload['businessBrief']['risks'] = [f'risk-{index}' for index in range(11)]
+
+    normalized, report = normalize_model_spec(payload)
+
+    assert len(normalized['businessBrief']['keySignals']) == 14
+    assert len(normalized['businessBrief']['risks']) == 11
+    assert report.truncated_fields == []
+
+
+def test_endpoint_trims_overlong_cultural_lists_in_one_call(client, monkeypatch):
+    payload = _with_cultural_signals(desired=CULTURAL_DESIRED_8, avoid=CULTURAL_AVOID_8)
+    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', OPENROUTER_TEST_KEY)
+    post = Mock(return_value=_openrouter_ok(payload))
+    monkeypatch.setattr(b.requests, 'post', post)
+
+    result = client.post('/api/builder/generate', json={
+        'business_name': '', 'niche': '', 'description': 'Mad Mochi: mochi, matcha, sakura',
+        'image_urls': supplied_urls(payload),
+    })
+
+    assert result.status_code == 200, result.text
+    data = result.json()
+    # Trimming is local, so the model is still awaited exactly once.
+    assert post.call_count == data['ai_calls'] == 1
+    assert data['provider'] == 'openrouter'
+    attempt = data['model_attempts'][0]
+    assert attempt['truncated_fields'] == [
+        {'path': 'semanticProfile.culturalSignalsDesired', 'from_length': 8, 'to_length': 6},
+        {'path': 'semanticProfile.culturalSignalsAvoid', 'from_length': 8, 'to_length': 6},
+    ]
+    # The payload handed to validate_spec is the normalized one, not the raw answer.
+    assert data['design_spec']['semanticProfile']['culturalSignalsDesired'] == CULTURAL_DESIRED_8[:6]
+    assert len(data['design_spec']['semanticProfile']['culturalSignalsAvoid']) == 6
+    assert validate_project(data['files'])[0]
+
+
 def test_undeclared_section_props_are_dropped_but_valid_props_survive():
     payload = fixture('mochi')
     props = payload['pagePlan']['sections'][0]['props']
@@ -1281,7 +1432,39 @@ def test_timeout_never_falls_back(client, monkeypatch):
     result = client.post('/api/builder/generate', json={'business_name': 'Mochi', 'niche': '', 'description': 'mochi'})
 
     assert result.status_code == 503
-    assert result.json()['detail'] == b.PROVIDER_UNAVAILABLE_DETAIL
+    # Przekroczenie czasu to inny problem niż przeciążony dostawca: użytkownik
+    # ma dostać komunikat, który mówi o czasie, nie o „przeciążeniu modeli”.
+    assert result.json()['detail'] == b.TIMEOUT_DETAIL
+    assert 'przeciąż' not in result.json()['detail']
+    assert post.call_count == 1
+
+
+def test_every_failure_category_has_its_own_message():
+    categories = ['unauthorized', 'invalid_response', 'invalid_spec', 'timeout', 'unavailable']
+    messages = [b.generation_error_detail(category) for category in categories]
+    assert len(set(messages)) == len(categories)
+    # Wszystkie komunikaty są krótkie i nie zawierają wewnętrznych nazw.
+    for message in messages:
+        assert 'openrouter' not in message.lower()
+        assert 'pydantic' not in message.lower()
+        assert 'traceback' not in message.lower()
+
+
+def test_preview_build_failure_hides_build_diagnostics(client, monkeypatch):
+    payload = fixture('mochi')
+    monkeypatch.setattr(b, 'OPENROUTER_API_KEY', OPENROUTER_TEST_KEY)
+    post = Mock(return_value=_openrouter_ok(payload))
+    monkeypatch.setattr(b.requests, 'post', post)
+    monkeypatch.setattr(b, 'validate_project', lambda files: (False, ['main/frontend/src/App.tsx: missing import']))
+
+    result = client.post('/api/builder/generate', json={
+        'business_name': '', 'niche': '', 'description': 'Mad Mochi: mochi, matcha, sakura',
+        'image_urls': supplied_urls(payload),
+    })
+
+    assert result.status_code == 502
+    assert result.json()['detail'] == b.PREVIEW_DETAIL
+    assert 'missing import' not in result.text
     assert post.call_count == 1
 
 

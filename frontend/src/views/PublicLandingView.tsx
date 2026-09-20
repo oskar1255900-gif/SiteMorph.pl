@@ -16,9 +16,6 @@ import {
 } from 'lucide-react';
 import { cineChild, cineParent, cineSoft, springTransition } from '../lib/shared';
 
-const VIDEO_URL =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4';
-
 // ============================================================================
 // EXPORTED CONSTANTS (used by other views)
 // ============================================================================
@@ -101,17 +98,6 @@ const LANDING_CSS = `
   color: var(--sm-text);
 }
 
-.sm-landing-grid {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image:
-    linear-gradient(var(--sm-border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--sm-border) 1px, transparent 1px);
-  background-size: 64px 64px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 75%);
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 75%);
-  opacity: 0.4;
-}
-
 .sm-landing-preview {
   border: 1px solid var(--sm-border);
   border-radius: var(--sm-radius-lg);
@@ -122,10 +108,6 @@ const LANDING_CSS = `
 .sm-landing-step-num {
   font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
   color: var(--sm-text-3);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sm-landing video { display: none; }
 }
 `;
 
@@ -209,6 +191,7 @@ export const PublicLandingView = ({
   theme,
   setTheme,
   session,
+  authChecked = true,
   onShowAuth,
   onLogout,
 }: {
@@ -216,6 +199,7 @@ export const PublicLandingView = ({
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
   session: any;
+  authChecked?: boolean;
   onShowAuth: () => void;
   onLogout: () => void;
 }) => {
@@ -260,17 +244,6 @@ export const PublicLandingView = ({
     <div className="sm-landing relative min-h-screen overflow-x-hidden">
       <style>{LANDING_CSS}</style>
 
-      {/* Background: muted video + dark overlay + subtle grid */}
-      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
-        <video
-          autoPlay loop muted playsInline
-          className="h-full w-full object-cover opacity-[0.25]"
-          src={VIDEO_URL}
-        />
-        <div className="absolute inset-0 bg-[var(--sm-bg)]/88" />
-        <div className="sm-landing-grid" />
-      </div>
-
       {/* NAVIGATION — single nav, all actions preserved */}
       <header
         ref={headerRef}
@@ -308,7 +281,13 @@ export const PublicLandingView = ({
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {session ? (
+            {!authChecked ? (
+              <span
+                className="hidden h-9 w-28 animate-pulse rounded-[10px] sm:block lg:w-44"
+                style={{ background: 'var(--sm-surface)' }}
+                aria-hidden="true"
+              />
+            ) : session ? (
               <div className="hidden items-center gap-2 sm:flex">
                 <span className="hidden max-w-[160px] truncate text-[14px] text-[var(--sm-text-2)] lg:block">{session.user?.email}</span>
                 <button onClick={onLogout} className="sm-btn">Wyloguj</button>
@@ -347,7 +326,9 @@ export const PublicLandingView = ({
                   <button key={id} onClick={() => scrollToId(id)} className="sm-nav-item">{label}</button>
                 ))}
                 <div className="mt-3 flex flex-col gap-2">
-                  {session ? (
+                  {!authChecked ? (
+                    <span className="h-11 animate-pulse rounded-[10px]" style={{ background: 'var(--sm-surface)' }} aria-hidden="true" />
+                  ) : session ? (
                     <>
                       <button onClick={onLogout} className="sm-btn">Wyloguj</button>
                       <button onClick={() => onEnterApp('dashboard')} className="sm-btn sm-btn-primary">Panel</button>
@@ -373,7 +354,7 @@ export const PublicLandingView = ({
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-3xl"
         >
-          <h1 className="text-[38px] font-bold leading-[1.06] tracking-[-0.04em] text-[var(--sm-text-strong)] sm:text-[48px] md:text-[62px]">
+          <h1 className="text-[34px] font-bold leading-[1.07] tracking-[-0.04em] text-[var(--sm-text-strong)] sm:text-[44px] md:text-[56px]">
             Buduj strony.<br />
             <span className="sm-brand-gradient">Zarabiaj.</span>
           </h1>

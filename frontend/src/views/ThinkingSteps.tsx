@@ -4,18 +4,28 @@ import { Check, Sparkles } from 'lucide-react';
 
 export type ThinkingPhase = 'generate' | 'parse' | 'validate' | 'compile' | 'mount' | 'done';
 
-const descriptions: Record<ThinkingPhase, [string, string]> = {
-  generate: ['Tworzę projekt', 'Dobieram kolory, układ i treści do Twojej marki.'],
-  parse: ['Analizuję projekt', 'Sprawdzam, czy wszystko się zgadza.'],
-  validate: ['Poprawiam detale', 'Dbam o każdy szczegół strony.'],
-  compile: ['Składam stronę', 'Łączę wszystkie elementy w całość.'],
-  mount: ['Uruchamiam podgląd', 'Twoja strona prawie gotowa!'],
-  done: ['Strona gotowa!', 'Możesz ją zobaczyć, zapisać lub opublikować.'],
+/**
+ * Stan pracy nad stroną pokazuje WYŁĄCZNIE zdarzenia, które aplikacja zna:
+ *  - `generate` — trwa jedno żądanie do modelu (czekamy na odpowiedź),
+ *  - `compile`  — odpowiedź dotarła, kompilowany jest podgląd React,
+ *  - `done`     — podgląd wystartował w ramce.
+ *
+ * Nie ma tu wymyślonej sekwencji „Dobieram kolory / Analizuję projekt” ani
+ * procentu postępu: przy jednym żądaniu aplikacja nie zna wewnętrznych etapów
+ * pracy modelu, więc nie może ich pokazywać jako ukończonych.
+ */
+const STATUS: Record<ThinkingPhase, [string, string]> = {
+  generate: ['Tworzę Twoją stronę…', 'Model pracuje nad strukturą, treścią i stylem.'],
+  parse: ['Przygotowuję podgląd…', 'Sprawdzam odpowiedź i składam projekt.'],
+  validate: ['Przygotowuję podgląd…', 'Sprawdzam odpowiedź i składam projekt.'],
+  compile: ['Przygotowuję podgląd…', 'Kompiluję projekt React w przeglądarce.'],
+  mount: ['Przygotowuję podgląd…', 'Uruchamiam podgląd w ramce.'],
+  done: ['Strona jest gotowa', 'Możesz ją obejrzeć, zapisać albo opublikować.'],
 };
 
-const ORDER: ThinkingPhase[] = ['generate', 'parse', 'validate', 'compile', 'mount'];
-
 export function ThinkingSteps({ phase }: { mode: string; phase: ThinkingPhase; theme: 'light' | 'dark' }) {
+  // Komponent montuje się raz na jedno generowanie, więc licznik pokazuje
+  // łączny czas od wysłania opisu do gotowego podglądu.
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     const start = Date.now();
@@ -23,105 +33,63 @@ export function ThinkingSteps({ phase }: { mode: string; phase: ThinkingPhase; t
     return () => clearInterval(timer);
   }, []);
 
-  const currentIndex = ORDER.indexOf(phase);
   const done = phase === 'done';
+  const [title, description] = STATUS[phase] ?? STATUS.generate;
 
   return (
-    <div className="flex flex-1 flex-col justify-center gap-8 p-6" aria-live="polite">
-      {/* Main status */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
-      >
-        <motion.div
-          animate={done ? {} : { scale: [1, 1.1, 1] }}
+    <div className="flex flex-1 flex-col justify-center gap-6 p-6" aria-live="polite" aria-busy={!done}>
+      <div className="flex items-center gap-3.5">
+        <motion.span
+          animate={done ? {} : { scale: [1, 1.06, 1] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="grid h-14 w-14 shrink-0 place-items-center rounded-[14px]"
-          style={{ background: done ? 'rgba(22,163,74,0.1)' : 'var(--sm-accent-muted)' }}
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px]"
+          style={{ background: done ? 'color-mix(in srgb, var(--sm-success) 12%, transparent)' : 'var(--sm-accent-muted)' }}
         >
           {done
-            ? <Check size={24} style={{ color: 'var(--sm-success)' }} />
-            : <Sparkles size={24} style={{ color: 'var(--sm-accent)' }} />}
-        </motion.div>
-        <div>
+            ? <Check size={20} style={{ color: 'var(--sm-success)' }} />
+            : <Sparkles size={20} style={{ color: 'var(--sm-accent)' }} />}
+        </motion.span>
+        <div className="min-w-0">
           <AnimatePresence mode="wait">
             <motion.p
-              key={phase}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 8 }}
-              className="text-[20px] font-semibold"
+              key={title}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="text-[17px] font-semibold"
             >
-              {descriptions[phase][0]}
+              {title}
             </motion.p>
           </AnimatePresence>
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={phase + '-desc'}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-[15px] mt-1"
-              style={{ color: 'var(--sm-text-secondary)' }}
-            >
-              {descriptions[phase][1]}
-            </motion.p>
-          </AnimatePresence>
+          <p className="mt-0.5 text-[13px] leading-[1.5]" style={{ color: 'var(--sm-text-secondary)' }}>
+            {description}
+          </p>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Progress steps */}
-      <div className="space-y-3">
-        {ORDER.map((p, i) => {
-          const state = done || i < currentIndex ? 'done' : i === currentIndex ? 'active' : 'pending';
-          return (
+      {/* Nieokreślony wskaźnik: brak udawanego procentu, liczy się realny czas. */}
+      {!done ? (
+        <div className="flex items-center gap-3">
+          <div className="h-1 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--sm-surface-hover)' }}>
             <motion.div
-              key={p}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="flex items-center gap-3"
-            >
-              <div
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-full transition-all duration-300"
-                style={{
-                  background: state === 'done' ? 'var(--sm-success)' : state === 'active' ? 'var(--sm-accent-muted)' : 'var(--sm-surface-hover)',
-                  color: state === 'done' ? '#fff' : state === 'active' ? 'var(--sm-accent)' : 'var(--sm-text-quiet)',
-                }}
-              >
-                {state === 'done' ? <Check size={14} /> : state === 'active' ? <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="h-2 w-2 rounded-full" style={{ background: 'var(--sm-accent)' }} /> : null}
-              </div>
-              <span
-                className="text-[15px] font-medium transition-colors"
-                style={{ color: state === 'pending' ? 'var(--sm-text-quiet)' : 'var(--sm-text)' }}
-              >
-                {descriptions[p][0]}
-              </span>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Timer */}
-      <div className="flex items-center gap-2">
-        <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: 'var(--sm-surface-hover)' }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: 'var(--sm-accent)' }}
-            initial={{ width: '0%' }}
-            animate={{ width: `${Math.min(95, (currentIndex / ORDER.length) * 100)}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          />
+              className="h-full w-1/3 rounded-full"
+              style={{ background: 'var(--sm-accent)' }}
+              animate={{ x: ['-110%', '310%'] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+          <span className="text-[13px] font-medium tabular-nums" style={{ color: 'var(--sm-text-quiet)' }}>
+            {seconds}s
+          </span>
         </div>
-        <span className="text-[14px] tabular-nums font-medium" style={{ color: 'var(--sm-text-quiet)' }}>{seconds}s</span>
-      </div>
+      ) : null}
 
-      {seconds >= 60 && phase === 'generate' && (
-        <p className="text-[15px]" style={{ color: 'var(--sm-text-secondary)' }}>
-          To może chwilę potrwać. Złożone strony potrzebują więcej czasu.
+      {!done && seconds >= 45 ? (
+        <p className="text-[13px] leading-[1.5]" style={{ color: 'var(--sm-text-secondary)' }}>
+          Złożone strony potrzebują więcej czasu. Możesz zostawić tę kartę otwartą.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

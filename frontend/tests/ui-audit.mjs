@@ -29,23 +29,31 @@ const measure = () => {
   const root = document.documentElement;
   const overflow = root.scrollWidth - window.innerWidth;
   const small = [];
+  const clipped = [];
   const interactive = document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="switch"], [role="radio"]');
   for (const el of interactive) {
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;               // ukryte
     if (getComputedStyle(el).visibility === 'hidden') continue;
+    const label = (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 40);
+    // Akcja ucięta prawą krawędzią ekranu jest nieklikalna — łapiemy to nawet
+    // wtedy, gdy globalne overflow-x: hidden ukrywa prawdziwy overflow.
+    if (r.right > window.innerWidth + 1 && r.left < window.innerWidth) {
+      clipped.push({ label, right: Math.round(r.right), viewport: window.innerWidth });
+    }
     // Checkbox/radio: powierzchnia dotyku to etykieta, nie sam kwadracik.
     if (el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) {
       const wrap = el.closest('label') || el.parentElement;
       const wr = wrap?.getBoundingClientRect();
       if (wr && wr.height >= 44) continue;
     }
-    const label = (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 40);
     // Przełączniki i małe kontrolki inline oceniamy tylko po wysokości.
     if (r.height < 44) small.push({ label, w: Math.round(r.width), h: Math.round(r.height) });
   }
-  return { overflow, small: small.slice(0, 20), smallCount: small.length };
-};const snap = async (page, name, size, expectTheme) => {
+  return { overflow, small: small.slice(0, 20), smallCount: small.length,
+           clipped: clipped.slice(0, 10), clippedCount: clipped.length };
+};
+const snap = async (page, name, size, expectTheme) => {
   await page.setViewportSize(size);
   await page.waitForTimeout(600);
   const path = resolve(OUT, `${name}-${size.width}.png`);
@@ -55,6 +63,7 @@ const measure = () => {
   report.screens.push({ name, width: size.width, theme, ...m });
   if (expectTheme && theme !== expectTheme) report.problems.push(`${name}@${size.width}: oczekiwano motywu ${expectTheme}, jest ${theme}`);
   if (m.overflow > 1) report.problems.push(`${name}@${size.width}: poziomy overflow ${m.overflow}px`);
+  if (m.clippedCount > 0) report.problems.push(`${name}@${size.width}: ${m.clippedCount} akcji uciętych prawą krawędzią: ${m.clipped.map((c) => c.label).join(', ')}`);
   if (m.smallCount > 0) report.problems.push(`${name}@${size.width}: ${m.smallCount} kontrolek < 44px`);
   return path;
 };
@@ -111,6 +120,28 @@ await page.route('**/api/credits', (route) =>
   route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ credits: 42 }) }));
 await page.route('**/api/projects/', (route) =>
   route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+// AdminPanel: weryfikacja hasła odbywa się po stronie serwera, więc audyt
+// odpowiada deterministycznie. To mock w przeglądarce — nie zmienia backendu.
+await page.route('**/api/admin/verify', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }));
+await page.route('**/api/admin/stats', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [], services: [] }) }));
+// Uprawnienia konta: to mock odpowiedzi serwera. Stan „bez pakietu" ma
+// osobne pokrycie niżej (leadfinder-locked), więc tutaj konto ma pakiet.
+await page.route('**/api/entitlements', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan: 'pro', lead_finder: true, lead_limit: 30, expires_at: null, expired: false }) }));
+// Deterministyczna lista miast — audyt Lead Findera nie może zależeć od sieci.
+const AUDIT_CITIES = [
+  { display_name: 'Kraków, Małopolskie, Polska', name: 'Kraków', lat: '50.06', lon: '19.94', osm_id: 1, osm_type: 'relation', place_type: 'miasto' },
+  { display_name: 'Kraśnik, Lubelskie, Polska', name: 'Kraśnik', lat: '50.92', lon: '22.22', osm_id: 2, osm_type: 'relation', place_type: 'miasto' },
+  { display_name: 'Warszawa, Mazowieckie, Polska', name: 'Warszawa', lat: '52.23', lon: '21.01', osm_id: 3, osm_type: 'relation', place_type: 'miasto' },
+  { display_name: 'Łódź, Łódzkie, Polska', name: 'Łódź', lat: '51.76', lon: '19.46', osm_id: 4, osm_type: 'relation', place_type: 'miasto' },
+  { display_name: 'Gdańsk, Pomorskie, Polska', name: 'Gdańsk', lat: '54.35', lon: '18.65', osm_id: 5, osm_type: 'relation', place_type: 'miasto' },
+];
+await page.route('**/api/geocode/all-cities*', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: AUDIT_CITIES, cached: true }) }));
+await page.route('**/api/geocode/autocomplete*', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) }));
 
 // ---------- BRAMA "W BUDOWIE" (pierwszy ekran dla niezalogowanych) ----------
 const gate = await context.newPage();
@@ -186,6 +217,17 @@ if (await page.locator('text=Opisz stronę, a ja ją zbuduję.').count() === 0) 
   await snap(page, 'dashboard', LAPTOP, 'dark');
   await snap(page, 'dashboard', PHONE, 'dark');
   await snap(page, 'dashboard', SMALL_PHONE, 'dark');
+  // Mobilny drawer nawigacji to osobny komponent — dostaje własne pokrycie.
+  await page.setViewportSize(PHONE);
+  await page.waitForTimeout(300);
+  if (await clickVisible(page, 'button[aria-label="Menu"]')) {
+    await page.waitForTimeout(600);
+    await snap(page, 'nav-drawer', PHONE, 'dark');
+    await clickVisible(page, 'button[aria-label="Zamknij menu"]');
+    await page.waitForTimeout(400);
+  } else {
+    report.problems.push('nawigacja: nie udało się otworzyć mobilnego menu');
+  }
   await page.setViewportSize(DESKTOP);
   await clickVisible(page, 'button[aria-label="Zmień motyw"]');
   await page.waitForTimeout(700);
@@ -197,9 +239,40 @@ if (await page.locator('text=Opisz stronę, a ja ją zbuduję.').count() === 0) 
 // ---------- LEAD FINDER ----------
 await page.setViewportSize(DESKTOP);
 await page.waitForTimeout(400);
-if (await clickVisible(page, 'aside button:has-text("Lead Finder")')) {
+if (await clickVisible(page, 'aside button:has-text("Leady")')) {
   await page.waitForTimeout(1000);
   await snap(page, 'leadfinder', DESKTOP);
+
+  // --- Filtr miast: musi filtrować i nie chować tekstu pod ikoną lupy ---
+  const cityTrigger = page.locator('button:has-text("Wybierz miasto")').first();
+  if (await cityTrigger.count() === 0) {
+    report.problems.push('leadfinder: brak przycisku wyboru miasta');
+  } else {
+    // kraj jest wymagany, żeby lista miast w ogóle się pobrała
+    await page.locator('select#lf-country').selectOption('Polska').catch(() => {});
+    await page.waitForTimeout(600);
+    await cityTrigger.click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    const cityFilter = page.locator('input[placeholder="Wpisz nazwę miasta..."]').first();
+    if (await cityFilter.count() === 0) {
+      report.problems.push('leadfinder: brak pola filtrowania miast');
+    } else {
+      const pad = await cityFilter.evaluate((el) => getComputedStyle(el).paddingLeft);
+      if (parseFloat(pad) < 40) {
+        report.problems.push(`leadfinder: tekst miasta zaczyna się na ${pad} i wchodzi pod ikonę lupy`);
+      }
+      const rowsBefore = await page.locator('div.sm-scroll button').count();
+      await cityFilter.fill('kra');
+      await page.waitForTimeout(700);
+      const rowsAfter = await page.locator('div.sm-scroll button').count();
+      const matches = await page.locator('div.sm-scroll button:has-text("Kra")').count();
+      if (rowsAfter >= rowsBefore || matches === 0) {
+        report.problems.push(`leadfinder: filtr miast nie zawężył listy (${rowsBefore} → ${rowsAfter})`);
+      }
+      await snap(page, 'leadfinder-city-filter', DESKTOP);
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+  }
   await snap(page, 'leadfinder', PHONE);
 } else {
   report.problems.push('panel: nie udało się otworzyć Lead Findera');
@@ -208,7 +281,7 @@ if (await clickVisible(page, 'aside button:has-text("Lead Finder")')) {
 // ---------- KREATOR ----------
 await page.setViewportSize(DESKTOP);
 await page.waitForTimeout(300);
-if (await clickVisible(page, 'aside button:has-text("Kreator AI")')) {
+if (await clickVisible(page, 'aside button:has-text("Kreator")')) {
   await page.waitForTimeout(1800);
   await snap(page, 'builder', DESKTOP);
   await snap(page, 'builder', PHONE);
@@ -220,9 +293,17 @@ if (await clickVisible(page, 'aside button:has-text("Kreator AI")')) {
 }
 
 // ---------- POZOSTAŁE ZAKŁADKI ----------
-await clickVisible(page, 'header button:has-text("Kreator"), button:has-text("Kreator")');
+// Kreator to pełnoekranowy workspace — najpierw wracamy do panelu, w którym
+// sidebar jest widoczny.
+await page.setViewportSize(DESKTOP);
+await page.waitForTimeout(300);
+// Powrót do panelu to przycisk z ikoną; jego nazwą dostępną jest aria-label.
+await clickVisible(page, 'header button[aria-label="Wróć do panelu"]');
 await page.waitForTimeout(1200);
-for (const [tab, label] of [['Cennik i plany', 'pricing'], ['Finanse', 'finance'], ['Akademia', 'tutorials'], ['Pomoc', 'help'], ['Ustawienia', 'settings']]) {
+if (await page.locator('aside').count() === 0) {
+  report.problems.push('panel: powrót z Kreatora nie przywrócił sidebara');
+}
+for (const [tab, label] of [['Cennik i plany', 'pricing'], ['Płatności', 'finance'], ['Poradniki', 'tutorials'], ['Pomoc', 'help'], ['Ustawienia', 'settings']]) {
   await page.setViewportSize(DESKTOP);
   await page.waitForTimeout(300);
   if (!(await clickVisible(page, `aside button:has-text("${tab}")`))) {
@@ -233,6 +314,81 @@ for (const [tab, label] of [['Cennik i plany', 'pricing'], ['Finanse', 'finance'
   await snap(page, label, DESKTOP);
   await snap(page, label, PHONE);
 }
+
+// ---------- PANEL ADMINISTRATORA (ukryty za hasłem w widoku Pomoc) ----------
+await page.setViewportSize(DESKTOP);
+await page.waitForTimeout(300);
+if (!(await clickVisible(page, 'aside button:has-text("Pomoc")'))) {
+  report.problems.push('admin: brak zakładki „Pomoc"');
+} else {
+  await page.waitForTimeout(900);
+  if (!(await clickVisible(page, 'main button:text-is("Panel")'))) {
+    report.problems.push('admin: nie znaleziono wejścia do panelu administratora');
+  } else {
+    await page.waitForTimeout(500);
+    await snap(page, 'admin-login', PHONE);
+    await page.setViewportSize(DESKTOP);
+    await page.waitForTimeout(300);
+    await snap(page, 'admin-login', DESKTOP);
+    const field = page.locator('input[type="password"]:visible').first();
+    if (await field.count() === 0) {
+      report.problems.push('admin: brak pola hasła');
+    } else {
+      await field.fill('audit-password');
+      await field.press('Enter');
+      await page.waitForTimeout(900);
+      if (await page.getByText('Panel administratora', { exact: true }).count() === 0) {
+        report.problems.push('admin: panel nie otworzył się po poprawnej weryfikacji');
+      }
+      await snap(page, 'admin', DESKTOP);
+      await snap(page, 'admin', PHONE);
+    }
+  }
+}
+
+// ---------- LEAD FINDER BEZ PAKIETU ----------
+// Egzekwowanie jest na serwerze (403). Tutaj sprawdzamy, że interfejs pokazuje
+// spokojną blokadę pakietową, a nie wyszukiwarkę, której użytkownik nie użyje.
+const locked = await context.newPage();
+locked.on('pageerror', (e) => report.problems.push(`pageerror(leadfinder-locked): ${e.message}`));
+// Ta strona potrzebuje tych samych mocków infrastruktury co panel główny,
+// inaczej zatrzyma się na bramie „w budowie".
+await locked.route('**/api/admin/gate/check', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ unlocked: true }) }));
+await locked.route('**/api/credits', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ credits: 42 }) }));
+await locked.route('**/api/projects/', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+await locked.route('**/api/entitlements', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan: null, lead_finder: false, lead_limit: 0, expires_at: null, expired: false }) }));
+await locked.route('**/api/leads/search', (route) =>
+  route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ detail: 'Lead Finder wymaga aktywnego pakietu.' }) }));
+await locked.goto(BASE, { waitUntil: 'domcontentloaded' });
+await locked.waitForTimeout(2200); // splash
+await locked.locator('button:has-text("Wróć do aplikacji"), button:has-text("Zacznij zarabiać")').first().click({ timeout: 8000 }).catch(() => {});
+await locked.waitForTimeout(1200);
+if (!(await clickVisible(locked, 'aside button:has-text("Leady")'))) {
+  report.problems.push('leadfinder-locked: nie udało się otworzyć Lead Findera');
+} else {
+  await locked.waitForTimeout(900);
+  if (await locked.locator('text=Lead Finder wymaga pakietu').count() === 0) {
+    report.problems.push('leadfinder-locked: brak komunikatu o wymaganym pakiecie');
+  }
+  if (await locked.locator('button:has-text("Szukaj leadów")').count() > 0) {
+    report.problems.push('leadfinder-locked: wyszukiwarka widoczna bez pakietu');
+  }
+  if (!(await clickVisible(locked, 'button:has-text("Zobacz pakiety")'))) {
+    report.problems.push('leadfinder-locked: brak przycisku „Zobacz pakiety"');
+  } else {
+    await locked.waitForTimeout(700);
+    await snap(locked, 'leadfinder-locked-plans', DESKTOP);
+  }
+  await clickVisible(locked, 'aside button:has-text("Leady")');
+  await locked.waitForTimeout(600);
+  await snap(locked, 'leadfinder-locked', DESKTOP);
+  await snap(locked, 'leadfinder-locked', PHONE);
+}
+await locked.close();
 
 await browser.close();
 writeFileSync(resolve(OUT, 'report.json'), JSON.stringify(report, null, 2));

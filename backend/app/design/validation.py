@@ -51,6 +51,17 @@ FIELD_ENUM_ALIASES: dict[str, dict[str, str]] = {
     },
 }
 
+# Lists whose declared max_length may be enforced by dropping the trailing
+# items. Kept as an explicit allowlist on purpose: trimming sections, links,
+# nav, forms or CTA lists would silently change how the compiled page behaves,
+# while these two semantic-signal lists are ranked guidance where the contract
+# already declares "at most six". The limit itself is always read from the
+# schema, never hard-coded here.
+TRUNCATABLE_LISTS = {
+    'semanticProfile.culturalSignalsDesired',
+    'semanticProfile.culturalSignalsAvoid',
+}
+
 # validate_spec() requires a link's kind to agree with its href's scheme. The
 # href is the authoritative side of that pair: it is what the page actually
 # links to, it is what every CTA prop is matched against, and the design runtime
@@ -151,7 +162,7 @@ def _normalize_value(value, annotation, path, report, info=None):
     if kind == 'model':
         return _normalize_model(value, extra, path, report)
     if kind == 'list':
-        return _normalize_list(value, extra, path, report)
+        return _normalize_list(value, extra, path, report, info)
     if kind == 'dict':
         return _normalize_dict(value, extra, path, report)
     if kind == 'enum':
@@ -247,16 +258,38 @@ def _normalize_model(value, model, path, report):
     return value
 
 
-def _normalize_list(value, item_annotation, path, report):
+def _normalize_list(value, item_annotation, path, report, info=None):
     if isinstance(value, list):
         for index, item in enumerate(value):
             value[index] = _normalize_value(item, item_annotation, f'{path}[{index}]', report)
-        return value
+        return _apply_list_limit(value, path, report, info)
     if isinstance(value, str) and value.strip() and _kind(item_annotation)[0] == 'str':
         # A lone string where the contract wants string[]: wrap it, never split
         # it into items the model did not send.
         report.append(path)
         return [value.strip()]
+    return value
+
+
+def _apply_list_limit(value, path, report, info):
+    """Enforce a declared list max_length by keeping the leading items.
+
+    Only allowlisted semantic-signal fields are trimmed, and only when every
+    element already satisfies the declared item type. A list holding a
+    wrong-typed element is left whole, because cutting it would hide the value
+    that actually failed the contract. Order and wording are preserved; this
+    drops information, which the diagnostics report honestly.
+    """
+    if path not in TRUNCATABLE_LISTS:
+        return value
+    limit = _max_length(info)
+    if limit is None or len(value) <= limit:
+        return value
+    if not all(isinstance(item, str) for item in value):
+        return value
+    original = len(value)
+    value = value[:limit]
+    report.truncated_fields.append({'path': path, 'from_length': original, 'to_length': limit})
     return value
 
 

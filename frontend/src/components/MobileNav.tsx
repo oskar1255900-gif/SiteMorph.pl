@@ -20,7 +20,8 @@ export const MobileNav = ({
   theme,
   setTheme,
   credits,
-  session
+  session,
+  plan = null,
 }: {
   activeTab: string;
   setActiveTab: (t: string) => void;
@@ -29,6 +30,7 @@ export const MobileNav = ({
   setTheme: (t: 'light' | 'dark') => void;
   credits: number;
   session: any;
+  plan?: string | null;
 }) => {
   const [open, setOpen] = useState(false)
   useEffect(() => { setOpen(false) }, [activeTab])
@@ -44,26 +46,26 @@ export const MobileNav = ({
     <>
       {/* Top bar */}
       <div
-        className="lg:hidden fixed top-0 left-0 right-0 z-50 h-[60px] flex items-center justify-between px-4"
+        className="lg:hidden fixed top-0 left-0 right-0 z-50 h-[56px] flex items-center justify-between px-3"
         style={{ background: 'var(--sm-bg)' }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setOpen(true)}
             className="sm-icon-btn"
             aria-label="Menu"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
-          <img src="/logo.svg" alt="" width="28" height="28" className="rounded-[8px]" />
-          <span className="text-[17px] font-semibold tracking-[-0.03em]">
+          <img src="/logo.svg" alt="" width="26" height="26" className="rounded-[7px]" />
+          <span className="text-[15.5px] font-semibold tracking-[-0.03em]">
             Site<span className="sm-brand-gradient">Morph</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px]" style={{ background: 'var(--sm-surface)' }}>
-            <Coins size={16} style={{ color: 'var(--sm-accent)' }} />
-            <span className="text-[15px] font-semibold">{credits}</span>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-[10px] px-2.5 py-1" style={{ background: 'var(--sm-surface)' }}>
+            <Coins size={15} style={{ color: 'var(--sm-accent)' }} />
+            <span className="text-[13.5px] font-semibold">{credits}</span>
           </div>
           <motion.button
             whileTap={{ scale: 0.94 }}
@@ -72,7 +74,7 @@ export const MobileNav = ({
             className="sm-icon-btn"
             aria-label="Zmień motyw"
           >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </motion.button>
         </div>
       </div>
@@ -94,14 +96,14 @@ export const MobileNav = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] z-[61] flex flex-col lg:hidden overflow-y-auto"
-              style={{ background: '#000000' }}
+              className="fixed left-0 top-0 bottom-0 w-[272px] z-[61] flex flex-col lg:hidden overflow-y-auto"
+              style={{ background: 'var(--sm-sidebar)' }}
             >
               {/* Drawer header */}
-              <div className="h-[72px] flex items-center justify-between px-6">
-                <div className="flex items-center gap-3">
-                  <img src="/logo.svg" alt="" width="32" height="32" className="rounded-[8px]" />
-                  <span className="text-[19px] font-semibold tracking-[-0.02em]">
+              <div className="flex h-[64px] items-center justify-between px-5">
+                <div className="flex items-center gap-2.5">
+                  <img src="/logo.svg" alt="" width="28" height="28" className="rounded-[7px]" />
+                  <span className="text-[17px] font-semibold tracking-[-0.02em]">
                     Site<span className="sm-brand-gradient">Morph</span>
                   </span>
                 </div>
@@ -110,13 +112,13 @@ export const MobileNav = ({
                   className="sm-icon-btn"
                   aria-label="Zamknij menu"
                 >
-                  <X size={22} />
+                  <X size={20} />
                 </button>
               </div>
 
               {/* Nav items */}
               <nav className="flex-1 px-4 space-y-1" aria-label="Menu mobilne">
-                <div className="px-3 pb-2 pt-2 text-[12px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sm-text-quiet)' }}>
+                <div className="px-3 pb-1.5 pt-1 text-[11.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--sm-text-quiet)' }}>
                   Menu
                 </div>
                 {SIDEBAR_MENU.map((item) => {
@@ -125,18 +127,18 @@ export const MobileNav = ({
                     <button
                       key={item.id}
                       onClick={() => { setActiveTab(item.id); setOpen(false); }}
-                      className="w-full flex items-center gap-3.5 rounded-[10px] border-none bg-transparent cursor-pointer transition-all"
+                      className="w-full flex items-center gap-3 rounded-[10px] border-none bg-transparent cursor-pointer transition-all"
                       style={{
-                        minHeight: '52px',
-                        padding: '0 14px',
-                        fontSize: '16px',
+                        minHeight: '48px',
+                        padding: '0 12px',
+                        fontSize: '15px',
                         fontWeight: isActive ? 600 : 500,
                         color: isActive ? 'var(--sm-text)' : 'var(--sm-text-secondary)',
                         background: isActive ? 'var(--sm-surface)' : 'transparent',
                       }}
                       aria-current={isActive ? 'page' : undefined}
                     >
-                      <item.icon size={22} className="shrink-0" />
+                      <item.icon size={20} className="shrink-0" />
                       <span className="truncate">{item.label}</span>
                     </button>
                   );
@@ -144,57 +146,59 @@ export const MobileNav = ({
                 <div className="pt-2" style={{ borderTop: '1px solid var(--sm-border-subtle)' }} />
                 <button
                   onClick={() => { setActiveTab('settings'); setOpen(false); }}
-                  className="w-full flex items-center gap-3.5 rounded-[10px] border-none bg-transparent cursor-pointer transition-all"
+                  className="w-full flex items-center gap-3 rounded-[10px] border-none bg-transparent cursor-pointer transition-all"
                   style={{
-                    minHeight: '52px',
-                    padding: '0 14px',
-                    fontSize: '16px',
+                    minHeight: '48px',
+                    padding: '0 12px',
+                    fontSize: '15px',
                     fontWeight: activeTab === 'settings' ? 600 : 500,
                     color: activeTab === 'settings' ? 'var(--sm-text)' : 'var(--sm-text-secondary)',
                     background: activeTab === 'settings' ? 'var(--sm-surface)' : 'transparent',
                   }}
                   aria-current={activeTab === 'settings' ? 'page' : undefined}
                 >
-                  <Settings size={22} className="shrink-0" />
+                  <Settings size={20} className="shrink-0" />
                   <span className="truncate">Ustawienia</span>
                 </button>
               </nav>
 
               {/* Bottom */}
-              <div className="px-4 pb-6 space-y-3">
+              <div className="px-3.5 pb-5 space-y-2.5">
                 {/* Credits card */}
-                <div className="rounded-[12px] p-4" style={{ background: '#0A0A0B' }}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px]" style={{ background: '#111113' }}>
-                      <Zap size={18} style={{ color: 'var(--sm-accent)' }} />
+                <div className="rounded-[12px] p-3.5" style={{ background: 'var(--sm-surface)' }}>
+                  <div className="mb-2.5 flex items-center gap-2.5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px]" style={{ background: 'var(--sm-surface-hover)' }}>
+                      <Zap size={17} style={{ color: 'var(--sm-accent)' }} />
                     </span>
                     <div className="min-w-0">
-                      <div className="text-[16px] font-semibold leading-tight">{credits} kredytów</div>
-                      <div className="text-[13px]" style={{ color: 'var(--sm-text-quiet)' }}>Pozostało</div>
+                      <div className="text-[15px] font-semibold leading-tight">{credits} kredytów</div>
+                      <div className="text-[12.5px]" style={{ color: 'var(--sm-text-quiet)' }}>Pozostało</div>
                     </div>
                   </div>
                   <button
                     onClick={() => { setActiveTab('pricing'); setOpen(false); }}
-                    className="w-full min-h-[42px] rounded-[10px] text-[14px] font-medium cursor-pointer border-none transition-colors flex items-center justify-center gap-2"
-                    style={{ background: '#111113', color: 'var(--sm-text)' }}
+                    className="flex w-full min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-[10px] border-none text-[13.5px] font-medium transition-colors"
+                    style={{ background: 'var(--sm-surface-hover)', color: 'var(--sm-text)' }}
                   >
                     <Coins size={15} /> Doładuj kredyty
                   </button>
                 </div>
 
                 {/* User */}
-                <div className="flex items-center justify-between gap-3 px-2">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full" style={{ background: '#111113' }}>
-                      <span className="text-[13px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>
+                <div className="flex items-center justify-between gap-2 px-1.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full" style={{ background: 'var(--sm-surface-hover)' }}>
+                      <span className="text-[12.5px] font-medium" style={{ color: 'var(--sm-text-quiet)' }}>
                         {(session?.user?.email?.[0] || 'U').toUpperCase()}
                       </span>
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate text-[14px] font-medium" style={{ color: 'var(--sm-text)' }}>
+                      <div className="truncate text-[13px] font-medium" style={{ color: 'var(--sm-text)' }}>
                         {session?.user?.email?.split('@')[0] || 'Użytkownik'}
                       </div>
-                      <div className="text-[12px]" style={{ color: 'var(--sm-text-quiet)' }}>Free Plan</div>
+                      <div className="truncate text-[11.5px]" style={{ color: 'var(--sm-text-quiet)' }}>
+                        {plan ? `Pakiet ${plan.charAt(0).toUpperCase() + plan.slice(1)}` : 'Bez pakietu'}
+                      </div>
                     </div>
                   </div>
                   <button
@@ -203,7 +207,7 @@ export const MobileNav = ({
                     style={{ color: 'var(--sm-text-quiet)' }}
                     aria-label="Wyloguj"
                   >
-                    <LogOut size={18} />
+                    <LogOut size={17} />
                   </button>
                 </div>
               </div>

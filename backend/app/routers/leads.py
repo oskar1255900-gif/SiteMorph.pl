@@ -12,6 +12,20 @@ from abc import ABC, abstractmethod
 from ..database import get_db
 from ..models import Lead
 from ..auth import get_current_user
+from ..entitlements import LEAD_FINDER_REQUIRED_DETAIL, entitlement
+
+
+def require_lead_finder(db: Session, current_user: dict) -> str:
+    """Lead Finder jest modułem płatnym — sprawdzamy to na serwerze, zanim
+    wykonamy jakąkolwiek pracę (w tym request do zewnętrznego dostawcy).
+    Samo posiadanie kredytów nie wystarcza; liczy się plan z bazy."""
+    if current_user.get("is_anon"):
+        raise HTTPException(status_code=401, detail="Wymagane zalogowanie")
+    access = entitlement(db, current_user["id"])
+    if not access["lead_finder"]:
+        raise HTTPException(status_code=403, detail=LEAD_FINDER_REQUIRED_DETAIL)
+    return access["plan"]
+
 
 # Rate limiter in memory: 10/mies for Starter/Free, 30/mies for Business/Pro/Agencja
 _search_counts: dict[str, int] = defaultdict(int)
@@ -706,14 +720,8 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
     if body.industry not in INDUSTRY_OSM:
         industry_warning = f"Branża '{body.industry}' nie ma dedykowanych tagów OSM — szukam wszystkich firm w okolicy"
     quota_key = current_user["id"] if not current_user.get("is_anon") else (request.client.host if request.client else "anon")
-    # SECURITY: plan z DB, nie z nagłówka (X-User-Plan łatwo podrobić)
-    from ..models import UserSettings
-    db_plan = None
-    if not current_user.get("is_anon"):
-        us = db.query(UserSettings).filter(UserSettings.user_id == current_user["id"]).first()
-        if us and us.data:
-            db_plan = (us.data.get("plan") or "").lower()
-    effective_plan = db_plan or "starter"
+    # SECURITY: dostęp i plan wyłącznie z bazy, nie z nagłówka ani z requestu
+    effective_plan = require_lead_finder(db, current_user)
     try:
         remaining = check_rate_limit(effective_plan, quota_key)
     except HTTPException as e:
@@ -856,6 +864,7 @@ def new_search(body: SearchBody, request: Request, db: Session = Depends(get_db)
 
 @router.get("/")
 def get_leads(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    require_lead_finder(db, current_user)
     leads = db.query(Lead).filter(Lead.owner_id == current_user["id"]).all()
     # NO mock injection - return real data only, empty if none
     return leads
@@ -879,6 +888,7 @@ class SaveLeadBody(BaseModel):
 
 @router.post("/save")
 def save_lead(body: SaveLeadBody, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    require_lead_finder(db, current_user)
     # Validate required
     if not body.name or len(body.name.strip()) < 2:
         raise HTTPException(status_code=400, detail="Invalid name")

@@ -24,6 +24,16 @@ import { FloatingChat } from './components/FloatingChat';
 import { apiFetch } from './lib/api';
 import { MaintenanceGateView } from './views/MaintenanceGateView';
 
+function authNoticeFor(message: string): string {
+  if (/issued in the future/i.test(message)) {
+    return 'Nie udało się odczytać sesji: data wystawienia jest późniejsza niż czas urządzenia. Ustaw poprawną datę i godzinę (włącz synchronizację czasu) i zaloguj się ponownie.';
+  }
+  if (/invalid|expired|malformed/i.test(message)) {
+    return 'Link logowania wygasł albo jest niekompletny. Zaloguj się ponownie.';
+  }
+  return 'Nie udało się odczytać sesji z adresu. Zaloguj się ponownie.';
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [currentView, setCurrentView] = useState<'landing' | 'app'>('landing');
@@ -44,12 +54,14 @@ export default function App() {
   const [session, setSession] = useState<any>(null)
   const [showAuth, setShowAuth] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [authNotice, setAuthNotice] = useState('')
   // BRAMKA "STRONA W BUDOWIE" - odblokowywana hasłem weryfikowanym na backendzie
   const [gateUnlocked, setGateUnlocked] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
       setSession(data.session);
+      if (error) setAuthNotice(authNoticeFor(error.message));
       setAuthChecked(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -105,17 +117,6 @@ export default function App() {
     }
   }, [session]);
 
-  const getPlan = () => {
-    try { return (localStorage.getItem('sitemorph-plan') || '').toLowerCase(); } catch { return ''; }
-  };
-  const hasPackage = () => {
-    const p = getPlan();
-    return ['starter','pro','business','agencja','premium'].includes(p);
-  };
-  const canAccessGated = () => {
-    if (hasPackage()) return true;
-    return credits >= 5;
-  };
   // Miasta: prawdziwe dane z GeoNames (PL/GB/US dump, import: display_name/lat/lon/importance)
   const handleEnterApp = (tab = 'dashboard') => {
     if (!session) {
@@ -141,13 +142,16 @@ export default function App() {
   const isProtectedTab = ['dashboard', 'leadfinder', 'finance', 'settings', 'tutorials', 'help'].includes(activeTab);
   const shouldShowApp = currentView === 'app' && (!isProtectedTab || session);
 
-  // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal
+  // Jeśli próbuje wejść w chronioną kartę bez logowania - pokaż landing z auth modal.
+  // Czekamy na wynik sprawdzenia sesji, żeby powrót z logowania nie wyrzucił
+  // użytkownika z powrotem na stronę główną.
   useEffect(() => {
+    if (!authChecked) return;
     if (!showSplash && currentView === 'app' && isProtectedTab && !session) {
       setCurrentView('landing');
       setShowAuth(true);
     }
-  }, [showSplash, currentView, activeTab, session]);
+  }, [authChecked, showSplash, currentView, activeTab, session]);
 
   // BRAMKA: dopóki nie odblokujesz przez Panel (hasło po stronie backendu) - pokazuj ekran "w budowie"
   if (!gateUnlocked) {
@@ -195,6 +199,7 @@ export default function App() {
               theme={theme}
               setTheme={setTheme}
               session={session}
+              authChecked={authChecked}
               onShowAuth={() => setShowAuth(true)}
               onLogout={async () => { await supabase.auth.signOut(); setSession(null) }}
             />
@@ -247,6 +252,7 @@ export default function App() {
                   {activeTab === 'leadfinder' && (
                     <LeadFinderView
                       theme={theme}
+                      onSeePlans={() => setActiveTab('pricing')}
                       onGenerateSiteForLead={(lead, opts) => {
                         const extra: string[] = [];
                         const anyLead = lead as any;
@@ -275,7 +281,7 @@ export default function App() {
             </main>
 
             <CookieBanner />
-        <FloatingChat chatOpen={chatOpen} setChatOpen={setChatOpen} />
+            <FloatingChat chatOpen={chatOpen} setChatOpen={setChatOpen} />
           </motion.div>
         ) : currentView === 'app' ? (
           // Fallback - jeśli jakoś trafił w app bez sesji
@@ -292,11 +298,13 @@ export default function App() {
           </motion.div>
         ) : null}
       </AnimatePresence>
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} />}
+      {showAuth && (
+        <AuthModal
+          notice={authNotice}
+          onClose={() => setShowAuth(false)}
+          onSuccess={() => { setShowAuth(false); setAuthNotice(''); }}
+        />
+      )}
     </>
   );
 }
-
-// ============================================================================
-// 16. PŁYWAJĄCY CZAT
-// ============================================================================

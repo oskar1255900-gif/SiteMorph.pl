@@ -128,40 +128,38 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
       animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
       exit={{ opacity: 0, scale: 0.97, filter: 'blur(12px)' }}
       transition={{ type: 'spring' as const, stiffness: 220, damping: 22 }}
-      className="fixed inset-0 z-[95] bg-white dark:bg-black text-[#2563eb] dark:text-white overflow-y-auto no-scrollbar"
+      className="fixed inset-0 z-[95] overflow-y-auto bg-[var(--sm-bg)] text-[var(--sm-text)] no-scrollbar"
     >
-      {/* morph blobs */}
-
-      <div className="relative max-w-6xl mx-auto px-6 py-6">
-        <div className="flex items-center justify-between border-b border-[#EAEAEA] dark:border-neutral-900 pb-4 mb-6">
+      <div className="relative mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-7 flex items-center justify-between pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-[#111111] dark:bg-white text-white dark:text-black grid place-items-center font-semibold"><Settings size={18} /></div>
+            <div className="grid h-11 w-11 place-items-center rounded-[12px] bg-[var(--sm-surface-hover)]"><Settings size={20} /></div>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>Panel administratora</h1>
-              <p className="text-[13px] font-bold opacity-60">Tylko dla administratora · wszystkie dane o stronie w jednym miejscu</p>
+              <h1 className="text-[24px] font-semibold tracking-[-0.02em]">Panel administratora</h1>
+              <p className="text-[14px] text-[var(--sm-text-secondary)]">Dane o stronie w jednym miejscu</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={onClose}><X size={14} /> Zamknij panel</Button>
+          <Button variant="secondary" size="sm" onClick={onClose}><X size={14} /> Zamknij panel</Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
           {liveStats.map((s) => (
-            <motion.div key={s.label} whileHover={{ y: -4, scale: 1.02 }} className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 shadow-sm">
+            <motion.div key={s.label} whileHover={{ y: -1 }} className="rounded-[16px] bg-[var(--sm-surface)] p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold uppercase tracking-widest opacity-60">{s.label}</span>
-                <s.icon size={14} className="opacity-60" />
+                <span className="text-[13px] font-medium uppercase tracking-[0.08em] text-[var(--sm-text-quiet)]">{s.label}</span>
+                <s.icon size={16} className="text-[var(--sm-text-quiet)]" />
               </div>
-              <div className="text-2xl font-semibold mt-1" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>{s.value}</div>
-              <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">{s.delta}</div>
+              <div className="mt-2 text-[30px] font-semibold leading-none tracking-[-0.02em]">{s.value}</div>
+              <div className="mt-2 text-[14px] font-medium text-[var(--sm-success)]">{s.delta}</div>
             </motion.div>
           ))}
         </div>
 
-        <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 mb-6">
-          <h3 className="text-sm font-semibold mb-3">Zarządzanie kredytami</h3>
+        <div className="mb-6 rounded-[16px] bg-[var(--sm-surface)] p-5">
+          <h3 className="mb-3 text-[16px] font-semibold">Zarządzanie kredytami</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input value={creditUser} onChange={(e) => setCreditUser(e.target.value)} placeholder="Nazwa użytkownika" className="px-3 py-2 rounded-2xl border text-[13px] font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
-            <select value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} className="px-3 py-2 rounded-2xl border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+            <input value={creditUser} onChange={(e) => setCreditUser(e.target.value)} placeholder="Nazwa użytkownika" className="min-h-[44px] rounded-[12px] border-none bg-[var(--sm-control-bg)] px-3 py-2 text-[14px] text-[var(--sm-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sm-accent)]" />
+            <select value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} className="min-h-[44px] cursor-pointer rounded-[12px] border-none bg-[var(--sm-control-bg)] px-3 py-2 text-[14px] text-[var(--sm-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sm-accent)]">
               <option value="10">+10 kredytów</option>
               <option value="25">+25 kredytów</option>
               <option value="50">+50 kredytów</option>
@@ -184,19 +182,19 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
               Dodaj kredyty
             </Button>
           </div>
-          <div className="text-[13px] font-bold mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 text-[14px]">
             <span className="opacity-70">Twoje kredyty: {credits}</span>
-            {creditMsg && <span className="text-emerald-600 dark:text-emerald-400">· {creditMsg}</span>}
+            {creditMsg && <span className="text-[var(--sm-success)]">· {creditMsg}</span>}
           </div>
-          <p className="text-[13px] font-bold opacity-60 mt-1">Wszystko w panelu administratora - dodaj kredyty dowolnemu użytkownikowi (demo).</p>
+          <p className="mt-1 text-[14px] text-[var(--sm-text-secondary)]">Dodaj kredyty dowolnemu użytkownikowi (demo).</p>
         </div>
 
         {/* Plan Management */}
-        <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 mb-6">
-          <h3 className="text-sm font-semibold mb-3">Zarządzanie planami użytkowników</h3>
+        <div className="mb-6 rounded-[16px] bg-[var(--sm-surface)] p-5">
+          <h3 className="mb-3 text-[16px] font-semibold">Zarządzanie planami użytkowników</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
-            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="px-3 py-2 rounded-2xl border text-[13px] font-bold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 outline-none" />
-            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="px-3 py-2 rounded-2xl border text-[13px] font-semibold bg-[#F7F6F3]/40 dark:bg-neutral-900 border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+            <input value={planUser} onChange={(e) => setPlanUser(e.target.value)} placeholder="User ID (email lub ID)" className="min-h-[44px] rounded-[12px] border-none bg-[var(--sm-control-bg)] px-3 py-2 text-[14px] text-[var(--sm-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sm-accent)]" />
+            <select value={planKey} onChange={(e) => setPlanKey(e.target.value)} className="min-h-[44px] cursor-pointer rounded-[12px] border-none bg-[var(--sm-control-bg)] px-3 py-2 text-[14px] text-[var(--sm-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sm-accent)]">
               {(plans.length ? plans : [{name:'Starter',credits:10,price:49},{name:'Pro',credits:50,price:99},{name:'Business',credits:200,price:199},{name:'Agencja',credits:500,price:499}]).map((p: any) => (
                 <option key={(p.name||p).toLowerCase()} value={(p.name||p).toLowerCase()}>
                   {p.name} ({p.credits} kr/mies, {p.price} zł)
@@ -207,13 +205,13 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
               Ustaw plan
             </Button>
           </div>
-          {planMsg && <p className="text-[13px] font-bold mt-3 text-emerald-600 dark:text-emerald-400">{planMsg}</p>}
+          {planMsg && <p className="mt-3 text-[14px] text-[var(--sm-success)]">{planMsg}</p>}
           <div className="mt-4 space-y-2">
             {(plans.length ? plans : [{name:'Starter',credits:10,price:49,features:['Builder podstawowy']},{name:'Pro',credits:50,price:99,features:['Galeria','Animacje']},{name:'Business',credits:200,price:199,features:['Team','FAQ']},{name:'Agencja',credits:500,price:499,features:['CMS','Multi-language']}]).map((p: any) => (
-              <div key={p.name} className="text-[13px] font-bold opacity-80 flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-[#F7F6F3] dark:bg-neutral-900 text-[#2563eb] dark:text-white">{p.name}</span>
-                <span className="opacity-60">{p.credits} kr/mies</span>
-                <span className="opacity-60">{p.price} zł/mies</span>
+              <div key={p.name} className="flex flex-wrap items-center gap-2 text-[14px] text-[var(--sm-text-secondary)]">
+                <span className="rounded-[6px] bg-[var(--sm-surface-hover)] px-2 py-0.5 font-medium text-[var(--sm-text)]">{p.name}</span>
+                <span className="text-[var(--sm-text-secondary)]">{p.credits} kr/mies</span>
+                <span className="text-[var(--sm-text-secondary)]">{p.price} zł/mies</span>
                 <span className="opacity-50">{(p.features||[]).join(', ')}</span>
               </div>
             ))}
@@ -221,24 +219,24 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 rounded-2xl border bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800 overflow-hidden">
-            <div className="p-4 border-b border-[#EAEAEA] dark:border-neutral-900 flex items-center justify-between">
+          <div className="overflow-hidden rounded-[16px] bg-[var(--sm-surface)] lg:col-span-2">
+            <div className="flex items-center justify-between p-4">
               <h3 className="text-sm font-semibold">Ostatni użytkownicy</h3>
               <Badge type="blue">{liveUsers.length} kont</Badge>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-[13px] border-collapse">
-                <thead className="bg-[#F7F6F3]/60 dark:bg-neutral-900">
+              <table className="w-full border-collapse text-left text-[14px]">
+                <thead className="bg-[var(--sm-surface-hover)]">
                   <tr className="font-semibold">
                     <th className="px-4 py-2.5">Użytkownik</th><th className="px-4 py-2.5">Plan</th><th className="px-4 py-2.5">Stron</th><th className="px-4 py-2.5">Wydane</th><th className="px-4 py-2.5">Dołączył</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-blue-50 dark:divide-neutral-900">
+                <tbody className="divide-y divide-[var(--sm-border-subtle)]">
                   {liveUsers.length === 0 ? (
-                    <tr><td colSpan={5} className="px-4 py-10 text-center font-bold opacity-60">Brak danych - na razie 0 użytkowników</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-10 text-center text-[var(--sm-text-secondary)]">Brak danych - na razie 0 użytkowników</td></tr>
                   ) : liveUsers.map((u) => (
-                    <tr key={u.user_id || u.name} className="font-bold hover:bg-[#F7F6F3]/40 dark:hover:bg-neutral-900/40">
-                      <td className="px-4 py-3 font-semibold truncate max-w-[180px]">{u.user_id || u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.credits ?? u.pages ?? 0}</td><td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>
+                    <tr key={u.user_id || u.name} className="hover:bg-[var(--sm-surface-hover)]">
+                      <td className="px-4 py-3 font-semibold truncate max-w-[180px]">{u.user_id || u.name}</td><td className="px-4 py-3">{u.plan}</td><td className="px-4 py-3">{u.credits ?? u.pages ?? 0}</td><td className="px-4 py-3 text-[var(--sm-success)]">{u.spent}</td><td className="px-4 py-3 opacity-70">{u.joined}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -247,35 +245,35 @@ export const AdminPanel = ({ onClose, credits, setCredits }: { onClose: () => vo
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
-              <h3 className="text-sm font-semibold mb-3">Status usług</h3>
+            <div className="rounded-[16px] bg-[var(--sm-surface)] p-5">
+              <h3 className="mb-3 text-[16px] font-semibold">Status usług</h3>
               <div className="space-y-2.5">
                 {ADMIN_SERVICES.map((svc) => (
-                  <div key={svc.name} className="flex items-center justify-between text-[13px]">
+                  <div key={svc.name} className="flex items-center justify-between text-[14px]">
                     <div>
                       <div className="font-semibold leading-none">{svc.name}</div>
-                      <div className="text-[13px] font-bold opacity-60">{svc.latency}</div>
+                      <div className="text-[13px] text-[var(--sm-text-quiet)]">{svc.latency}</div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-[13px] font-semibold ${svc.status === 'Operational' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'}`}>{svc.status}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-[13px] font-medium ${svc.status === 'Operational' ? 'bg-[rgba(22,163,74,0.12)] text-[var(--sm-success)]' : 'bg-[rgba(217,119,6,0.12)] text-[var(--sm-warning)]'}`}>{svc.status}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl border p-5 bg-white dark:bg-neutral-950 border-[#EAEAEA] dark:border-neutral-800">
-              <h3 className="text-sm font-semibold mb-2">Informacje o stronie</h3>
-              <div className="space-y-2 text-[13px] font-bold">
-                <div className="flex justify-between"><span className="opacity-60">Wersja</span><span>SiteMorph 2.4.1</span></div>
-                <div className="flex justify-between"><span className="opacity-60">Build</span><span>2026.08.22</span></div>
-                <div className="flex justify-between"><span className="opacity-60">Środowisko</span><span>production</span></div>
-                <div className="flex justify-between"><span className="opacity-60">Uptime</span><span>99.97% / 30 dni</span></div>
+            <div className="rounded-[16px] bg-[var(--sm-surface)] p-5">
+              <h3 className="mb-2 text-[16px] font-semibold">Informacje o stronie</h3>
+              <div className="space-y-2 text-[14px]">
+                <div className="flex justify-between"><span className="text-[var(--sm-text-secondary)]">Wersja</span><span>SiteMorph 2.4.1</span></div>
+                <div className="flex justify-between"><span className="text-[var(--sm-text-secondary)]">Build</span><span>2026.08.22</span></div>
+                <div className="flex justify-between"><span className="text-[var(--sm-text-secondary)]">Środowisko</span><span>production</span></div>
+                <div className="flex justify-between"><span className="text-[var(--sm-text-secondary)]">Uptime</span><span>99.97% / 30 dni</span></div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-[13px] font-bold leading-relaxed">
-          <span className="font-semibold">Uwaga:</span> to jest panel demo w przeglądarce. Prawdziwa weryfikacja hasła powinna odbywać się na backendzie (<code className="px-1 py-0.5 rounded bg-white dark:bg-black border">POST /api/admin/verify</code>). Tutaj porównujemy jedynie SHA-256 hasha, więc hasło w jawnej postaci nie występuje w kodzie frontendu.
+        <div className="mt-8 rounded-[14px] p-4 text-[14px] leading-[1.6] text-[var(--sm-text-secondary)]" style={{ background: 'rgba(217,119,6,0.08)' }}>
+          <span className="font-semibold">Uwaga:</span> to jest panel demo w przeglądarce. Prawdziwa weryfikacja hasła powinna odbywać się na backendzie (<code className="rounded-[6px] bg-[var(--sm-surface-hover)] px-1.5 py-0.5">POST /api/admin/verify</code>). Tutaj porównujemy jedynie SHA-256 hasha, więc hasło w jawnej postaci nie występuje w kodzie frontendu.
         </div>
       </div>
     </motion.div>

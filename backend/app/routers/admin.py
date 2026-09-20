@@ -133,6 +133,7 @@ PLANS = {
 class PlanUpdate(BaseModel):
     user_id: str
     plan: str  # starter, pro, business, agencja
+    expires_at: float | None = None  # unix seconds; brak = pakiet bezterminowy
 
 @router.post("/user/plan")
 def set_user_plan(body: PlanUpdate, db: Session = Depends(get_db), x_admin_hash: str = Header(None)):
@@ -146,12 +147,15 @@ def set_user_plan(body: PlanUpdate, db: Session = Depends(get_db), x_admin_hash:
     if not settings:
         settings = UserSettings(user_id=body.user_id, data={}, credits=plan["credits"])
         db.add(settings)
-    else:
-        settings.credits = plan["credits"]
-        if not settings.data:
-            settings.data = {}
-        settings.data["plan"] = plan_key
-        settings.data["plan_updated_at"] = time.time()
+    settings.credits = plan["credits"]
+    # Plan musi trafić do wiersza w KAŻDYM przypadku — wcześniej nowy użytkownik
+    # dostawał kredyty, ale bez zapisanego planu, więc nie miał uprawnień.
+    if not settings.data:
+        settings.data = {}
+    settings.data["plan"] = plan_key
+    settings.data["plan_updated_at"] = time.time()
+    if body.expires_at is not None:
+        settings.data["plan_expires_at"] = body.expires_at
     db.commit()
     return {"status": "ok", "user_id": body.user_id, "plan": plan_key, "credits": plan["credits"]}
 

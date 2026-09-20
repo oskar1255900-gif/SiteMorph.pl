@@ -631,6 +631,12 @@ PROVIDER_UNAVAILABLE_DETAIL = (
 CONFIGURATION_DETAIL = "Generator AI nie jest jeszcze skonfigurowany. Skontaktuj się z administratorem."
 INVALID_RESPONSE_DETAIL = "Model zwrócił niepoprawną odpowiedź. Spróbuj ponownie za chwilę."
 INVALID_SPEC_DETAIL = "Model nie zwrócił poprawnego planu strony. Spróbuj ponownie za chwilę."
+TIMEOUT_DETAIL = (
+    "Generowanie przekroczyło dostępny czas. Spróbuj ponownie albo skróć opis."
+)
+PREVIEW_DETAIL = (
+    "Plan strony powstał, ale nie udało się przygotować podglądu. Spróbuj ponownie."
+)
 
 
 # -----------------------------------------------------------------------------
@@ -733,13 +739,19 @@ def openrouter_error_status(error: Optional[str]) -> str:
 
 
 def generation_error_detail(status: Optional[str]) -> str:
-    """Short, honest user message for one failed generation."""
+    """Short, honest user message for one failed generation.
+
+    Each category is a different problem with a different next step, so they
+    must not collapse into one "model overloaded" message.
+    """
     if status in {"unauthorized", "payment", "not_found"}:
         return CONFIGURATION_DETAIL
     if status == "invalid_response":
         return INVALID_RESPONSE_DETAIL
     if status == "invalid_spec":
         return INVALID_SPEC_DETAIL
+    if status == "timeout":
+        return TIMEOUT_DETAIL
     return PROVIDER_UNAVAILABLE_DETAIL
 
 
@@ -2846,7 +2858,12 @@ def generate_site(data: BuilderInput, background_tasks: BackgroundTasks, current
     files, bindings, token_warnings = compile_design(spec, resolved)
     valid, issues = validate_project(files)
     if not valid:
-        raise HTTPException(status_code=502, detail="Projekt nie przeszedł walidacji: " + " | ".join(issues[:10]))
+        # The issue list is build diagnostics, not something a visitor of the
+        # builder can act on — keep it in the log and answer honestly.
+        logger.warning(
+            "SiteMorph compiled project failed validation: %s", " | ".join(issues[:10]),
+        )
+        raise HTTPException(status_code=502, detail=PREVIEW_DETAIL)
     compile_ms = round((time.perf_counter() - compile_started) * 1000, 1)
     background_tasks.add_task(track_selected_photos, photos, UNSPLASH_ACCESS_KEY)
     warnings = warnings + asset_warnings + token_warnings

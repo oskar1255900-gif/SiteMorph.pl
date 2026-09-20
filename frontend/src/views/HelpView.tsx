@@ -150,7 +150,7 @@ export const HelpView = ({ credits, setCredits }: { credits: number; setCredits:
             >
               <div className="relative flex items-center justify-between">
                 <h3 className="text-[20px] font-semibold">Panel administratora</h3>
-                <button onClick={() => { setShowAdminLogin(false); setAdminErr(''); }} className="w-7 h-7 rounded-full grid place-items-center bg-[#F7F6F3] dark:bg-neutral-900 border border-[#EAEAEA] dark:border-neutral-800 cursor-pointer">
+                <button onClick={() => { setShowAdminLogin(false); setAdminErr(''); }} aria-label="Zamknij" className="grid h-11 w-11 place-items-center rounded-full border-none bg-[var(--sm-surface-hover)] cursor-pointer transition-colors hover:bg-[var(--sm-surface-3)]">
                   <X size={16} />
                 </button>
               </div>
